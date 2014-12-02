@@ -6,4 +6,4 @@ void cuApplyRandom(int batch, unsigned long long s, double dElasticScaling, int 
 void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize);
 void cuApplyCrop(double**inputs, double**outputs, int batch,int ImgSize);
 
-#endif _DISTORTION_H_
+#endif

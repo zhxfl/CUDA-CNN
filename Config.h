@@ -5,12 +5,7 @@
 #include <vector>
 #include "util.h"
 
-class ConfigBase
-{
-};
-
-
-class ConfigGradient:private ConfigBase
+class ConfigGradient
 {
 public:
 	ConfigGradient(bool isGradientChecking)
@@ -22,8 +17,7 @@ private:
 	bool m_IsGradientChecking;
 };
 
-
-class ConfigBatchSize:private ConfigBase
+class ConfigBatchSize
 {
 public:
 	ConfigBatchSize(int batchSize)
@@ -37,7 +31,7 @@ private:
 	int m_batchSize;
 };
 
-class ConfigNonLinearity:private ConfigBase
+class ConfigNonLinearity
 {
 public:
 	ConfigNonLinearity(std::string poolMethod)
@@ -58,8 +52,7 @@ private:
 	int m_nonLinearity;
 };
 
-
-class ConfigConv:private ConfigBase
+class ConfigConv
 {
 public:
 	ConfigConv(int kernelSize, int amount, double weightDecay, int poolingDim){
@@ -74,8 +67,7 @@ public:
 	int m_poolingDim;
 };
 
-
-class ConfigFC:private ConfigBase
+class ConfigFC
 {
 public:
 	ConfigFC(int numHiddenNeurons, double weightDecay,
@@ -90,8 +82,7 @@ public:
 	double m_dropoutRate;
 };
 
-
-class ConfigSoftMax:private ConfigBase
+class ConfigSoftMax
 {
 public:
 	int m_numClasses;

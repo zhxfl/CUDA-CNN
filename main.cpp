@@ -10,6 +10,8 @@
 #include "readMnistData.h"
 #include "cuDistortion.cuh"
 #include "Config.h"
+#include "cuMatrixVector.h"
+
 /*init cublas Handle*/
 bool init(cublasHandle_t& handle)
 {
@@ -30,9 +32,10 @@ void runMnist(){
 	init(handle);
 	
  	/*read the data from disk*/
- 	std::vector<cuMatrix<double>*> trainX;
- 	std::vector<cuMatrix<double>*> testX;
+	cuMatrixVector<double>trainX;
+	cuMatrixVector<double>testX;
  	cuMatrix<double>* trainY, *testY;
+
 	Config::instance();
  	readMnistData(trainX, trainY, "mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", 60000, 1);
  	readMnistData(testX , testY,  "mnist/t10k-images.idx3-ubyte", "mnist/t10k-labels.idx1-ubyte",   10000, 1);
@@ -73,8 +76,8 @@ void cuPredict()
 	init(handle);
 
 	/*read the data from disk*/
-	std::vector<cuMatrix<double>*> trainX;
-	std::vector<cuMatrix<double>*> testX;
+	cuMatrixVector<double> trainX;
+	cuMatrixVector<double> testX;
 	cuMatrix<double>* trainY, *testY;
 
 	int num1 = readMnistData(trainX, trainY, "mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", 60000, 0);

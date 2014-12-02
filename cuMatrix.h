@@ -7,7 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 /*rows-major*/
 template <class T>
 class cuMatrix

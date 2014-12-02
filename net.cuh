@@ -5,7 +5,7 @@
 #include <vector>
 #include <stdio.h>
 #include <cuda_runtime.h>
-
+#include "cuMatrixVector.h"
 /*卷积核心*/
 typedef struct cuConvKernel{
 	cuMatrix<double>* W;
@@ -128,13 +128,13 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 	int nsamples              ：训练样本总数
 */
 
-void cuTrainNetwork(std::vector<cuMatrix<double>*> &x, 
+void cuTrainNetwork(cuMatrixVector<double>&x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
 	std::vector<cuNtw> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
-	std::vector<cuMatrix<double>*>&testX,
+	cuMatrixVector<double>& testX,
 	cuMatrix<double>* testY,
 	int nsamples,
 	int batch,
@@ -144,22 +144,21 @@ void cuTrainNetwork(std::vector<cuMatrix<double>*> &x,
 
 void cuInitCNNMemory(
 	int batch,
-	std::vector<cuMatrix<double>*>&trainX, 
-	std::vector<cuMatrix<double>*>&testX,
-	std::vector<cuCvl>&ConvLayers,
-	std::vector<cuNtw> &HiddenLayers, 
-	cuSMR &smr,
+	cuMatrixVector<double>& trainX, 
+	cuMatrixVector<double>& testX,
+	std::vector<cuCvl>& ConvLayers,
+	std::vector<cuNtw>& HiddenLayers,
+	cuSMR& smr,
 	int ImgSize,
 	int nclasses);
 
-
-int cuPredictNetwork(std::vector<cuMatrix<double>*> &x, 
+int cuPredictNetwork(cuMatrixVector<double>& x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
 	std::vector<cuNtw> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
-	std::vector<cuMatrix<double>*>&testX,
+	cuMatrixVector<double>& testX,
 	cuMatrix<double>* testY, 
 	cuMatrix<double>* predict,
 	int imgDim, 
@@ -169,6 +168,7 @@ int cuPredictNetwork(std::vector<cuMatrix<double>*> &x,
 	int nclasses,
 	cublasHandle_t handle);
 
+
 void cuFreeConvNet(std::vector<cuCvl> &ConvLayers,
 	std::vector<cuNtw> &HiddenLayers,
 	cuSMR &smr);
@@ -177,12 +177,12 @@ void cuClearCorrectCount();
 
 void cuFreeCNNMemory(
 	int batch,
-	std::vector<cuMatrix<double>*>&trainX, 
-	std::vector<cuMatrix<double>*>&testX,
+	cuMatrixVector<double>&trainX, 
+	cuMatrixVector<double>&testX,
 	std::vector<cuCvl>&ConvLayers,
-	std::vector<cuNtw> &HiddenLayers, 
+	std::vector<cuNtw>&HiddenLayers, 
 	cuSMR &smr);
 
 int cuPredictAdd(cuMatrix<double>* predict, cuMatrix<double>* testY, int batch, int ImgSize, int nclasses);
-void cuShowInCorrect(std::vector<cuMatrix<double>*>&testX, cuMatrix<double>* testY, int ImgSize, int nclasses);
+void cuShowInCorrect(cuMatrixVector<double>&testX, cuMatrix<double>* testY, int ImgSize, int nclasses);
 #endif

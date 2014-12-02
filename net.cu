@@ -6,15 +6,9 @@
 #include <time.h>
 #include "cuDistortion.cuh"
 #include "Config.h"
+#include "cuMatrixVector.h"
 
-//将输入数据转化成二维数组
-double** cu_H_trainX;
-double** cu_D_trainX;
-double** cu_H_testX;
-double** cu_D_testX;
-
-double** cu_H_Distortion;
-double** cu_D_Distortion;
+cuMatrixVector<double>* cu_distortion_vector;
 
 std::vector<int> cuPoolOutputSize;
 std::vector<int> cuConvOutputSize;
@@ -53,9 +47,6 @@ int cuCurCorrect;
 //正确的个数
 cuMatrix<double>* cuCorrect;
 cuMatrix<double>* cuCorrectCount = NULL;
-
-//畸变之后的样本数据
-std::vector<cuMatrix<double>*>cu_Distortion;
 
 /*
 	函数功能：卷积层有多个核，在GPU做并发时，
@@ -389,8 +380,6 @@ void saveWeight(cuNtw &ntw, int inputsize, int hiddensize, FILE*pOut){
 			fprintf(pOut, "%lf ", ntw.b->get(i,j));
 		}
 	}
-
-	
 }
 
 void saveWeight(cuSMR &smr, int nclasses, int nfeatures, FILE* pOut){
@@ -408,6 +397,7 @@ void saveWeight(cuSMR &smr, int nclasses, int nfeatures, FILE* pOut){
 		}
 	}
 }
+
 void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
 	std::vector<cuNtw> &HiddenLayers,
 	cuSMR &smr,
@@ -448,7 +438,6 @@ void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
 	saveWeight(smr, nclasses, Config::instance()->getFC()[Config::instance()->getFC().size() - 1]->m_numHiddenNeurons, pOut);
 	fclose(pOut);
 };
-
 
 void readWeight(cuConvK &convk, int width, FILE*pIn)
 {
@@ -592,74 +581,24 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 
 void cuInitCNNMemory(
 	int batch,
-	std::vector<cuMatrix<double>*>&trainX, 
-	std::vector<cuMatrix<double>*>&testX,
-	std::vector<cuCvl>&ConvLayers,
-	std::vector<cuNtw> &HiddenLayers, 
-	cuSMR &smr,
+	cuMatrixVector<double>& trainX, 
+	cuMatrixVector<double>& testX,
+	std::vector<cuCvl>& ConvLayers,
+	std::vector<cuNtw>& HiddenLayers,
+	cuSMR& smr,
 	int ImgSize,
 	int nclasses)
 {
-	//////////////////////////////////////
-	//卷积层核心和偏置量修改组织为二维数组
-	//////////////////////////////////////
 	cudaError_t cudaStat;
-	//cu_h_trainX
-	cu_H_trainX = (double**)malloc(trainX.size() * sizeof(double*));
-	if(!cu_H_trainX){
-		printf("cuInitCNNMemory malloc cpp_H_TrainX fail\n");
-		return;
-	}
-	cudaStat = cudaMalloc ((void**)&cu_D_trainX, trainX.size() * sizeof(double*));
-	if(cudaStat != cudaSuccess) {
-		printf ("cuInitCNNMemory device memory allocation failed\n");
-		return;
-	}
-
-	for(int i = 0; i < trainX.size(); i++)
-	{
-		cu_H_trainX[i] = trainX[i]->devData;
-	}
-
-	cudaStat = cudaMemcpy(cu_D_trainX, cu_H_trainX, trainX.size() * sizeof(double*), cudaMemcpyHostToDevice);
-	if(cudaStat != cudaSuccess){
-		printf("cuInitCNNMemory device memory copy failed\n");
-		return;
-	}
-
-	//cu_h_testX
-	cu_H_testX = (double**)malloc(testX.size() * sizeof(double*));
-	if(!cu_H_testX){
-		printf("cuInitCNNMemory malloc cu_h_testX fail\n");
-		return;
-	}
-
-	cudaStat = cudaMalloc ((void**)&cu_D_testX, testX.size() * sizeof(double*));
-	if(cudaStat != cudaSuccess) {
-		printf ("cuInitCNNMemory device memory allocation failed\n");
-		return;
-	}
-
-	for(int i = 0; i < testX.size(); i++){
-		cu_H_testX[i] = testX[i]->devData;
-	}
-
-	cudaStat = cudaMemcpy(cu_D_testX, cu_H_testX, testX.size() * sizeof(double*), cudaMemcpyHostToDevice);
-	if(cudaStat != cudaSuccess){
-		printf("cuInitCNNMemory device memory copy failed\n");
-		return;
-	}
-
 	//////////////
 	//卷积层的输出
 	//////////////
-
 	int curSize = ImgSize;
 	int curKernelAmount = 1;
 	for(int i = 0; i < ConvLayers.size(); i++){
 
 		curSize = curSize - Config::instance()->getConv()[i]->m_kernelSize + 1;
-		
+
 		cuConvOutputSize.push_back(curSize);
 		cuPoolOutputSize.push_back((curSize + Config::instance()->getConv()[i]->m_poolingDim - 1) /
 			Config::instance()->getConv()[i]->m_poolingDim);
@@ -746,7 +685,6 @@ void cuInitCNNMemory(
 	}
 
 	//代价
-	
 	if(cuCorrectCount == NULL)
 	{
 		cuCorrectCount = new cuMatrix<double>(60000, nclasses);
@@ -754,51 +692,21 @@ void cuInitCNNMemory(
 	}
 
 	//畸变之后的数据
-	for(int i = 0; i < batch; i++)
-	{
-		cu_Distortion.push_back(new cuMatrix<double>(ImgSize, ImgSize));
+	cu_distortion_vector = new cuMatrixVector<double>();
+	for(int i = 0; i < batch; i++){
+		cu_distortion_vector->m_vec.push_back(new cuMatrix<double>(ImgSize, ImgSize));
 	}
-
-	//cu_H_distortion
-	cu_H_Distortion = (double**) malloc(cu_Distortion.size() * sizeof(double*));
-	if(!cu_H_Distortion){
-		printf("malloc cu_H_distortion fail\n");
-		exit(0);
-		return;
-	}
-	
-
-	cudaStat = cudaMalloc ((void**)&cu_D_Distortion, cu_Distortion.size() * sizeof(double*));
-	if(cudaStat != cudaSuccess) {
-		printf ("cuInitCNNMemory device memory cu_D_Distortion allocation failed\n");
-		return;
-	}
-
-	for(int i = 0; i < batch; i++)
-	{
-		cu_H_Distortion[i] = cu_Distortion[i]->devData;
-	}
-
-	cudaStat = cudaMemcpy(cu_D_Distortion, cu_H_Distortion, cu_Distortion.size() * sizeof(double*),
-		cudaMemcpyHostToDevice);
-	if(cudaStat != cudaSuccess){
-		printf("cuInitCNNMemory device memory cu_D_Distortion cu_D_Distortion copy failed\n");
-		return;
-	}
+	cu_distortion_vector->toGpu();
 }
 
 void cuFreeCNNMemory(
 	int batch,
-	std::vector<cuMatrix<double>*>&trainX, 
-	std::vector<cuMatrix<double>*>&testX,
+	cuMatrixVector<double>&trainX, 
+	cuMatrixVector<double>&testX,
 	std::vector<cuCvl>&ConvLayers,
 	std::vector<cuNtw> &HiddenLayers, 
 	cuSMR &smr)
 {
-	free(cu_H_trainX);
-	cudaFree(cu_D_trainX);
-	free(cu_H_testX);
-	cudaFree(cu_D_testX);
 	cuConvOutputSize.clear();
 	cuPoolOutputSize.clear();
 	cuKernelScan.clear();
@@ -878,18 +786,9 @@ void cuFreeCNNMemory(
 	cu_v_cvl_b.clear();
 	cu_v_cvl_w.clear();
 	//代价
-	//delete cuCorrect;
-	//delete cuCorrectCount;
 
 	//畸变之后的数据
-	for(int i = 0; i < batch; i++)
-	{
-		delete cu_Distortion[i];
-	}
-	cu_Distortion.clear();
-
-	free(cu_H_Distortion);
-	cudaFree(cu_D_Distortion);
+	delete cu_distortion_vector;
 }
 
 /*
@@ -2576,13 +2475,13 @@ void gradientChecking(std::vector<cuCvl> &CLayers, std::vector<cuNtw> &hLayers, 
 	}
 }
 
-void cuTrainNetwork(std::vector<cuMatrix<double>*> &x, 
+void cuTrainNetwork(cuMatrixVector<double>&x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
 	std::vector<cuNtw> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
-	std::vector<cuMatrix<double>*>&testX,
+	cuMatrixVector<double>&testX,
 	cuMatrix<double>* testY, 
 	int nsamples,
 	int batch,
@@ -2598,7 +2497,7 @@ void cuTrainNetwork(std::vector<cuMatrix<double>*> &x,
 	for(int p = 0; p < testX.size() / batch; p++)
 	{
 		int tstart = p * batch;
-		correct += resultProdict(cu_D_testX + tstart,  testY->devData + tstart, 
+		correct += resultProdict(testX.m_devPoint + tstart,  testY->devData + tstart, 
 			CLayers, HiddenLayers, smr, lambda, batch, ImgSize, nclasses, handle);	
 	}
 
@@ -2641,17 +2540,17 @@ void cuTrainNetwork(std::vector<cuMatrix<double>*> &x,
 			{
 				int start = rand() % (x.size() - batch);
 
-				cuApplyDistortion(cu_D_trainX + start, cu_D_Distortion, batch, ImgSize);
-				cuApplyCrop(cu_D_Distortion, cu_D_Distortion, batch, ImgSize);
+				cuApplyDistortion(x.m_devPoint + start, cu_distortion_vector->m_devPoint, batch, ImgSize);
+				cuApplyCrop(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
 
-				//  			for(int ff = 0; ff < batch; ff++)
-				//  			{
-				//  				showImg(x[start + ff], 10);
-				//  				showImg(cu_Distortion[ff], 10);
-				//  				cv::waitKey(0);
-				//  			}
+// 				for(int ff = 0; ff < batch; ff++)
+// 				{
+// 					showImg(x[start + ff], 10);
+// 					showImg(cu_distortion_vector->m_vec[ff], 10);
+// 					cv::waitKey(0);
+// 				}
 
-				getNetworkCost(cu_D_Distortion,
+				getNetworkCost(cu_distortion_vector->m_devPoint,
 					y->devData + start,
 					CLayers, HiddenLayers,
 					smr,
@@ -2669,7 +2568,7 @@ void cuTrainNetwork(std::vector<cuMatrix<double>*> &x,
 			for(int p = 0; p < testX.size() / batch; p++)
 			{
 				int tstart = p * batch;
-				correct += resultProdict(cu_D_testX + tstart,  testY->devData + tstart, 
+				correct += resultProdict(testX.m_devPoint + tstart,  testY->devData + tstart, 
 					CLayers, HiddenLayers, smr, lambda, batch, ImgSize, nclasses, handle);
 			}
 
@@ -2730,13 +2629,13 @@ void __global__ g_resultCopy(double* predict, double* softMax, int nclass)
 	predict[threadIdx.x] = id;
 }
 
-int cuPredictNetwork(std::vector<cuMatrix<double>*> &x, 
+int cuPredictNetwork(cuMatrixVector<double>& x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
 	std::vector<cuNtw> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
-	std::vector<cuMatrix<double>*>&testX,
+	cuMatrixVector<double>& testX,
 	cuMatrix<double>* testY, 
 	cuMatrix<double>* predict,
 	int imgDim, 
@@ -2754,7 +2653,7 @@ int cuPredictNetwork(std::vector<cuMatrix<double>*> &x,
 		{
 			tstart = x.size() - batch;
 		}
-		resultProdict(cu_D_trainX + tstart,  y->devData + tstart,
+		resultProdict(x.m_devPoint + tstart,  y->devData + tstart,
 			CLayers, HiddenLayers, smr, lambda, batch, ImgSize, nclasses, handle);
 		g_resultCopy<<<dim3(1),dim3(batch)>>>(predict->devData + tstart, cuSoftMaxP->devData, nclasses);
 		cudaDeviceSynchronize();
@@ -2784,7 +2683,7 @@ int cuPredictAdd(cuMatrix<double>* predict, cuMatrix<double>* testY, int batch, 
 	return  cuCorrect->get(0,0);
 }
 
-void cuShowInCorrect(std::vector<cuMatrix<double>*>&testX, cuMatrix<double>* testY, int ImgSize, int nclasses)
+void cuShowInCorrect(cuMatrixVector<double>&testX, cuMatrix<double>* testY, int ImgSize, int nclasses)
 {
 	cuCorrectCount->toCpu();
 	testY->toCpu();
