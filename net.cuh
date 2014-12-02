@@ -24,31 +24,20 @@ typedef struct cuConvKernel{
 /*¾í»ý²ã*/
 typedef struct cuConvLayer{
 	std::vector<cuConvK> layer;
-	double **h_w;
-	double **d_w;
-	double **h_wgrad;
-	double **d_wgrad;
-	double **h_b;
-	double **d_b;
-	double **h_bgrad;
-	double **d_bgrad;
+	cuMatrixVector<double>* w;
+	cuMatrixVector<double>* wgrad;
+	cuMatrixVector<double>* b;
+	cuMatrixVector<double>* bgrad;
 
 	void init();
 	void clear(){
 		for(int i = 0; i < layer.size(); i++) 
 			layer[i].clear();
-
 		layer.clear();
-
-		free(h_w);
-		free(h_wgrad);		
-		free(h_b);
-		free(h_bgrad);
-
-		cudaFree(d_w);
-		cudaFree(d_wgrad);
-		cudaFree(d_b);	
-		cudaFree(d_bgrad);
+		delete w;
+		delete wgrad;
+		delete b;
+		delete bgrad;
 	}
 }cuCvl;
 

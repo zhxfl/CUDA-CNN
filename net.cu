@@ -55,96 +55,32 @@ cuMatrix<double>* cuCorrectCount = NULL;
 */
 void cuConvLayer::init()
 {
-	cudaError_t cudaStat;
-	//w
-	h_w = (double**)malloc(sizeof(double*) * layer.size());
-	if(!h_w)
-	{
-		printf("cuConvLayer::init malloc h_w\n");
-		return;
-	}
-	cudaStat = cudaMalloc((void**)&d_w, sizeof(double*) * layer.size());
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMalloc h_w fail\n");
-		return;
-	}
-
+	w = new cuMatrixVector<double>();
 	for(int i = 0; i < layer.size(); i++){
-		h_w[i] = layer[i].W->devData;
+		w->push_back(layer[i].W);
 	}
+	w->toGpu();
 
-	cudaStat = cudaMemcpy(d_w, h_w, sizeof(double*) * layer.size(), cudaMemcpyHostToDevice);
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMemcpy w fail\n");
-		return;
-	}
 
-	//b
-	h_b = (double**)malloc(sizeof(double*) * layer.size());
-	if(!h_b)
-	{
-		printf("cuConvLayer::init malloc h_b fail\n");
-		return;
-	}
-	cudaStat = cudaMalloc((void**)&d_b, sizeof(double*) * layer.size());
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMalloc h_b fail\n");
-		return;
-	}
-
+	b = new cuMatrixVector<double>();
 	for(int i = 0; i < layer.size(); i++){
-		h_b[i] = layer[i].b->devData;
+		b->push_back(layer[i].b);
 	}
+	b->toGpu();
 
-	cudaStat = cudaMemcpy(d_b, h_b, sizeof(double*) * layer.size(), cudaMemcpyHostToDevice);
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMemcpy b fail\n");
-		return;
-	}
 
-	//wgrad
-	h_wgrad = (double**)malloc(sizeof(double*) * layer.size());
-	if(!h_wgrad){
-		printf("cuConvLayer::init malloc h_wgrad fail\n");
-		return;
-	}
-
-	cudaStat = cudaMalloc((void**)&d_wgrad, sizeof(double*) * layer.size());
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMalloc wgrad fail\n");
-		return;
-	}
-
+	wgrad = new cuMatrixVector<double>();
 	for(int i = 0; i < layer.size(); i++){
-		h_wgrad[i] = layer[i].Wgrad->devData;
+		wgrad->push_back(layer[i].Wgrad);
 	}
+	wgrad->toGpu();
 
-	cudaStat = cudaMemcpy(d_wgrad, h_wgrad, sizeof(double*) * layer.size(), cudaMemcpyHostToDevice);
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMemcpy wgrad fail\n");
-		return;
-	}
 
-	//bgrad
-	h_bgrad = (double**)malloc(sizeof(double*) * layer.size());
-	if(!h_bgrad){
-		printf("cuConvLayer::init malloc h_bgrad fail\n");
-	}
-	cudaStat = cudaMalloc((void**)&d_bgrad, sizeof(double*) * layer.size());
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMalloc bgrad fail\n");
-		return;
-	}
-
+	bgrad = new cuMatrixVector<double>();
 	for(int i = 0; i < layer.size(); i++){
-		h_bgrad[i] = layer[i].bgrad->devData;
+		bgrad->push_back(layer[i].bgrad);
 	}
-
-	cudaStat = cudaMemcpy(d_bgrad, h_bgrad, sizeof(double*) * layer.size(), cudaMemcpyHostToDevice);
-	if(cudaStat != cudaSuccess){
-		printf("cuConvLayer::init cudaMemcpy bgrad fail\n");
-		return;
-	}
+	bgrad->toGpu();
 }
 
 void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2, int rows, int cols, double epsilon)
@@ -1046,8 +982,8 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 	g_convAndPooling_1<<<dim3(batch, Config::instance()->getConv()[0]->m_amount), 
 		dim3(outputSize, outputSize)>>>(
 		x,
-		CLayers[0].d_w,
-		CLayers[0].d_b,
+		CLayers[0].w->m_devPoint,
+		CLayers[0].b->m_devPoint,
 		cuConv[0]->devData,
 		cuPool[0]->devData,
 		cuPointX[0]->devData,
@@ -1078,8 +1014,8 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 		g_convAndPooling_2<<<dim3(batch, blockidy),
 			dim3(threadidx, threadidy)>>>
 			(cuPool[i - 1]->devData,
-			CLayers[i].d_w,
-			CLayers[i].d_b,
+			CLayers[i].w->m_devPoint,
+			CLayers[i].b->m_devPoint,
 			cuConv[i]->devData,
 			cuPool[i]->devData,
 			cuPointX[i]->devData,
@@ -1430,7 +1366,7 @@ void getCost(
 
 	for(int cl = 0; cl < CLayers.size(); cl++)
 	{
-		g_getCost_3<<<dim3(Config::instance()->getConv()[cl]->m_amount), dim3(32), sizeof(double) * 32>>>(smr.cost->devData, CLayers[cl].d_w, lambda,
+		g_getCost_3<<<dim3(Config::instance()->getConv()[cl]->m_amount), dim3(32), sizeof(double) * 32>>>(smr.cost->devData, CLayers[cl].w->m_devPoint, lambda,
 			Config::instance()->getConv()[cl]->m_kernelSize, Config::instance()->getConv()[cl]->m_kernelSize);
 		cudaDeviceSynchronize();
 	}
@@ -2155,7 +2091,7 @@ void dConvAndUnpooling(double**x,
 			(
 				cuConvDelta[cl]->devData,
 				cuPoolDeltaAndBorder[cl - 1]->devData,
-				CLayers[cl].d_w,
+				CLayers[cl].w->m_devPoint,
 				cuPoolDelta[cl - 1]->devData,
 				cuConvOutputSize[cl],
 				cuPoolOutputSize[cl - 1],
@@ -2197,8 +2133,8 @@ void dConvAndUnpooling(double**x,
 				dim3(256),
 				sizeof(double) * 256>>>(
 				cuConvLayerWgradTmp[cl]->devData,
-				CLayers[cl].d_wgrad,
-				CLayers[cl].d_w,
+				CLayers[cl].wgrad->m_devPoint,
+				CLayers[cl].w->m_devPoint,
 				cuConvLayerWgradTmp[cl]->getLen(),
 				cuKernelScan[cl - 1],
 				cuKernelScan[cl],
@@ -2212,7 +2148,7 @@ void dConvAndUnpooling(double**x,
 			g_getCLayerBgrad<<<dim3(Config::instance()->getConv()[cl]->m_amount), 
 				dim3(256),
 				sizeof(double) * 256>>>(cuConvDelta[cl]->devData,
-				CLayers[cl].d_bgrad,
+				CLayers[cl].bgrad->m_devPoint,
 				cuConvOutputSize[cl],
 				cuKernelScan[cl - 1],
 				cuKernelScan[cl],
@@ -2249,12 +2185,12 @@ void dConvAndUnpooling(double**x,
 			}
 			g_convAdd_1<<<dim3(Config::instance()->getConv()[cl]->m_amount, Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize),dim3(256),
 				sizeof(double) * 256>>>(cuConvLayerWgradTmp[cl]->devData,
-				CLayers[cl].d_wgrad,CLayers[cl].d_w,cuConvLayerWgradTmp[cl]->getLen(),cuKernelScan[cl],
+				CLayers[cl].wgrad->m_devPoint,CLayers[cl].w->m_devPoint,cuConvLayerWgradTmp[cl]->getLen(),cuKernelScan[cl],
 				Config::instance()->getConv()[cl]->m_amount, Config::instance()->getConv()[cl]->m_kernelSize,batch, lambda);
 			cudaDeviceSynchronize();
 
 			g_getCLayerBgrad_1<<<dim3(Config::instance()->getConv()[cl]->m_amount),dim3(256), sizeof(double) * 256>>>
-				(cuConvDelta[cl]->devData,CLayers[cl].d_bgrad, cuConvOutputSize[cl], cuKernelScan[cl],
+				(cuConvDelta[cl]->devData,CLayers[cl].bgrad->m_devPoint, cuConvOutputSize[cl], cuKernelScan[cl],
 				Config::instance()->getConv()[cl]->m_amount, batch, cuConvDelta[cl]->getLen());
 			cudaDeviceSynchronize();
 		}
@@ -2516,7 +2452,6 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
  	int epoCount[] =     {80,   80,     80,   80,   80,    80,    80,   80,      80,     80,     80,   80,   
 		80,    80,     80,      80,       80,        80,         80,          80,           80,            80,             80};
 
-	printf("%d %d %d", sizeof(nlrate), sizeof(nMomentum), sizeof(epoCount));
 	while(1)
 	{
 		double lrate = 0.05;

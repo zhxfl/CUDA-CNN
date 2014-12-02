@@ -26,15 +26,11 @@ public:
 		}
 		return m_vec[index];
 	}
-	size_t size(){
-		return m_vec.size();
-	}
-	void push_back(cuMatrix<T>* m){
-		m_vec.push_back(m);
-	}
-	vector<cuMatrix<T>*>m_vec;
-	T** m_hstPoint;
-	T** m_devPoint;
+
+	size_t size(){return m_vec.size();}
+
+	void push_back(cuMatrix<T>* m){m_vec.push_back(m);}
+
 	void toGpu()
 	{
 		cudaError_t cudaStat;
@@ -61,6 +57,10 @@ public:
 			exit(0);
 		}
 	}
+
+	vector<cuMatrix<T>*>m_vec;
+	T** m_hstPoint;
+	T** m_devPoint;
 };
 
 #endif
