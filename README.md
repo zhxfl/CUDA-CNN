@@ -34,8 +34,8 @@
 >
 ###Linux
 >1. Install opencv and cuda
->2. start the ***nsight*** from cuda
+>2. Start the ***nsight*** from cuda
 >3. Add the opencv "include path" and "lib path" to the project
->4. link list should include ***cublas.lib*** and ***curand.lib***
+>4. Link list should include ***cublas.lib*** and ***curand.lib***
 
 
