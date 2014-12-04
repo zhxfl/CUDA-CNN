@@ -38,4 +38,6 @@
 >3. Add the opencv "include path" and "lib path" to the project
 >4. Link list should include ***cublas.lib*** and ***curand.lib***
 
+>Author:zhxfl
+>mail: zhxfl@mail.ustc.edu.cn
 
