@@ -24,5 +24,5 @@
 >You can compile the code on windows or linux.
 #Windows#
 >1. Install vs2010.
->2. Download and install <p> <a href="http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/" title="opencv-3.0"> opencv-3.0</a> inline link.</p>
+>2. Download and install <a href="http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/" title="opencv-3.0"> opencv-3.0</a> 
 >3. 
