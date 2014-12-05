@@ -22,7 +22,7 @@
 
 >Compile
 >-------
->Depend on opencv and cuda
+>Depend on opencv and cuda  
 >You can compile the code on windows or linux.
 >
 ###Windows
