@@ -44,7 +44,7 @@ void runMnist(){
  	int ImgSize = trainX[0]->rows;
  	int nsamples = trainX.size();
  	std::vector<cuCvl> ConvLayers;
- 	std::vector<cuNtw> HiddenLayers;
+ 	std::vector<cuFll> HiddenLayers;
  	cuSMR smr;
  	int batch = 200;
 	double start,end;
@@ -89,7 +89,7 @@ void cuPredict()
 	int imgDim = trainX[0]->rows;
 	int nsamples = trainX.size();
 	std::vector<cuCvl> ConvLayers;
-	std::vector<cuNtw> HiddenLayers;
+	std::vector<cuFll> HiddenLayers;
 	cuSMR smr;
 	int batch = 200;
 

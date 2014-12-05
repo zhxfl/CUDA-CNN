@@ -6,7 +6,8 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
 #include "cuMatrixVector.h"
-/*卷积核心*/
+
+/*卷积核*/
 typedef struct cuConvKernel{
 	cuMatrix<double>* W;
 	cuMatrix<double>* b;
@@ -34,6 +35,7 @@ typedef struct cuConvLayer{
 		for(int i = 0; i < layer.size(); i++) 
 			layer[i].clear();
 		layer.clear();
+
 		delete w;
 		delete wgrad;
 		delete b;
@@ -42,8 +44,8 @@ typedef struct cuConvLayer{
 }cuCvl;
 
 
-/*中间层隐藏*/
-typedef struct cuNetwork{
+/*全链接层*/
+typedef struct cuFullLayer{
 	cuMatrix<double>* W;
 	cuMatrix<double>* b;
 	cuMatrix<double>* Wgrad;
@@ -59,7 +61,7 @@ typedef struct cuNetwork{
 		delete dropW;
 		delete afterDropW;
 	}
-}cuNtw;
+}cuFll;
 
 /*输出层，采用softmax回归*/
 typedef struct cuSoftmaxRegession{
@@ -88,14 +90,14 @@ typedef struct cuSoftmaxRegession{
 	int nsamples			     number of samples
 */
 void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuNtw> &HiddenLayers,
+	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr,
 	int imgDim,
 	int nsamples,
 	int nclasses);
 
 void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuNtw> &HiddenLayers, 
+	std::vector<cuFll> &HiddenLayers, 
 	cuSMR &smr, 
 	int imgDim, 
 	int nsamples, 
@@ -120,7 +122,7 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 void cuTrainNetwork(cuMatrixVector<double>&x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
-	std::vector<cuNtw> &HiddenLayers, 
+	std::vector<cuFll> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
 	cuMatrixVector<double>& testX,
@@ -136,7 +138,7 @@ void cuInitCNNMemory(
 	cuMatrixVector<double>& trainX, 
 	cuMatrixVector<double>& testX,
 	std::vector<cuCvl>& ConvLayers,
-	std::vector<cuNtw>& HiddenLayers,
+	std::vector<cuFll>& HiddenLayers,
 	cuSMR& smr,
 	int ImgSize,
 	int nclasses);
@@ -144,7 +146,7 @@ void cuInitCNNMemory(
 int cuPredictNetwork(cuMatrixVector<double>& x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
-	std::vector<cuNtw> &HiddenLayers, 
+	std::vector<cuFll> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
 	cuMatrixVector<double>& testX,
@@ -157,9 +159,8 @@ int cuPredictNetwork(cuMatrixVector<double>& x,
 	int nclasses,
 	cublasHandle_t handle);
 
-
 void cuFreeConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuNtw> &HiddenLayers,
+	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr);
 
 void cuClearCorrectCount();
@@ -169,7 +170,7 @@ void cuFreeCNNMemory(
 	cuMatrixVector<double>&trainX, 
 	cuMatrixVector<double>&testX,
 	std::vector<cuCvl>&ConvLayers,
-	std::vector<cuNtw>&HiddenLayers, 
+	std::vector<cuFll>&HiddenLayers, 
 	cuSMR &smr);
 
 int cuPredictAdd(cuMatrix<double>* predict, cuMatrix<double>* testY, int batch, int ImgSize, int nclasses);

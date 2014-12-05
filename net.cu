@@ -199,7 +199,7 @@ int inputsize  每个神经元链接上一层神经元个数
 int hiddensize 本层的神经元个数
 */
 
-void weightRandomInit(cuNtw &ntw, int inputsize, int hiddensize, double dropRate){
+void weightRandomInit(cuFll &ntw, int inputsize, int hiddensize, double dropRate){
 	double epsilon = sqrt((double)6) / sqrt((double)(hiddensize + inputsize + 1));
 	ntw.W = new cuMatrix<double>(hiddensize, inputsize);
 	ntw.dropW = new cuMatrix<double>(hiddensize, inputsize);
@@ -245,7 +245,7 @@ void weightRandomInit(cuSMR &smr, int nclasses, int nfeatures){
 }
 
 void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuNtw> &HiddenLayers,
+	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr,
 	int imgDim,
 	int nsamples, 
@@ -276,12 +276,12 @@ void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
 	for(int i=0; i<ConvLayers.size(); i++){
 		hiddenfeatures *= ConvLayers[i].layer.size();
 	}
-	cuNtw tpntw;
+	cuFll tpntw;
 	weightRandomInit(tpntw, hiddenfeatures, Config::instance()->getFC()[0]->m_numHiddenNeurons, 
 		Config::instance()->getFC()[0]->m_dropoutRate);
 	HiddenLayers.push_back(tpntw);
 	for(int i=1; i < Config::instance()->getFC().size(); i++){
-		cuNtw tpntw2;
+		cuFll tpntw2;
 		weightRandomInit(tpntw2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons,
 			Config::instance()->getFC()[i]->m_numHiddenNeurons, Config::instance()->getFC()[i]->m_dropoutRate);
 		HiddenLayers.push_back(tpntw2);
@@ -302,7 +302,7 @@ void saveWeight(cuConvK &convk, int width, FILE*pOut)
 	fprintf(pOut, "%lf ", convk.b->get(0,0));
 }
 
-void saveWeight(cuNtw &ntw, int inputsize, int hiddensize, FILE*pOut){
+void saveWeight(cuFll &ntw, int inputsize, int hiddensize, FILE*pOut){
 	ntw.W->toCpu();
 	ntw.b->toCpu();
 	for(int i=0; i<ntw.W->rows; i++){
@@ -335,7 +335,7 @@ void saveWeight(cuSMR &smr, int nclasses, int nfeatures, FILE* pOut){
 }
 
 void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuNtw> &HiddenLayers,
+	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr,
 	int imgDim,
 	int nclasses,
@@ -363,10 +363,10 @@ void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
 		hiddenfeatures *= ConvLayers[i].layer.size();
 	}
 
-	cuNtw tpntw = HiddenLayers[0];
+	cuFll tpntw = HiddenLayers[0];
 	saveWeight(tpntw, hiddenfeatures, Config::instance()->getFC()[0]->m_numHiddenNeurons, pOut);
 	for(int i=1; i < Config::instance()->getFC().size(); i++){
-		cuNtw tpntw2 = HiddenLayers[i];
+		cuFll tpntw2 = HiddenLayers[i];
 		saveWeight(tpntw2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons, 
 			Config::instance()->getFC()[i]->m_numHiddenNeurons, pOut);
 	}
@@ -394,7 +394,7 @@ void readWeight(cuConvK &convk, int width, FILE*pIn)
 	convk.b->toGpu();
 }
 
-void readWeight(cuNtw &ntw, int inputsize, int hiddensize, FILE*pIn, double dropRate){
+void readWeight(cuFll &ntw, int inputsize, int hiddensize, FILE*pIn, double dropRate){
 	double val = 0.0;
 	ntw.W = new cuMatrix<double>(hiddensize, inputsize);
 	for(int i=0; i<ntw.W->rows; i++){
@@ -405,8 +405,8 @@ void readWeight(cuNtw &ntw, int inputsize, int hiddensize, FILE*pIn, double drop
 	}
 
 	ntw.dropW = new cuMatrix<double>(hiddensize, inputsize);
+	ntw.afterDropW = new cuMatrix<double>(hiddensize, inputsize);
 	dropDelta(ntw.dropW, dropRate);
-
 
 	ntw.b = new cuMatrix<double>(hiddensize, 1);
 	for(int i = 0; i < ntw.b->rows; i++){
@@ -446,7 +446,7 @@ void readWeight(cuSMR &smr, int nclasses, int nfeatures, FILE* pIn){
 }
 
 void cuFreeConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuNtw> &HiddenLayers,
+	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr)
 {
 	for(int cl = 0; cl <ConvLayers.size(); cl++)
@@ -463,7 +463,7 @@ void cuFreeConvNet(std::vector<cuCvl> &ConvLayers,
 }
 
 void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuNtw> &HiddenLayers,
+	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr, int imgDim, int nsamples, char* path,
 	int nclasses)
 {	
@@ -500,12 +500,12 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 		hiddenfeatures *= ConvLayers[i].layer.size();
 	}
 
-	cuNtw tpntw;
+	cuFll tpntw;
 	readWeight(tpntw, hiddenfeatures, Config::instance()->getFC()[0]->m_numHiddenNeurons,
 		pIn, Config::instance()->getFC()[0]->m_dropoutRate);
 	HiddenLayers.push_back(tpntw);
 	for(int i=1; i < Config::instance()->getFC().size(); i++){
-		cuNtw tpntw2;
+		cuFll tpntw2;
 		readWeight(tpntw2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons, 
 			Config::instance()->getFC()[i]->m_numHiddenNeurons, pIn, Config::instance()->getFC()[i]->m_dropoutRate);
 		HiddenLayers.push_back(tpntw2);
@@ -520,7 +520,7 @@ void cuInitCNNMemory(
 	cuMatrixVector<double>& trainX, 
 	cuMatrixVector<double>& testX,
 	std::vector<cuCvl>& ConvLayers,
-	std::vector<cuNtw>& HiddenLayers,
+	std::vector<cuFll>& HiddenLayers,
 	cuSMR& smr,
 	int ImgSize,
 	int nclasses)
@@ -640,7 +640,7 @@ void cuFreeCNNMemory(
 	cuMatrixVector<double>&trainX, 
 	cuMatrixVector<double>&testX,
 	std::vector<cuCvl>&ConvLayers,
-	std::vector<cuNtw> &HiddenLayers, 
+	std::vector<cuFll> &HiddenLayers, 
 	cuSMR &smr)
 {
 	cuConvOutputSize.clear();
@@ -1064,7 +1064,7 @@ __global__ void g_dropW(double * w, double * dropW, double* afterDropW, int len)
 	}
 }
 
-void getHiddenLayerActi(std::vector<cuNtw>&hLayers, cublasHandle_t handle)
+void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 {
 	for(int hl = 0; hl < Config::instance()->getFC().size(); hl++)
 	{
@@ -1351,7 +1351,7 @@ __global__ void g_getCost_1(double* softMaxP,
 void getCost(
 	double*y,
 	std::vector<cuCvl> &CLayers, 
-	std::vector<cuNtw> &hLayers,
+	std::vector<cuFll> &hLayers,
 	cuSMR &smr,
 	double lambda,
 	int batch)
@@ -1511,7 +1511,7 @@ __global__ void g_getHiddlenWgrad(double* wgrad, double* dropM, int len, int bat
 }
 
 void getHiddenDelta(
-	std::vector<cuNtw> &hLayers,
+	std::vector<cuFll> &hLayers,
 	cuSMR &smr,
 	double lambda,
 	int batch,
@@ -2033,7 +2033,7 @@ __global__ void g_getCLayerBgrad_1(double* delta,
 
 void dConvAndUnpooling(double**x, 
 	std::vector<cuCvl> &CLayers,
-	std::vector<cuNtw> &hLayers,
+	std::vector<cuFll> &hLayers,
 	double lambda,
 	int batch, int ImgSize, int nclasses, cublasHandle_t handle)
 {
@@ -2145,6 +2145,8 @@ void dConvAndUnpooling(double**x,
 				lambda);
 			cudaDeviceSynchronize();
 
+
+
 			g_getCLayerBgrad<<<dim3(Config::instance()->getConv()[cl]->m_amount), 
 				dim3(256),
 				sizeof(double) * 256>>>(cuConvDelta[cl]->devData,
@@ -2177,6 +2179,7 @@ void dConvAndUnpooling(double**x,
 				Config::instance()->getConv()[cl]->m_amount,
 				Config::instance()->getConv()[cl]->m_kernelSize);
 			cudaDeviceSynchronize();
+
 
 			if(Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize > MAX_THREADS)
 			{
@@ -2225,7 +2228,7 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 }
 
 void updataWB(std::vector<cuCvl> &CLayers, 
-	std::vector<cuNtw> &hLayers,
+	std::vector<cuFll> &hLayers,
 	cuSMR &smr,
 	double lrate,
 	double momentum,
@@ -2257,7 +2260,7 @@ void updataWB(std::vector<cuCvl> &CLayers,
 void getNetworkCost(double** x, 
 	double* y , 
 	std::vector<cuCvl> &CLayers, 
-	std::vector<cuNtw> &hLayers,
+	std::vector<cuFll> &hLayers,
 	cuSMR &smr,
 	double lambda,
 	int batch,
@@ -2302,7 +2305,7 @@ __global__ void getCorrect(double* softMaxP, double*correct, double* y, int cols
 
 int resultProdict(double** testX, double*testY,
 	std::vector<cuCvl> &CLayers, 
-	std::vector<cuNtw> &hLayers, 
+	std::vector<cuFll> &hLayers, 
 	cuSMR &smr, double lambda, int batch, int ImgSize, int nclasses, cublasHandle_t handle)
 {
 	convAndPooling(testX, CLayers, batch, ImgSize);
@@ -2362,7 +2365,7 @@ __global__ void g_resultCountProdict(double* correcttCount, double* y, double* c
 
 }
 
-void gradientChecking(std::vector<cuCvl> &CLayers, std::vector<cuNtw> &hLayers, cuSMR &smr, double**x, 
+void gradientChecking(std::vector<cuCvl> &CLayers, std::vector<cuFll> &hLayers, cuSMR &smr, double**x, 
 	double*y, double lambda, int batch, int ImgSize, int nclasses, cublasHandle_t handle)
 {
 	std::cout<<"test network !!!!"<<std::endl;
@@ -2414,7 +2417,7 @@ void gradientChecking(std::vector<cuCvl> &CLayers, std::vector<cuNtw> &hLayers, 
 void cuTrainNetwork(cuMatrixVector<double>&x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
-	std::vector<cuNtw> &HiddenLayers, 
+	std::vector<cuFll> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
 	cuMatrixVector<double>&testX,
@@ -2430,6 +2433,12 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 	cuCorrectCount->gpuClear();
 	int correct = 0;
+
+	for(int hl = 0; hl < HiddenLayers.size(); hl++)
+	{
+		dropDelta(HiddenLayers[hl].dropW, 0.0f);
+	}
+
 	for(int p = 0; p < testX.size() / batch; p++)
 	{
 		int tstart = p * batch;
@@ -2473,7 +2482,9 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			}
 			for(int k = 0; k < (x.size() + batch - 1) / batch; k++)
 			{
+				//int start = k * batch;
 				int start = rand() % (x.size() - batch);
+				printf("%2d%%", k * 100 / ((x.size() + batch - 1) / batch));
 
 				cuApplyDistortion(x.m_devPoint + start, cu_distortion_vector->m_devPoint, batch, ImgSize);
 				cuApplyCrop(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
@@ -2491,6 +2502,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 					smr,
 					lambda, batch, ImgSize, nclasses, handle);
 				updataWB(CLayers, HiddenLayers, smr, lrate, Momentum, batch);
+				printf("\b\b\b");
 			}
 
 			smr.cost->toCpu();
@@ -2567,7 +2579,7 @@ void __global__ g_resultCopy(double* predict, double* softMax, int nclass)
 int cuPredictNetwork(cuMatrixVector<double>& x, 
 	cuMatrix<double>*y , 
 	std::vector<cuCvl> &CLayers,
-	std::vector<cuNtw> &HiddenLayers, 
+	std::vector<cuFll> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
 	cuMatrixVector<double>& testX,
