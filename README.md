@@ -14,9 +14,9 @@
 >Feature
 >--------
 >1. Use ***DropConnnect*** to train the NetWork
->2. Support checkpoint, the program will save the best test result and save the network weight in the file "net.txt", If the program exit accidentally, you can continue the program form this checkpoint.
+>2. Support checkpoint, the program will save the best test result and save the network weight in the file "checkPoint.txt", If the program exit accidentally, you can continue the program form this checkpoint.
 >3. Translate the data set of mnist, including scale, rotate, ***distortion***.
->4.
+>4. The log will be saved in the file "log.txt".  
 
 ***
 
