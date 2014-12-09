@@ -14,5 +14,6 @@ void showImg(cuMatrix<double>* x, double scala);
 void DebugPrintf(cuMatrix<double>*x);
 void DebugPrintf(double* data, int len, int dim);
 void LOG(char* str, char* file);
+int  getCV_64();
 
 #endif

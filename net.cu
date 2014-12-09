@@ -4,9 +4,11 @@
 #include <cuda_runtime.h>
 #include "util.h"
 #include <time.h>
-#include "cuDistortion.cuh"
+#include "cuTrasformation.cuh"
 #include "Config.h"
 #include "cuMatrixVector.h"
+#include <helper_functions.h>
+#include <helper_cuda.h>
 
 cuMatrixVector<double>* cu_distortion_vector;
 
@@ -19,6 +21,8 @@ std::vector<cuMatrix<int>*>cuPointX;
 std::vector<cuMatrix<int>*>cuPointY;
 std::vector<cuMatrix<double>*>cuConv;
 std::vector<cuMatrix<double>*>cuPool;
+
+cuMatrix<double>* cuPoolToFlActi;
 
 //隐藏层的输出
 std::vector<cuMatrix<double>*>cuHiddenActi;
@@ -35,6 +39,8 @@ std::vector<cuMatrix<double>*>cuPoolDelta;
 std::vector<cuMatrix<double>*>cuPoolDeltaAndBorder;
 std::vector<cuMatrix<double>*>cuConvLayerWgradTmp;
 
+cuMatrix<double>* cuPoolToFlDelta;
+
 //势
 cuMatrix<double>* cu_v_smr_w;
 cuMatrix<double>* cu_v_smr_b;
@@ -47,7 +53,7 @@ int cuCurCorrect;
 //正确的个数
 cuMatrix<double>* cuCorrect;
 cuMatrix<double>* cuCorrectCount = NULL;
-
+void outputMatrix(cuMatrix<double>* m);
 /*
 	函数功能：卷积层有多个核，在GPU做并发时，
 			  内存比较散乱，这里讲这些核的参数组织成
@@ -83,10 +89,11 @@ void cuConvLayer::init()
 	bgrad->toGpu();
 }
 
-void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2, int rows, int cols, double epsilon)
+void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2, int rows, int cols, int channels, double epsilon)
 {
 	int iiMidr = rows >> 1;
 	int iiMidc = cols >> 1;
+	
 	double _max = -1.0;
 	for(int row = 0; row < rows; row++)
 	{
@@ -112,8 +119,6 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 		}
 		//printf("\n");
 	}
-	//printf("\n\n");
-	//exit(0);
 }
 
 __device__ double d_nonLinearity(double val, int NONLIN){
@@ -146,20 +151,20 @@ __device__ double d_dnonLinearity(double val,int NONLIN){
 
 void dropDelta(cuMatrix<double>* M, double cuDropProb)
 {
-	cv::Mat ran = cv::Mat::zeros(M->rows, M->cols, CV_64FC1);
-	cv::theRNG().state = clock();
-	randu(ran, cv::Scalar(0), cv::Scalar(1.0));
-	for(int i = 0; i < ran.rows; i++)
-	{
-		for(int j = 0; j < ran.cols; j++)
-		{
-			double r = ran.at<double>(i,j);
-			if(r < cuDropProb)
-				M->set(i, j, 0.0);
-			else 
-				M->set(i, j, 1.0);
-			//printf("%lf ", ntw.M->get(i,j));
-		}//printf("\n");
+	for(int c = 0; c < M->channels; c++){
+		cv::Mat ran = cv::Mat::zeros(M->rows, M->cols, CV_64FC1);
+		cv::theRNG().state = clock();
+		randu(ran, cv::Scalar(0), cv::Scalar(1.0));
+		for(int i = 0; i < M->rows; i++){
+			for(int j = 0; j < M->cols; j++){
+				double r = ran.at<double>(i, j);
+				if(r < cuDropProb)
+					M->set(i, j, c, 0.0);
+				else 
+					M->set(i, j, c, 1.0);
+				//printf("%lf ", fll.M->get(i,j));
+			}//printf("\n");
+		}
 	}
 	M->toGpu();
 }
@@ -173,11 +178,15 @@ int width     大小
 
 void weightRandomInit(cuConvK &convk, int width){
 	double epsilon = 0.1f;
-	convk.W = new cuMatrix<double>(width, width);
-	double r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
-	double r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+	convk.W = new cuMatrix<double>(width, width, Config::instance()->getChannels());
+
 	//printf("%f %f\n",r1, r2);
-	createGaussian(convk.W->hostData, r1,r2, width, width, epsilon * 0.5 + epsilon * rand() / RAND_MAX);
+	for(int c = 0; c < Config::instance()->getChannels(); c++)
+	{
+		double r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+		double r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+		createGaussian(convk.W->hostData + c * convk.W->getArea(), r1,r2, width, width, Config::instance()->getChannels(), epsilon * 0.5 + epsilon * rand() / RAND_MAX);
+	}
 
 // 	for(int i = 0; i<convk.W->rows; i++){
 // 		for(int j=0; j<convk.W->cols; j++){
@@ -185,40 +194,43 @@ void weightRandomInit(cuConvK &convk, int width){
 // 		}
 // 	}
 	convk.W->toGpu();
-	convk.b = new cuMatrix<double>(1, 1);
-	convk.Wgrad = new cuMatrix<double>(width, width);
-	convk.bgrad = new cuMatrix<double>(1, 1);
+	convk.b = new cuMatrix<double>(1, 1, Config::instance()->getChannels());
+	convk.Wgrad = new cuMatrix<double>(width, width, Config::instance()->getChannels());
+	convk.bgrad = new cuMatrix<double>(1, 1, Config::instance()->getChannels());
 }
 
 
 /*
 函数功能：隐藏层参数初始化
 参    数：
-Ntw &ntw 隐藏层
+fll &fll 隐藏层
 int inputsize  每个神经元链接上一层神经元个数 
 int hiddensize 本层的神经元个数
 */
 
-void weightRandomInit(cuFll &ntw, int inputsize, int hiddensize, double dropRate){
+void weightRandomInit(cuFll &fll, int inputsize, int hiddensize, double dropRate){
 	double epsilon = sqrt((double)6) / sqrt((double)(hiddensize + inputsize + 1));
-	ntw.W = new cuMatrix<double>(hiddensize, inputsize);
-	ntw.dropW = new cuMatrix<double>(hiddensize, inputsize);
-	ntw.afterDropW = new cuMatrix<double>(hiddensize, inputsize);
+	fll.W = new cuMatrix<double>(hiddensize, inputsize, 1);
+	fll.dropW = new cuMatrix<double>(hiddensize, inputsize, 1);
+	fll.afterDropW = new cuMatrix<double>(hiddensize, inputsize, 1);
 
 	//double r1 = 2.0 + 4.0 * (rand()) / RAND_MAX;
 	//double r2 = 2.0 + 4.0 * (rand()) / RAND_MAX;
-	//createGaussian(ntw.W->hostData, r1, r2, ntw.W->rows, ntw.W->cols, epsilon * 0.5 + epsilon * rand() / RAND_MAX);
-
-	for(int i=0; i < ntw.W->rows; i++){
-		for(int j=0; j< ntw.W->cols; j++){
-			ntw.W->set(i,j, 1.0 * rand() / RAND_MAX *  2.0 * epsilon - epsilon);
+	//createGaussian(fll.W->hostData, r1, r2, fll.W->rows, fll.W->cols, epsilon * 0.5 + epsilon * rand() / RAND_MAX);
+	for(int c=0; c < fll.W->channels; c++){
+		for(int i=0; i < fll.W->rows; i++){
+			for(int j=0; j< fll.W->cols; j++){
+				fll.W->set(i,j, c, 1.0 * rand() / RAND_MAX *  2.0 * epsilon - epsilon);
+				//fll.W->set(i, j, c, 0.001);
+			}
 		}
 	}
-	dropDelta(ntw.dropW, dropRate);
-	ntw.W->toGpu();
-	ntw.b = new cuMatrix<double>(hiddensize, 1);
-	ntw.Wgrad = new cuMatrix<double>(hiddensize, inputsize);
-	ntw.bgrad = new cuMatrix<double>(hiddensize, 1);
+
+	//dropDelta(fll.dropW, dropRate);
+	fll.W->toGpu();
+	fll.b = new cuMatrix<double>(hiddensize, 1, 1);
+	fll.Wgrad = new cuMatrix<double>(hiddensize, inputsize, 1);
+	fll.bgrad = new cuMatrix<double>(hiddensize, 1, 1);
 }
 
 /*
@@ -230,18 +242,21 @@ int nfeatures 输入
 */
 void weightRandomInit(cuSMR &smr, int nclasses, int nfeatures){
 	double epsilon = 0.01f;
-	smr.Weight = new cuMatrix<double>(nclasses, nfeatures);
-	for(int i = 0; i<smr.Weight->rows; i++){
-		for(int j=0; j<smr.Weight->cols; j++){
-			smr.Weight->set(i,j, 1.0 * rand() / RAND_MAX *  2.0 * epsilon - epsilon);     
+	smr.Weight = new cuMatrix<double>(nclasses, nfeatures, 1);
+	for(int c = 0; c < smr.Weight->channels; c++){
+		for(int i = 0; i<smr.Weight->rows; i++){
+			for(int j=0; j<smr.Weight->cols; j++){
+				smr.Weight->set(i,j, c, 1.0 * rand() / RAND_MAX *  2.0 * epsilon - epsilon);     
+			}
 		}
 	}
+	
 	smr.Weight->toGpu();
 
-	smr.b = new cuMatrix<double>(nclasses, 1);
-	smr.cost = new cuMatrix<double>(1, 1);
-	smr.Wgrad = new cuMatrix<double>(nclasses, nfeatures);
-	smr.bgrad = new cuMatrix<double>(nclasses, 1);
+	smr.b = new cuMatrix<double>(nclasses, 1, 1);
+	smr.cost = new cuMatrix<double>(1, 1, 1);
+	smr.Wgrad = new cuMatrix<double>(nclasses, nfeatures, 1);
+	smr.bgrad = new cuMatrix<double>(nclasses, 1, 1);
 }
 
 void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
@@ -251,13 +266,14 @@ void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
 	int nsamples, 
 	int nclasses)
 {
-	srand(time(NULL));
+	srand(clock());
 	// Init Conv layers
 	for(int i=0; i < Config::instance()->getConv().size(); i++){
 		cuCvl tpcvl;
+		int kernelSize = Config::instance()->getConv()[i]->m_kernelSize;
 		for(int j=0; j < Config::instance()->getConv()[i]->m_amount; j++){
 			cuConvK tmpConvK;
-			weightRandomInit(tmpConvK, Config::instance()->getConv()[i]->m_kernelSize);
+			weightRandomInit(tmpConvK, kernelSize);
 			tpcvl.layer.push_back(tmpConvK);
 		}
 		ConvLayers.push_back(tpcvl);
@@ -276,15 +292,15 @@ void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
 	for(int i=0; i<ConvLayers.size(); i++){
 		hiddenfeatures *= ConvLayers[i].layer.size();
 	}
-	cuFll tpntw;
-	weightRandomInit(tpntw, hiddenfeatures, Config::instance()->getFC()[0]->m_numHiddenNeurons, 
+	cuFll tpfll;
+	weightRandomInit(tpfll, hiddenfeatures * Config::instance()->getChannels(), Config::instance()->getFC()[0]->m_numHiddenNeurons, 
 		Config::instance()->getFC()[0]->m_dropoutRate);
-	HiddenLayers.push_back(tpntw);
+	HiddenLayers.push_back(tpfll);
 	for(int i=1; i < Config::instance()->getFC().size(); i++){
-		cuFll tpntw2;
-		weightRandomInit(tpntw2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons,
+		cuFll tpfll2;
+		weightRandomInit(tpfll2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons,
 			Config::instance()->getFC()[i]->m_numHiddenNeurons, Config::instance()->getFC()[i]->m_dropoutRate);
-		HiddenLayers.push_back(tpntw2);
+		HiddenLayers.push_back(tpfll2);
 	}
 	// Init Softmax layer
 	weightRandomInit(smr, nclasses, Config::instance()->getFC()[Config::instance()->getFC().size() - 1]->m_numHiddenNeurons);
@@ -294,26 +310,33 @@ void saveWeight(cuConvK &convk, int width, FILE*pOut)
 {
 	convk.W->toCpu();
 	convk.b->toCpu();
-	for(int i = 0; i<convk.W->rows; i++){
-		for(int j=0; j<convk.W->cols; j++){
-			fprintf(pOut, "%lf ",convk.W->get(i,j));      
+	for(int c = 0; c < convk.W->channels; c++){
+		for(int i = 0; i<convk.W->rows; i++){
+			for(int j=0; j<convk.W->cols; j++){
+				fprintf(pOut, "%lf ",convk.W->get(i,j, c));      
+			}
 		}
 	}
-	fprintf(pOut, "%lf ", convk.b->get(0,0));
+	for(int c = 0; c < convk.b->channels; c++)
+		fprintf(pOut, "%lf ", convk.b->get(0,0, c));
 }
 
-void saveWeight(cuFll &ntw, int inputsize, int hiddensize, FILE*pOut){
-	ntw.W->toCpu();
-	ntw.b->toCpu();
-	for(int i=0; i<ntw.W->rows; i++){
-		for(int j=0; j<ntw.W->cols; j++){
-			fprintf(pOut, "%lf ", ntw.W->get(i,j));
+void saveWeight(cuFll &fll, int inputsize, int hiddensize, FILE*pOut){
+	fll.W->toCpu();
+	fll.b->toCpu();
+	for(int c = 0; c < fll.W->channels; c++){
+		for(int i=0; i<fll.W->rows; i++){
+			for(int j=0; j<fll.W->cols; j++){
+				fprintf(pOut, "%lf ", fll.W->get(i,j,c));
+			}
 		}
 	}
-
-	for(int i = 0; i < ntw.b->rows; i++){
-		for(int j = 0; j < ntw.b->cols;  j++){
-			fprintf(pOut, "%lf ", ntw.b->get(i,j));
+	
+	for(int c = 0; c < fll.b->channels; c++){
+		for(int i = 0; i < fll.b->rows; i++){
+			for(int j = 0; j < fll.b->cols;  j++){
+				fprintf(pOut, "%lf ", fll.b->get(i,j, c));
+			}
 		}
 	}
 }
@@ -321,17 +344,22 @@ void saveWeight(cuFll &ntw, int inputsize, int hiddensize, FILE*pOut){
 void saveWeight(cuSMR &smr, int nclasses, int nfeatures, FILE* pOut){
 	smr.Weight->toCpu();
 	smr.b->toCpu();
-	for(int i = 0; i<smr.Weight->rows; i++){
-		for(int j=0; j<smr.Weight->cols; j++){
-			fprintf(pOut, "%lf ", smr.Weight->get(i,j)); 
+	for(int c = 0; c < smr.Weight->channels; c++){
+		for(int i = 0; i<smr.Weight->rows; i++){
+			for(int j=0; j<smr.Weight->cols; j++){
+				fprintf(pOut, "%lf ", smr.Weight->get(i,j,c)); 
+			}
 		}
 	}
 
-	for(int i = 0; i < smr.b->rows; i++){
-		for(int j = 0; j < smr.b->cols;  j++){
-			fprintf(pOut, "%lf ", smr.b->get(i,j));
+	for(int c = 0; c < smr.b->channels; c++){
+		for(int i = 0; i < smr.b->rows; i++){
+			for(int j = 0; j < smr.b->cols;  j++){
+				fprintf(pOut, "%lf ", smr.b->get(i,j,c));
+			}
 		}
 	}
+	
 }
 
 void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
@@ -363,11 +391,11 @@ void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
 		hiddenfeatures *= ConvLayers[i].layer.size();
 	}
 
-	cuFll tpntw = HiddenLayers[0];
-	saveWeight(tpntw, hiddenfeatures, Config::instance()->getFC()[0]->m_numHiddenNeurons, pOut);
+	cuFll tpfll = HiddenLayers[0];
+	saveWeight(tpfll, hiddenfeatures * Config::instance()->getChannels(), Config::instance()->getFC()[0]->m_numHiddenNeurons, pOut);
 	for(int i=1; i < Config::instance()->getFC().size(); i++){
-		cuFll tpntw2 = HiddenLayers[i];
-		saveWeight(tpntw2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons, 
+		cuFll tpfll2 = HiddenLayers[i];
+		saveWeight(tpfll2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons, 
 			Config::instance()->getFC()[i]->m_numHiddenNeurons, pOut);
 	}
 	// Init Softmax layer
@@ -377,70 +405,80 @@ void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
 
 void readWeight(cuConvK &convk, int width, FILE*pIn)
 {
-	convk.W = new cuMatrix<double>(width, width); 
+	convk.W = new cuMatrix<double>(width, width, Config::instance()->getChannels()); 
 	double val = 0.0;
-	for(int i = 0; i<convk.W->rows; i++){
-		for(int j=0; j<convk.W->cols; j++){
-			fscanf(pIn, "%lf", &val); 
-			convk.W->set(i,j,val);
+	for(int c = 0; c < convk.W->channels; c++){
+		for(int i = 0; i<convk.W->rows; i++){
+			for(int j=0; j<convk.W->cols; j++){
+				fscanf(pIn, "%lf", &val); 
+				convk.W->set(i,j,c,val);
+			}
 		}
 	}
-	fscanf(pIn, "%lf ", &val);
-	convk.b = new cuMatrix<double>(1, 1);
-	convk.b->set(0,0,val);
-	convk.Wgrad = new cuMatrix<double>(width, width);
-	convk.bgrad = new cuMatrix<double>(1, 1);
+
+	convk.b = new cuMatrix<double>(1, 1, Config::instance()->getChannels());
+	for(int c = 0; c < convk.b->channels; c++)
+	{
+		fscanf(pIn, "%lf ", &val);
+		convk.b->set(0,0,c,val);
+	}
+	convk.Wgrad = new cuMatrix<double>(width, width, Config::instance()->getChannels());
+	convk.bgrad = new cuMatrix<double>(1, 1, Config::instance()->getChannels());
 	convk.W->toGpu();
 	convk.b->toGpu();
 }
 
-void readWeight(cuFll &ntw, int inputsize, int hiddensize, FILE*pIn, double dropRate){
+void readWeight(cuFll &fll, int inputsize, int hiddensize, FILE*pIn, double dropRate){
 	double val = 0.0;
-	ntw.W = new cuMatrix<double>(hiddensize, inputsize);
-	for(int i=0; i<ntw.W->rows; i++){
-		for(int j=0; j<ntw.W->cols; j++){
-			fscanf(pIn, "%lf", &val);
-			ntw.W->set(i,j,val);
+	fll.W = new cuMatrix<double>(hiddensize, inputsize, 1);
+	for(int c = 0; c < fll.W->channels; c++){
+		for(int i=0; i<fll.W->rows; i++){
+			for(int j=0; j<fll.W->cols; j++){
+				fscanf(pIn, "%lf", &val);
+				fll.W->set(i,j,c,val);
+			}
 		}
 	}
 
-	ntw.dropW = new cuMatrix<double>(hiddensize, inputsize);
-	ntw.afterDropW = new cuMatrix<double>(hiddensize, inputsize);
-	dropDelta(ntw.dropW, dropRate);
 
-	ntw.b = new cuMatrix<double>(hiddensize, 1);
-	for(int i = 0; i < ntw.b->rows; i++){
-		for(int j = 0; j < ntw.b->cols; j++){
+	fll.dropW = new cuMatrix<double>(hiddensize, inputsize, 1);
+	fll.afterDropW = new cuMatrix<double>(hiddensize, inputsize, 1);
+	dropDelta(fll.dropW, dropRate);
+
+
+	fll.b = new cuMatrix<double>(hiddensize, 1, 1);
+	for(int i = 0; i < fll.b->rows; i++){
+		for(int j = 0; j < fll.b->cols; j++){
 			fscanf(pIn, "%lf", &val);
-			ntw.b->set(i,j,val);
+			fll.b->set(i,j,0,val);
 		}
 	}
 	
-	ntw.Wgrad = new cuMatrix<double>(hiddensize, inputsize);
-	ntw.bgrad = new cuMatrix<double>(hiddensize, 1);
-	ntw.W->toGpu();
-	ntw.b->toGpu();
+	fll.Wgrad = new cuMatrix<double>(hiddensize, inputsize, 1);
+	fll.bgrad = new cuMatrix<double>(hiddensize, 1, 1);
+	fll.W->toGpu();
+	fll.b->toGpu();
 }
 
 void readWeight(cuSMR &smr, int nclasses, int nfeatures, FILE* pIn){
-	smr.Weight = new cuMatrix<double>(nclasses, nfeatures);
+	smr.Weight = new cuMatrix<double>(nclasses, nfeatures, 1);
 	double val = 0.0;
 	for(int i = 0; i<smr.Weight->rows; i++){
 		for(int j=0; j<smr.Weight->cols; j++){
 			fscanf(pIn, "%lf", &val);
-			smr.Weight->set(i,j,val);
+			smr.Weight->set(i,j,0,val);
 		}
 	}
-	smr.b = new cuMatrix<double>(nclasses, 1);
+	smr.b = new cuMatrix<double>(nclasses, 1, 1);
 	for(int i = 0; i < smr.b->rows; i++){
 		for(int j = 0; j < smr.b->cols; j++){
 			fscanf(pIn, "%lf ", &val);
-			smr.b->set(i,j,val);
+			smr.b->set(i,j,0, val);
 		}
 	}
-	smr.cost = new cuMatrix<double>(1,1);
-	smr.Wgrad = new cuMatrix<double>(nclasses, nfeatures);
-	smr.bgrad = new cuMatrix<double>(nclasses, 1);
+	smr.cost = new cuMatrix<double>(1,1,1);
+	smr.Wgrad = new cuMatrix<double>(nclasses, nfeatures, 1);
+	smr.bgrad = new cuMatrix<double>(nclasses, 1, 1);
 	smr.Weight->toGpu();
 	smr.b->toGpu();
 }
@@ -500,15 +538,15 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 		hiddenfeatures *= ConvLayers[i].layer.size();
 	}
 
-	cuFll tpntw;
-	readWeight(tpntw, hiddenfeatures, Config::instance()->getFC()[0]->m_numHiddenNeurons,
+	cuFll tpfll;
+	readWeight(tpfll, hiddenfeatures * Config::instance()->getChannels(), Config::instance()->getFC()[0]->m_numHiddenNeurons,
 		pIn, Config::instance()->getFC()[0]->m_dropoutRate);
-	HiddenLayers.push_back(tpntw);
+	HiddenLayers.push_back(tpfll);
 	for(int i=1; i < Config::instance()->getFC().size(); i++){
-		cuFll tpntw2;
-		readWeight(tpntw2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons, 
+		cuFll tpfll2;
+		readWeight(tpfll2, Config::instance()->getFC()[i - 1]->m_numHiddenNeurons, 
 			Config::instance()->getFC()[i]->m_numHiddenNeurons, pIn, Config::instance()->getFC()[i]->m_dropoutRate);
-		HiddenLayers.push_back(tpntw2);
+		HiddenLayers.push_back(tpfll2);
 	}
 	//Init Softmax layer
 	readWeight(smr, nclasses, Config::instance()->getFC()[Config::instance()->getFC().size() - 1]->m_numHiddenNeurons, pIn);
@@ -542,66 +580,83 @@ void cuInitCNNMemory(
 		curKernelAmount = curKernelAmount * Config::instance()->getConv()[i]->m_amount;
 		cuKernelScan.push_back(curKernelAmount);
 
-		cuConv.push_back  (new cuMatrix<double>(batch, curKernelAmount * curSize * curSize));
+		cuConv.push_back  (new cuMatrix<double>(batch, curKernelAmount * curSize * curSize, Config::instance()->getChannels()));
 		curSize = (curSize + Config::instance()->getConv()[i]->m_poolingDim - 1) / Config::instance()->getConv()[i]->m_poolingDim;
-		cuPool.push_back  (new cuMatrix<double>(batch, curKernelAmount * curSize * curSize));
-		cuPointX.push_back(new cuMatrix<int>(batch, curKernelAmount * curSize * curSize));
-		cuPointY.push_back(new cuMatrix<int>(batch, curKernelAmount * curSize * curSize));
+		cuPool.push_back  (new cuMatrix<double>(batch, curKernelAmount * curSize * curSize, Config::instance()->getChannels()));
+		cuPointX.push_back(new cuMatrix<int>(batch, curKernelAmount * curSize * curSize, Config::instance()->getChannels()));
+		cuPointY.push_back(new cuMatrix<int>(batch, curKernelAmount * curSize * curSize, Config::instance()->getChannels()));
 	}
+
+	////////////////////////////////////////////////////////////////////
+	//translate the last cuPool from cuMatrix(batch, size, channels)
+	//to cuPoolToFlActi cuMatrix(batch, size * channels) 
+	//prepare for matrixMul
+	////////////////////////////////////////////////////////////////////
+	cuPoolToFlActi = new cuMatrix<double>(cuPool[cuPool.size() - 1]->rows, 
+		cuPool[cuPool.size() - 1]->cols * cuPool[cuPool.size() - 1]->channels,
+		1);
 
 	//////////////
 	//隐藏层的输出
 	//////////////
 	for(int i = 0; i < HiddenLayers.size(); i++)
 	{
-		cuHiddenActi.push_back(new cuMatrix<double>(batch, Config::instance()->getFC()[i]->m_numHiddenNeurons));
+		cuHiddenActi.push_back(new cuMatrix<double>(batch, Config::instance()->getFC()[i]->m_numHiddenNeurons, 1));
 	}
 
 	//////////////
 	//回归层的输出
 	//////////////
-	cuSoftMaxP    = new cuMatrix<double>(batch, nclasses);
-	cuGroundTruth = new cuMatrix<double>(batch, nclasses);
+	cuSoftMaxP    = new cuMatrix<double>(batch, nclasses, 1);
+	cuGroundTruth = new cuMatrix<double>(batch, nclasses, 1);
 
 	/////////////
 	//反向传导
 	/////////////
-	cuSoftMaxDelta = new cuMatrix<double>(batch, nclasses);
+	cuSoftMaxDelta = new cuMatrix<double>(batch, nclasses, 1);
 	for(int i = 0; i < HiddenLayers.size(); i++)
 	{
-		cuHiddenDelta.push_back(new cuMatrix<double>(batch, Config::instance()->getFC()[i]->m_numHiddenNeurons));
+		cuHiddenDelta.push_back(new cuMatrix<double>(batch, Config::instance()->getFC()[i]->m_numHiddenNeurons, 1));
 	}
 
-	/////////
+	//////////
 	//卷积层
-	/////////
+	//////////
 	for(int i = 0; i < cuPool.size(); i++)
 	{
-		cuPoolDelta.push_back(new cuMatrix<double>(cuPool[i]->rows, cuPool[i]->cols));
+		cuPoolDelta.push_back(new cuMatrix<double>(cuPool[i]->rows, cuPool[i]->cols, Config::instance()->getChannels()));
 	}
 	for(int i = 0; i < cuConv.size(); i++)
 	{
-		cuConvDelta.push_back(new cuMatrix<double>(cuConv[i]->rows, cuConv[i]->cols));
+		cuConvDelta.push_back(new cuMatrix<double>(cuConv[i]->rows, cuConv[i]->cols, Config::instance()->getChannels()));
 	}
 	for(int cl = ConvLayers.size() - 1; cl > 0; cl--)
 	{
 		int size = cuConvOutputSize[cl] + Config::instance()->getConv()[cl]->m_kernelSize - 1;
-		cuPoolDeltaAndBorder.push_back(new cuMatrix<double>(batch, cuKernelScan[cl]
-		* size * size));
+		cuPoolDeltaAndBorder.push_back(new cuMatrix<double>(batch, cuKernelScan[cl] * size * size, Config::instance()->getChannels()));
 	}
 	for(int cl = 0; cl < ConvLayers.size(); cl++)
 	{
 		cuConvLayerWgradTmp.push_back(new cuMatrix<double>(batch,
-			cuKernelScan[cl] * + Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize));
+			cuKernelScan[cl] * Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize,
+			Config::instance()->getChannels()));
 	}
 
+	////////////////////////////////////////////////////////////////////
+	//translate the cuPoolToFlDelta from cuMatrix(batch, size * channels, 1)
+	//to cuPoolDelta  cuMatrix(batch, size, channels) 
+	////////////////////////////////////////////////////////////////////
+	cuPoolToFlDelta = new cuMatrix<double>(cuPoolDelta[cuPoolDelta.size() - 1]->rows,
+		cuPoolDelta[cuPoolDelta.size() - 1]->cols * Config::instance()->getChannels(),
+		1);
+
 	//势能
-	cu_v_smr_w = new cuMatrix<double>(smr.Weight->rows, smr.Weight->cols);
-	cu_v_smr_b = new cuMatrix<double>(smr.b->rows, smr.b->cols);
+	cu_v_smr_w = new cuMatrix<double>(smr.Weight->rows, smr.Weight->cols, smr.Weight->channels);
+	cu_v_smr_b = new cuMatrix<double>(smr.b->rows, smr.b->cols, smr.b->channels);
 	for(int i = 0; i < HiddenLayers.size(); i++)
 	{
-		cu_v_hl_w.push_back(new cuMatrix<double>(HiddenLayers[i].W->rows, HiddenLayers[i].W->cols));
-		cu_v_hl_b.push_back(new cuMatrix<double>(HiddenLayers[i].b->rows, HiddenLayers[i].b->cols));
+		cu_v_hl_w.push_back(new cuMatrix<double>(HiddenLayers[i].W->rows, HiddenLayers[i].W->cols, HiddenLayers[i].W->channels));
+		cu_v_hl_b.push_back(new cuMatrix<double>(HiddenLayers[i].b->rows, HiddenLayers[i].b->cols, HiddenLayers[i].b->channels));
 	}
 
 	for(int cl = 0; cl < ConvLayers.size(); cl++)
@@ -611,8 +666,11 @@ void cuInitCNNMemory(
 		for(int i = 0; i < ConvLayers[cl].layer.size(); i++)
 		{
 			cuMatrix<double>* tmpW = new cuMatrix<double>(ConvLayers[cl].layer[i].W->rows, 
-				ConvLayers[cl].layer[i].W->cols);
-			cuMatrix<double>* tmpb = new cuMatrix<double>(1,1);
+				ConvLayers[cl].layer[i].W->cols,
+				ConvLayers[cl].layer[i].W->channels);
+			cuMatrix<double>* tmpb = new cuMatrix<double>(ConvLayers[cl].layer[i].b->rows,
+				ConvLayers[cl].layer[i].b->cols,
+				ConvLayers[cl].layer[i].b->channels);
 			tmpVecW.push_back(tmpW);
 			tmpVecb.push_back(tmpb);
 		}
@@ -623,14 +681,14 @@ void cuInitCNNMemory(
 	//代价
 	if(cuCorrectCount == NULL)
 	{
-		cuCorrectCount = new cuMatrix<double>(60000, nclasses);
-		cuCorrect = new cuMatrix<double>(1,1);
+		cuCorrectCount = new cuMatrix<double>(60000, nclasses,1);
+		cuCorrect = new cuMatrix<double>(1,1,1);
 	}
 
 	//畸变之后的数据
 	cu_distortion_vector = new cuMatrixVector<double>();
 	for(int i = 0; i < batch; i++){
-		cu_distortion_vector->m_vec.push_back(new cuMatrix<double>(ImgSize, ImgSize));
+		cu_distortion_vector->push_back(new cuMatrix<double>(ImgSize, ImgSize, Config::instance()->getChannels()));
 	}
 	cu_distortion_vector->toGpu();
 }
@@ -657,6 +715,8 @@ void cuFreeCNNMemory(
 	cuPool.clear();
 	cuPointX.clear();
 	cuPointY.clear();
+
+	delete cuPoolToFlActi;
 
 	for(int i = 0; i < cuHiddenActi.size(); i++)
 	{
@@ -762,22 +822,29 @@ __global__ void g_convAndPooling_1(
 	int convSize,
 	int poolSize,
 	int poolingDim,
+	int convArea,
+	int poolArea,
+	int batch,
 	int k1Amount,
 	int NONLIN)
 {
 	int sp = blockIdx.x;
 	int k  = blockIdx.y;
+	int c  = blockIdx.z;
 	int x  = threadIdx.y;
 	int y  = threadIdx.x;
 
-	int convSize2 = convSize * convSize;
-	int poolSize2 = poolSize * poolSize;
-	int convSkip  = sp * k1Amount * convSize2 + k * convSize2;
-	int poolSkip  = sp * k1Amount * poolSize2 + k * poolSize2;
+	int convSize2  = convSize * convSize;
+	int poolSize2  = poolSize * poolSize;
+	int inputSize2 = inputSize* inputSize;
+	int kernelSize2= kernelSize * kernelSize;
 
-	double* curInput = arrayS[sp];
-	double* w        = arrayW[k];
-	double  b        = arrayB[k][0];
+	int convSkip  = convArea * c + sp * k1Amount * convSize2 + k * convSize2;
+	int poolSkip  = poolArea * c + sp * k1Amount * poolSize2 + k * poolSize2;
+
+	double* curInput = arrayS[sp] + c * inputSize2;
+	double* w        = arrayW[k]  + c * kernelSize2;
+	double  b        = arrayB[k][c];
 
 	double* curConv  = conv   + convSkip;
 	double* curPool  = pool   + poolSkip;
@@ -869,30 +936,43 @@ __global__ void g_convAndPooling_2(
 	int k2Scan,
   	int k1Amount,
  	int k2Amount,
+	int pool1Area,
+	int conv2Area,
+	int pool2Area,
 	int NONLIN,
 	int len)
 {
 	int id = blockIdx.y * blockDim.y + threadIdx.y;
 	if(id >= len) return;
 
-	int sp = blockIdx.x;
+	int sp      = blockIdx.x;
+	int c       = blockIdx.z;
 	int k2 = id % k2Amount;
 	int k1 = id / k2Amount;
 	int x  = threadIdx.x / conv2Size;
 	int y  = threadIdx.x % conv2Size;
-  	double* w   = arrayW[k2];
-  	double  b   = arrayB[k2][0];
+
+  	double* w   = arrayW[k2] + kernelSize * kernelSize * c;
+  	double  b   = arrayB[k2][c];
+
 	int pool1Size2 = pool1Size * pool1Size;
 	int conv2Size2 = conv2Size * conv2Size;
 	int pool2Size2 = pool2Size * pool2Size;
-	int pool2skip2 = sp * k2Scan* pool2Size2
+
+	int pool2skip2 = pool2Area * c 
+		+ sp * k2Scan * pool2Size2
 		+ k1 * k2Amount * pool2Size2
 		+ k2 * pool2Size2;
-  	double* pl1 = pool1 + sp * k1Scan * pool1Size2 
-  				+ k1 * pool1Size2;
-  	double* cv2 = conv2 + sp * k2Scan * conv2Size2 
-  		        + k1 * k2Amount * conv2Size2
-  				+ k2 * conv2Size2;
+
+  	double* pl1 = pool1
+		+ pool1Area * c 
+		+ sp * k1Scan * pool1Size2 
+  	    + k1 * pool1Size2;
+  	double* cv2 = conv2
+		+ conv2Area * c
+		+ sp * k2Scan * conv2Size2 
+        + k1 * k2Amount * conv2Size2
+  		+ k2 * conv2Size2;
   	double* pl2 = pool2 + pool2skip2;
   	int   * px  = pointX+ pool2skip2;
   	int   * py  = pointY+ pool2skip2;
@@ -945,23 +1025,28 @@ __global__ void g_convAndPooling_2(
 void outputPoints(cuMatrix<int>* p)
 {
 	p->toCpu();
-	for(int i = 0; i < p->rows; i++)
-	{
-		for(int j = 0; j < p->cols; j++)
+	for(int c = 0; c < p->channels; c++){
+		for(int i = 0; i < p->rows; i++)
 		{
-			printf("%d ", p->get(i,j));
-		}printf("\n");
+			for(int j = 0; j < p->cols; j++)
+			{
+				printf("%d ", p->get(i,j, c));
+			}printf("\n");
+		}
+		printf("%d\n");
 	}
 }
+
 void outputMatrix(cuMatrix<double>* m)
 {
 	m->toCpu();
-	for(int i = 0; i < m->rows; i++)
-	{
-		for(int j = 0; j < m->cols; j++)
-		{
-			printf("%.10lf ", m->get(i,j));
-		}printf("\n");
+	for(int c = 0; c < m->channels; c++){
+		for(int i = 0; i < m->rows; i++){
+			for(int j = 0; j < m->cols; j++){
+				printf("%.10lf ", m->get(i,j, c));
+			}printf("\n");
+		}
+		printf("\n");
 	}
 }
 
@@ -969,7 +1054,6 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 {
 	//第一层
 	int curSize = ImgSize - Config::instance()->getConv()[0]->m_kernelSize + 1;//24
-	//int inputSize = ImgSize;//28
 	int outputSize = curSize;//24
 
 	if(outputSize * outputSize> MAX_THREADS){
@@ -977,9 +1061,10 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 		exit(0);
 	}
 
-	//outputMatrix(CLayers[0].layer[0].W);
-
-	g_convAndPooling_1<<<dim3(batch, Config::instance()->getConv()[0]->m_amount), 
+	g_convAndPooling_1<<<
+		dim3(batch, 
+		Config::instance()->getConv()[0]->m_amount,
+		Config::instance()->getChannels()),
 		dim3(outputSize, outputSize)>>>(
 		x,
 		CLayers[0].w->m_devPoint,
@@ -993,15 +1078,19 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 		cuConvOutputSize[0],
 		cuPoolOutputSize[0],
 		Config::instance()->getConv()[0]->m_poolingDim,
+		cuConv[0]->getArea(),
+		cuPool[0]->getArea(),
+		batch,
 		Config::instance()->getConv()[0]->m_amount,
 		Config::instance()->getNonLinearity()
 	);
 
 	cudaDeviceSynchronize();
+	getLastCudaError("g_convAndPooling_1");
 
 	for(int i = 1; i < Config::instance()->getConv().size(); i++)
 	{
-		int len = cuKernelScan[i - 1] * Config::instance()->getConv()[i]->m_amount;
+		int len = cuKernelScan[i];
 		int threadidx = cuConvOutputSize[i] * cuConvOutputSize[i];
 		int threadidy = min(512, len + threadidx - 1) / (threadidx);
 		int blockidy  = (len + threadidy - 1) / threadidy;
@@ -1011,7 +1100,7 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 			exit(0);
 		}
 
-		g_convAndPooling_2<<<dim3(batch, blockidy),
+		g_convAndPooling_2<<<dim3(batch, blockidy, Config::instance()->getChannels()),
 			dim3(threadidx, threadidy)>>>
 			(cuPool[i - 1]->devData,
 			CLayers[i].w->m_devPoint,
@@ -1029,9 +1118,14 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 			cuKernelScan[i],
 			Config::instance()->getConv()[i - 1]->m_amount,
 			Config::instance()->getConv()[i]->m_amount,
+			cuPool[i - 1]->getArea(),
+			cuConv[i]->getArea(),
+			cuPool[i]->getArea(),
 			Config::instance()->getNonLinearity(),
 			len);
 		cudaDeviceSynchronize();
+
+		getLastCudaError("g_convAndPooling_2");
 	}
 }
 
@@ -1064,8 +1158,42 @@ __global__ void g_dropW(double * w, double * dropW, double* afterDropW, int len)
 	}
 }
 
+/*
+	Function name : cuMatrix(batch, size, channel) to cuMatrix(batch, size * channel, 1)
+	cuPool        :
+	cuPoolToFlActi:
+	batch         :
+	size          :
+	channel       :
+	threads       :<<<dim3(batch), dim3(256 = (size, channels))>>>
+*/
+__global__ void g_cuPoolToFlActi(double* cuPool, double*cuPoolToFlActi, int batch, int size, int channel)
+{
+	int b  = blockIdx.x;
+	for(int i = 0; i < size * channel; i+=blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < size * channel)
+		{
+			int s = id / channel;
+			int c = id % channel;
+			cuPoolToFlActi[b * size * channel + size * c + s] = cuPool[c * batch * size + b * size + s];
+		}
+	}
+}
+
 void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 {
+	g_cuPoolToFlActi<<<dim3(cuPool[cuPool.size() - 1]->rows), dim3(512)>>>
+		(cuPool[cuPool.size() - 1]->devData, 
+		cuPoolToFlActi->devData, 
+		cuPool[cuPool.size() - 1]->rows,
+		cuPool[cuPool.size() - 1]->cols,
+		cuPool[cuPool.size() - 1]->channels);
+	cudaDeviceSynchronize();
+
+	getLastCudaError("g_cuPoolToFlActi");
+
 	for(int hl = 0; hl < Config::instance()->getFC().size(); hl++)
 	{
 		g_dropW<<<1, 256>>>(hLayers[hl].W->devData,
@@ -1073,12 +1201,14 @@ void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 			hLayers[hl].afterDropW->devData, 
 			hLayers[hl].W->getLen());
 		cudaDeviceSynchronize();
+		getLastCudaError("g_dropW");
+
+
 
 		if(hl == 0)
 		{
-			matrixMulTB(cuPool[cuPool.size() - 1], 
+			matrixMulTB(cuPoolToFlActi, 
 				hLayers[hl].afterDropW, cuHiddenActi[hl], handle);
-
 			if(cuHiddenActi[hl]->cols > MAX_THREADS){
 				printf("g_hiddenLayerActi > MAX_THREADS\n");
 				exit(0);
@@ -1087,6 +1217,7 @@ void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 			g_hiddenLayerActi<<<cuHiddenActi[hl]->rows, cuHiddenActi[hl]->cols>>>(cuHiddenActi[hl]->devData, 
 				hLayers[hl].b->devData, Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
+			getLastCudaError("g_hiddenLayerActi");
 		}
 		else 
 		{
@@ -1101,6 +1232,7 @@ void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 			g_hiddenLayerActi<<<cuHiddenActi[hl]->rows, cuHiddenActi[hl]->cols>>>(cuHiddenActi[hl]->devData, 
 				hLayers[hl].b->devData, Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
+			getLastCudaError("g_hiddenLayerActi");
 		}
 	}
 }
@@ -1171,7 +1303,7 @@ void getSoftMaxP(cuSMR& smr, cublasHandle_t handle)
 
 	g_getSoftMaxP<<<cuSoftMaxP->rows, cuSoftMaxP->cols>>>(cuSoftMaxP->devData, smr.b->devData);
 	cudaDeviceSynchronize();
-
+	getLastCudaError("g_getSoftMaxP");
 }
 
 /*
@@ -1370,6 +1502,7 @@ void getCost(
 			Config::instance()->getConv()[cl]->m_kernelSize, Config::instance()->getConv()[cl]->m_kernelSize);
 		cudaDeviceSynchronize();
 	}
+	getLastCudaError("g_getCost_3");
 }
 
 
@@ -1483,13 +1616,17 @@ void getSoftMaxDelta(cuSMR &smr, double lambda, int batch, cublasHandle_t handle
  		smr.bgrad->devData,
 		batch);
  	cudaDeviceSynchronize();
+	getLastCudaError("getSoftMaxDelta");
 }
 
+/*
+	threads: <<<dim3(256),dim3(256)>>>
+*/
 __global__ void g_dnonLinearity(double* delta, double*acti, int len, int NONLIN)
 {
-	for(int i = 0; i < len; i += blockDim.x)
+	for(int i = 0; i < len; i += gridDim.x * blockDim.x)
 	{
-		int id = threadIdx.x + i;
+		int id = blockDim.x * blockIdx.x + threadIdx.x + i;
 		if(id < len)
 		{	
 			delta[id] *= d_dnonLinearity(acti[id], NONLIN);
@@ -1523,7 +1660,7 @@ void getHiddenDelta(
 		{
  			matrixMul(cuSoftMaxDelta,
  				smr.Weight, cuHiddenDelta[hl], handle);
- 			g_dnonLinearity<<<dim3(1), dim3(256)>>>(cuHiddenDelta[hl]->devData,
+ 			g_dnonLinearity<<<dim3(256), dim3(256)>>>(cuHiddenDelta[hl]->devData,
 				cuHiddenActi[hl]->devData, cuHiddenDelta[hl]->getLen(), Config::instance()->getNonLinearity());
  			cudaDeviceSynchronize();
 		}
@@ -1531,7 +1668,7 @@ void getHiddenDelta(
 		{
 			matrixMul(cuHiddenDelta[hl + 1], hLayers[hl + 1].afterDropW,
 				cuHiddenDelta[hl], handle);
-			g_dnonLinearity<<<dim3(1), dim3(256)>>>(
+			g_dnonLinearity<<<dim3(256), dim3(256)>>>(
 				cuHiddenDelta[hl]->devData, 
 				cuHiddenActi[hl]->devData,
 				cuHiddenDelta[hl]->getLen(), Config::instance()->getNonLinearity());
@@ -1549,12 +1686,11 @@ void getHiddenDelta(
 			g_getHiddlenWgrad<<<dim3(1), dim3(256)>>>(hLayers[hl].Wgrad->devData, hLayers[hl].dropW->devData,
 				hLayers[hl].Wgrad->getLen(), batch);
 			cudaDeviceSynchronize();
-		
 		}
 		else
 		{
 			matrixMulTA(cuHiddenDelta[hl],
-				cuPool[cuPool.size() - 1],
+				cuPoolToFlActi,
 				hLayers[hl].Wgrad, handle);
 			g_getHiddlenWgrad<<<dim3(1), dim3(256)>>>(hLayers[hl].Wgrad->devData, hLayers[hl].dropW->devData, 
 				hLayers[hl].Wgrad->getLen(), batch);
@@ -1571,42 +1707,45 @@ void getHiddenDelta(
 			(cuHiddenDelta[hl]->devData, hLayers[hl].bgrad->devData, batch);
 		cudaDeviceSynchronize();
 	}
+
+	getLastCudaError("getHiddenDelta");
 }
 
 /*
-	函数功能：反向传导中的unpooling操作，主要根据
+	function：反向传导中的unpooling操作，主要根据
 			  记录的pointx和pointy数据，对delta向池化层的
 			  上一层传导
-	线程分配：<<<dim3(convLen / (convSize * convSize)) / batch, batch
-				dim3(poolsize, poolSize)>>>
-
+	threads：<<<dim3(min(512), dim3(min(512))>>>
 */
+
 __global__ void g_unPooling(int* pointX, int* pointY,
-	double* prePool, double* curConv,
+	double* _pool, double* _conv,
 	int poolSize, int poolDim, int convSize, int len)
 {
-	int id = blockDim.x * blockIdx.x + threadIdx.x;
-	if(id >= len)
-		return;
-
-	int convId = id / poolSize / poolSize;
-	int idx    = id % (poolSize * poolSize);
-	//blockIdx.x + blockIdx.y * gridDim.x;
-	int poolSkip = poolSize * poolSize * convId;
-	int*       x = pointX + poolSkip;
-	int*       y = pointY + poolSkip;
-	double* pool = prePool+ poolSkip;
-	double* conv = curConv+ convSize * convSize * convId;
-	int    curX = x   [idx];
-	int    curY = y   [idx];
-	double curP = pool[idx];
-	conv[curX * convSize + curY] = curP;
+	for(int i = 0; i < len; i += gridDim.x * blockDim.x)
+	{
+		int id = i + blockDim.x * blockIdx.x + threadIdx.x;
+		if(id < len)
+		{
+			int convId = id / poolSize / poolSize;
+			int idx    = id % (poolSize * poolSize);
+			int poolSkip = poolSize * poolSize * convId;
+			int*       x = pointX  + poolSkip;
+			int*       y = pointY  + poolSkip;
+			double* pool = _pool   + poolSkip;
+			double* conv = _conv   + convSize * convSize * convId;
+			int    curX = x   [idx];
+			int    curY = y   [idx];
+			double curP = pool[idx];
+			conv[curX * convSize + curY] = curP;
+		}
+	}
 }
 
 /*
-	函数功能：将第二层的convdelta反向推导到第一层的pooldelta，
+	function：将第二层的convdelta反向推导到第一层的pooldelta，
 			  这里需要经过第二层的核函数，需要将核函数旋转180度。
-	线程分配：<<<dim3(batch, k1 * k2),dim3(nxtSize, nxtSize)>>>
+	threads ：<<<dim3(batch, k1 * k2, channel),dim3(nxtSize, nxtSize)>>>
 			  由于涉及的加法(reduce操作）,但是每个线程只负责累加k1个元素，
 			  所以直接用原子操作就可以达到目的（累加元素过多，
 			  则需要采用二分的方法来实现）
@@ -1624,18 +1763,19 @@ __global__ void g_dConvAdd(
 	int     _kernelAmount1,
 	int     _kernelAmount2,
 	int     _kernelSize,
+	int     _convDeltaArea,
+	int     _addBorderArea,
+	int     _poolDeltaArea,
 	int     len)  
 {
 	int id = blockIdx.y * blockDim.y + threadIdx.y;
+	int c  = blockIdx.z;
 	if(id >= len)return;
 
 	int curSize          = _convOutputSize;
 	int curAddBorderSize = _poolOutputSize;
 	int wSize            = _kernelSize;
 	int nxtSize          = _poolOutputSize;
-
-// 	g_dConvAdd<<<dim3(batch, cuKernelAmount[cl - 1] * Config::instance()->getConv()[cl]->m_amount),
-// 		dim3(cuPoolOutputSize[cl - 1] * cuPoolOutputSize[cl - 1])>>>
 
 	int k1 = id / _kernelAmount2;
 	int k2 = id % _kernelAmount2;
@@ -1646,17 +1786,20 @@ __global__ void g_dConvAdd(
 	int curSize2 = curSize * curSize;
 	int nxtSize2 = nxtSize * nxtSize;
 	double* curDelta = _convDelta 
+		+ c * _convDeltaArea
 		+ curSize2 * s * _kernelScan2
 		+ curSize2 * k1* _kernelAmount2
 		+ curSize2 * k2;
 	double* nxtDelta = _poolDelta 
+		+ c * _poolDeltaArea
 		+ nxtSize2 * s * _kernelScan1
 		+ nxtSize2 * k1;
 	double* addBorder= _addBorder	
+		+ c * _addBorderArea
 		+ nxtSize2 * s * _kernelScan2
 		+ nxtSize2 * k1* _kernelAmount2
 		+ nxtSize2 * k2;
-	double*        w = _w[k2];
+	double*        w = _w[k2] + c * _kernelSize * _kernelSize;
 
 	if(i < curSize && j < curSize)
 	{
@@ -1689,7 +1832,7 @@ __global__ void g_dConvAdd(
 	
 	函数功能：求解卷积层的wgrad的第一个函数，由于涉及计算量比较大的reduce操作，所以不建议直接用actom操作，
 			  而是
-	线程分配：dim3<<<dim3(batch, kernelAmount2), dim3(nxtSize * nxtSize, kernelAmount1)>>>
+	线程分配：dim3<<<dim3(batch, kernelAmount2, channels), dim3(nxtSize * nxtSize, kernelAmount1)>>>
 */
 __global__ void g_conv(double* pool,
 	double* convDelta,
@@ -1701,13 +1844,16 @@ __global__ void g_conv(double* pool,
 	int kernelAmount1,
 	int kernelAmount2,
 	int kernelSize,
+	int poolArea,
+	int convDeltaArea,
+	int wgradTmpArea,
 	int len)
 {
 	int id = blockIdx.y * blockDim.y + threadIdx.y;
+	int c = blockIdx.z;
 	if(id >= len)
 		return;
-// 	g_conv<<<dim3(batch,  Config::instance()->getConv()[cl]->m_amount),
-// 		dim3(Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize, cuKernelAmount[cl - 1])>>>(
+
 	int curSize = poolOutputSize;
 	int wSize   = convOutputSize;
 	int nxtSize = kernelSize;
@@ -1724,15 +1870,18 @@ __global__ void g_conv(double* pool,
 	int wSize2   = wSize   * wSize;
 	int nxtSize2 = nxtSize * nxtSize;
 	double* cur   = pool
+		+ c * poolArea
 		+ curSize2 * s * kernelScan1
 		+ curSize2 * k1;
 
 	double* w     = convDelta
+		+ c * convDeltaArea
 		+ wSize2 * s * kernelScan2
 		+ wSize2 * k1* kernelAmount2
 		+ wSize2 * k2;
 
 	double* nxt   = WgradTmp
+		+ c * wgradTmpArea
 		+ nxtSize2 * s * kernelScan2
 		+ nxtSize2 * k1* kernelAmount2
 		+ nxtSize2 * k2;
@@ -1751,28 +1900,33 @@ __global__ void g_conv(double* pool,
 }
 
 /*
-	线程分配：<<<dim3(k2, kernelSize*kernelSize), dim3(256)>>>
+	线程分配：<<<dim3(k2, kernelSize*kernelSize, channels), dim3(256)>>>
 */
-__global__ void g_convAdd(double* WgradTmp, double** Wgrad,
+__global__ void g_convAdd(
+	double* WgradTmp, 
+	double** Wgrad,
 	double** w,
-	int _len, 
 	int kernelScan1,
 	int kernelScan2,
 	int kernelAmount1,
 	int kernelAmount2,
 	int kernelSize,
 	int batch,
+	int wgradTmpArea,
+	int wgradArea,
+	int wArea,
 	double lambda)
 {
 	extern __shared__ double _sum[];
 	int k2 = blockIdx.x;
 	int kid= blockIdx.y;
 	int tid= threadIdx.x;
+	int c  = blockIdx.z;
 
 	_sum[threadIdx.x] = 0;
 	__syncthreads();
 	int kernelSize2 = kernelSize * kernelSize;
-	int  tlen = _len / kernelSize2 / kernelAmount2;
+	int  tlen = batch * kernelScan1;
 	for(int i = 0; i <  tlen; i += blockDim.x)
 	{
 		int idx = i + threadIdx.x;
@@ -1782,7 +1936,8 @@ __global__ void g_convAdd(double* WgradTmp, double** Wgrad,
 			int k1= idx % kernelScan1;
 
 			int id = 
-				kernelSize2 * s * kernelScan2
+				c * wgradTmpArea
+				+ kernelSize2 * s * kernelScan2
 				+ kernelSize2 * k1* kernelAmount2
 				+ kernelSize2 * k2 + kid;
 			_sum[threadIdx.x] += WgradTmp[id];
@@ -1806,12 +1961,12 @@ __global__ void g_convAdd(double* WgradTmp, double** Wgrad,
 
 	if(tid == 0)
 	{
-		Wgrad[k2][kid] = _sum[0] / batch + w[k2][kid] * lambda;
+		Wgrad[k2][kid + c * wgradArea] = _sum[0] / batch + w[k2][kid + c * wArea] * lambda;
 	}
 }
 
 /*
-	线程分配：<<<dim3(kernelAmount2), dim3(256)>>>
+	线程分配：<<<dim3(kernelAmount2, channels), dim3(256)>>>
 */
 __global__ void g_getCLayerBgrad(double* delta,
 	double** bgrad,
@@ -1821,14 +1976,18 @@ __global__ void g_getCLayerBgrad(double* delta,
 	int kernelAmount1,
 	int kernelAmount2,
 	int batch,
-	int _len)
+	int deltaArea)
 {
 	extern __shared__ double _sum[];
 	int k2 = blockIdx.x;
+	int c  = blockIdx.y;
+
 	_sum[threadIdx.x] = 0.0;
 	__syncthreads();
-	int tlen = _len / kernelAmount2;
+
 	int deltaSize2 = deltaSize * deltaSize;
+	int tlen = batch * kernelScan1 * deltaSize2;
+
 	for(int i = 0; i < tlen; i += blockDim.x)
 	{
 		int idx = i + threadIdx.x;
@@ -1839,7 +1998,8 @@ __global__ void g_getCLayerBgrad(double* delta,
 			int s  = t1 / kernelScan1;
 			int k1 = t1 % kernelScan1;
 			int id = 
-				deltaSize2 * s * kernelScan2
+				c * deltaArea
+				+ deltaSize2 * s * kernelScan2
 				+ deltaSize2 * k1* kernelAmount2
 				+ deltaSize2 * k2
 				+ t2;
@@ -1865,7 +2025,7 @@ __global__ void g_getCLayerBgrad(double* delta,
 
 	if(threadIdx.x == 0)
 	{
-		bgrad[k2][0] = _sum[0] / batch;
+		bgrad[k2][c] = _sum[0] / batch;
 	}
 }
 
@@ -1873,7 +2033,7 @@ __global__ void g_getCLayerBgrad(double* delta,
 	
 	函数功能：求解卷积层的wgrad的第一个函数，由于涉及计算量比较大的reduce操作，
 			所以不建议直接用actom操作，而是采用二分来求和
-	线程分配：dim3<<<dim3(batch), dim3(nxtSize * nxtSize, kernelAmount1)>>>
+	线程分配：dim3<<<dim3(batch, channels), dim3(nxtSize * nxtSize, kernelAmount1)>>>
 */
 __global__ void g_conv_1(double** sArray,
 	double* convDelta,
@@ -1882,26 +2042,32 @@ __global__ void g_conv_1(double** sArray,
 	int convOutputSize,
 	int kernelScan2,
 	int kernelAmount1,
-	int kernelSize)
+	int kernelSize,
+	int sArrayArea,
+	int convDeltaArea,
+	int wgrapTmpArea)
 {
 	int curSize = imgSize;
 	int wSize   = convOutputSize;
 	int nxtSize = kernelSize;
 
 	int s = blockIdx.x;
+	int c = blockIdx.y;
 	int k2= threadIdx.y;
 	int i = threadIdx.x / nxtSize;
 	int j = threadIdx.x % nxtSize;
 
 	int wSize2   = wSize * wSize;
 	int nxtSize2 = nxtSize * nxtSize;
-	double* cur   = sArray[s];
+	double* cur  = sArray[s] + c * sArrayArea;
 
 	double* w     = convDelta
+		+ c * convDeltaArea
 		+ wSize2 * s * kernelScan2
 		+ wSize2 * k2;
 
 	double* nxt   = WgradTmp
+		+ c * wgrapTmpArea
 		+ nxtSize2 * s * kernelScan2
 		+ nxtSize2 * k2;
 
@@ -1920,38 +2086,40 @@ __global__ void g_conv_1(double** sArray,
 
 
 /*
-	线程分配：<<<dim3(k1, kernelSize*kernelSize), dim3(256)>>>
+	线程分配：<<<dim3(k1, kernelSize*kernelSize, channels), dim3(256)>>>
 */
 __global__ void g_convAdd_1(double* WgradTmp, double** Wgrad,
 	double** w,
-	int _len, 
 	int kernelScan2,
 	int kernelAmount2,
 	int kernelSize,
 	int batch,
-	double lambda)
+	double lambda,
+	int wgradTmpArea,
+	int wgradArea,
+	int wArea)
 {
 	extern __shared__ double _sum[];
 	int k2 = blockIdx.x;
 	int kid= blockIdx.y;
+	int c  = blockIdx.z;
+
 	int tid= threadIdx.x;
 
 	_sum[threadIdx.x] = 0;
 	__syncthreads();
 	int kernelSize2 = kernelSize * kernelSize;
-	int tlen = _len / kernelSize2 / kernelAmount2;
+	int tlen = batch;
 	for(int i = 0; i < tlen; i += blockDim.x)
 	{
 		int s = (i + threadIdx.x);
 		if(s < tlen)
 		{
 			int id = 
-				kernelSize2 * s * kernelScan2
+				c * wgradTmpArea
+				+ kernelSize2 * s * kernelScan2
 				+ kernelSize2 * k2 + kid;
-		
-			
-		_sum[threadIdx.x] += WgradTmp[id];
-			
+			_sum[threadIdx.x] += WgradTmp[id];
 		}
 	}
 	__syncthreads();
@@ -1971,12 +2139,12 @@ __global__ void g_convAdd_1(double* WgradTmp, double** Wgrad,
 
 	if(tid == 0)
 	{
-		Wgrad[k2][kid] = _sum[0] / batch + w[k2][kid] * lambda;
+		Wgrad[k2][kid + c * wgradArea] = _sum[0] / batch + w[k2][kid + c * wArea] * lambda;
 	}
 }
 
 /*
-	线程分配：<<<dim3(kernelAmount2), dim3(256)>>>
+	线程分配：<<<dim3(kernelAmount2, channels), dim3(256)>>>
 */
 __global__ void g_getCLayerBgrad_1(double* delta,
 	double** bgrad,
@@ -1984,14 +2152,17 @@ __global__ void g_getCLayerBgrad_1(double* delta,
 	int kernelScan2,
 	int kernelAmount2,
 	int batch,
-	int _len)
+	int deltaArea,
+	int bgradArea)
 {
 	extern __shared__ double _sum[];
 	int k2 = blockIdx.x;
+	int c  = blockIdx.y;
 	_sum[threadIdx.x] = 0.0;
 	__syncthreads();
-	int tlen = _len / kernelAmount2;
+
 	int deltaSize2 = deltaSize * deltaSize;
+	int tlen = deltaSize2 * batch;
 	for(int i = 0; i < tlen; i += blockDim.x)
 	{
 		int idx = i + threadIdx.x;
@@ -2001,11 +2172,11 @@ __global__ void g_getCLayerBgrad_1(double* delta,
 			int t2 = idx % (deltaSize2);//x,y
 
 			int id = 
-				deltaSize2 * s * kernelScan2
+				deltaArea * c
+				+ deltaSize2 * s * kernelScan2
 				+ deltaSize2 * k2
 				+ t2;
 			_sum[threadIdx.x] += delta[id];
-		
 		}
 	}
 	__syncthreads();
@@ -2026,10 +2197,29 @@ __global__ void g_getCLayerBgrad_1(double* delta,
 
 	if(threadIdx.x == 0)
 	{
-		bgrad[k2][0] = _sum[0] / batch;
+		bgrad[k2][c] = _sum[0] / batch;
 	}
 }
 
+/*
+	function: g_cuPoolFlDelta
+	threads : <<<dim3(batch), dim3(512)>>> 
+*/
+__global__ void g_cuPoolFlDelta(double* cuPoolFlDelta, 
+	double* cuPoolDelta, int batch, int size, int channels)
+{
+	int b = blockIdx.x;
+	for(int i = 0; i < size * channels; i += blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < size * channels)
+		{
+			int s = id / channels;
+			int c = id % channels;
+			cuPoolDelta[c * batch * size + b * size + s] = cuPoolFlDelta[b * size * channels + size * c + s];
+		}
+	}
+}
 
 void dConvAndUnpooling(double**x, 
 	std::vector<cuCvl> &CLayers,
@@ -2038,7 +2228,29 @@ void dConvAndUnpooling(double**x,
 	int batch, int ImgSize, int nclasses, cublasHandle_t handle)
 {
 	matrixMul(cuHiddenDelta[0], hLayers[0].afterDropW, 
-		cuPoolDelta[cuPoolDelta.size() - 1], handle);
+		cuPoolToFlDelta, handle);
+
+	g_cuPoolFlDelta<<<dim3(cuPoolToFlDelta->rows), dim3(512)>>>(cuPoolToFlDelta->devData, 
+		cuPoolDelta[cuPoolDelta.size() - 1]->devData,
+		cuPoolDelta[cuPoolDelta.size() - 1]->rows,
+		cuPoolDelta[cuPoolDelta.size() - 1]->cols,
+		cuPoolDelta[cuPoolDelta.size() - 1]->channels
+		);
+	cudaDeviceSynchronize();
+	getLastCudaError("g_cuPoolFlDelta");
+// 	cuPoolDelta[1]->toCpu();
+// 	for(int c = 0; c < cuPoolDelta[1]->channels; c++)
+// 	{
+// 		for(int i = 0; i < cuPoolDelta[1]->rows; i++)
+// 		{
+// 			for(int j = 0; j < cuPoolDelta[1]->cols; j++)
+// 			{
+// 				double v = cuPoolDelta[1]->get(i, j, 0);
+// 				cuPoolDelta[1]->set(i, j, c, v);
+// 			}
+// 		}
+// 	}
+// 	cuPoolDelta[1]->toGpu();
 
 	for(int cl = CLayers.size() - 1; cl >= 0; cl--)
 	{
@@ -2048,8 +2260,8 @@ void dConvAndUnpooling(double**x,
 			printf("dConvAndUnpooling g_unPooling cuPoolOutputSize[cl] * cuPoolOutputSize[cl] > MAX_THREADS\n");
 			exit(0);
 		}
-		int len = cuConvDelta[cl]->getLen() / (cuConvOutputSize[cl] * cuConvOutputSize[cl]) * cuPoolOutputSize[cl] * cuPoolOutputSize[cl];
-		g_unPooling<<<dim3((len + 511) / 512),
+		int len = cuPoolDelta[cl]->getLen();
+		g_unPooling<<<dim3(std::min((len + 511) / 512, 512)),
 			dim3(512)>>>(
 			cuPointX[cl]->devData,
 			cuPointY[cl]->devData,
@@ -2061,9 +2273,13 @@ void dConvAndUnpooling(double**x,
 			len);
 	
 		cudaDeviceSynchronize();
-		g_dnonLinearity<<<dim3(1),dim3(256)>>>(cuConvDelta[cl]->devData,
+		getLastCudaError("g_unPooling");
+
+
+		g_dnonLinearity<<<dim3(256),dim3(256)>>>(cuConvDelta[cl]->devData,
 			cuConv[cl]->devData, cuConvDelta[cl]->getLen(), Config::instance()->getNonLinearity());
 		cudaDeviceSynchronize();
+		getLastCudaError("g_dnonLinearity");
 
 		if(cl > 0)
 		{
@@ -2075,7 +2291,7 @@ void dConvAndUnpooling(double**x,
 				printf("g_dConvAdd threads > MAX_THREADS\n");
 				exit(0);
 			}
-			int len = cuKernelScan[cl - 1] * Config::instance()->getConv()[cl]->m_amount;
+			int len = cuKernelScan[cl];
 			int threadidx = cuPoolOutputSize[cl - 1] * cuPoolOutputSize[cl - 1];
 			int threadidy = min(512, len + threadidx - 1) / threadidx;//总线程数不能超过1024
 			int blockidy  = (len + threadidy -1) / threadidy;
@@ -2086,7 +2302,7 @@ void dConvAndUnpooling(double**x,
 				exit(0);
 			}
 
-			g_dConvAdd<<<dim3(batch, blockidy),
+			g_dConvAdd<<<dim3(batch, blockidy, Config::instance()->getChannels()),
 				dim3(threadidx, threadidy)>>>
 			(
 				cuConvDelta[cl]->devData,
@@ -2100,11 +2316,16 @@ void dConvAndUnpooling(double**x,
 				Config::instance()->getConv()[cl - 1]->m_amount,
 				Config::instance()->getConv()[cl]->m_amount,
 				Config::instance()->getConv()[cl]->m_kernelSize,
+				cuConvDelta[cl]->getArea(),
+				cuPoolDeltaAndBorder[cl - 1]->getArea(),
+				cuPoolDelta[cl - 1]->getArea(),
 				len
 			);
 			cudaDeviceSynchronize();
+			getLastCudaError("g_dConvAdd");
+			
 
-			len = cuKernelScan[cl - 1] * Config::instance()->getConv()[cl]->m_amount;
+			len = cuKernelScan[cl];
 			threadidx = Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize;
 			threadidy = min(512, len + threadidx - 1) / threadidx;//总线程数不能超过1024
 			blockidy  = (len + threadidy -1) / threadidy;
@@ -2114,7 +2335,7 @@ void dConvAndUnpooling(double**x,
 				printf("g_conv > MAX_THREADS\n");
 				exit(0);
 			}
-			g_conv<<<dim3(batch,  blockidy),
+			g_conv<<<dim3(batch,  blockidy, Config::instance()->getChannels()),
 				dim3(threadidx, threadidy)>>>(
 				cuPool[cl - 1]->devData,
 				cuConvDelta[cl]->devData,
@@ -2126,28 +2347,36 @@ void dConvAndUnpooling(double**x,
 				Config::instance()->getConv()[cl - 1]->m_amount,
 				Config::instance()->getConv()[cl]->m_amount,
 				Config::instance()->getConv()[cl]->m_kernelSize,
+				cuPool[cl - 1]->getArea(),
+				cuConvDelta[cl]->getArea(),
+				cuConvLayerWgradTmp[cl]->getArea(),
 				len);
 			cudaDeviceSynchronize();
+			getLastCudaError("g_conv");
 
-			g_convAdd<<<dim3(Config::instance()->getConv()[cl]->m_amount, Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize),
+			g_convAdd<<<dim3(Config::instance()->getConv()[cl]->m_amount,
+				Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize,
+				Config::instance()->getChannels()),
 				dim3(256),
 				sizeof(double) * 256>>>(
 				cuConvLayerWgradTmp[cl]->devData,
 				CLayers[cl].wgrad->m_devPoint,
 				CLayers[cl].w->m_devPoint,
-				cuConvLayerWgradTmp[cl]->getLen(),
 				cuKernelScan[cl - 1],
 				cuKernelScan[cl],
 				Config::instance()->getConv()[cl - 1]->m_amount,
 				Config::instance()->getConv()[cl]->m_amount,
 				Config::instance()->getConv()[cl]->m_kernelSize,
 				batch,
+				cuConvLayerWgradTmp[cl]->getArea(),
+				CLayers[cl].layer[0].Wgrad->getArea(),
+				CLayers[cl].layer[0].W->getArea(),
 				lambda);
 			cudaDeviceSynchronize();
+			getLastCudaError("g_convAdd");
 
-
-
-			g_getCLayerBgrad<<<dim3(Config::instance()->getConv()[cl]->m_amount), 
+			g_getCLayerBgrad<<<dim3(Config::instance()->getConv()[cl]->m_amount,
+				Config::instance()->getChannels()), 
 				dim3(256),
 				sizeof(double) * 256>>>(cuConvDelta[cl]->devData,
 				CLayers[cl].bgrad->m_devPoint,
@@ -2157,8 +2386,9 @@ void dConvAndUnpooling(double**x,
 				Config::instance()->getConv()[cl - 1]->m_amount,
 				Config::instance()->getConv()[cl]->m_amount,
 				batch,
-				cuConvDelta[cl]->getLen());
+				cuConvDelta[cl]->getArea());
 			cudaDeviceSynchronize();
+			getLastCudaError("g_getCLayerBgrad");
 		}
 		else
 		{
@@ -2169,7 +2399,9 @@ void dConvAndUnpooling(double**x,
 				printf("g_conv_1 threads > MAX_THREADS\n");
 				exit(0);
 			}
-			g_conv_1<<<dim3(batch),dim3(Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize,
+			g_conv_1<<<dim3(batch, Config::instance()->getChannels()),
+				dim3(Config::instance()->getConv()[cl]->m_kernelSize *
+				Config::instance()->getConv()[cl]->m_kernelSize,
 				Config::instance()->getConv()[cl]->m_amount)>>>
 				(x,cuConvDelta[cl]->devData,
 				cuConvLayerWgradTmp[cl]->devData,
@@ -2177,25 +2409,52 @@ void dConvAndUnpooling(double**x,
 				cuConvOutputSize[cl],
 				cuKernelScan[cl],
 				Config::instance()->getConv()[cl]->m_amount,
-				Config::instance()->getConv()[cl]->m_kernelSize);
+				Config::instance()->getConv()[cl]->m_kernelSize,
+				ImgSize * ImgSize,
+				cuConvDelta[cl]->getArea(),
+				cuConvLayerWgradTmp[cl]->getArea());
 			cudaDeviceSynchronize();
-
 
 			if(Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize > MAX_THREADS)
 			{
 				printf("g_convAdd_1 > MAX_THREADS\n");
 				exit(0);
 			}
-			g_convAdd_1<<<dim3(Config::instance()->getConv()[cl]->m_amount, Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize),dim3(256),
-				sizeof(double) * 256>>>(cuConvLayerWgradTmp[cl]->devData,
-				CLayers[cl].wgrad->m_devPoint,CLayers[cl].w->m_devPoint,cuConvLayerWgradTmp[cl]->getLen(),cuKernelScan[cl],
-				Config::instance()->getConv()[cl]->m_amount, Config::instance()->getConv()[cl]->m_kernelSize,batch, lambda);
+			g_convAdd_1<<<dim3(Config::instance()->getConv()[cl]->m_amount, 
+				Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize,
+				Config::instance()->getChannels()),
+				dim3(256),
+				sizeof(double) * 256>>>(
+				cuConvLayerWgradTmp[cl]->devData,
+				CLayers[cl].wgrad->m_devPoint,
+				CLayers[cl].w->m_devPoint,
+				cuKernelScan[cl],
+				Config::instance()->getConv()[cl]->m_amount,
+				Config::instance()->getConv()[cl]->m_kernelSize,
+				batch,
+				lambda,
+				cuConvLayerWgradTmp[cl]->getArea(),
+				CLayers[cl].layer[0].Wgrad->getArea(),
+				CLayers[cl].layer[0].W->getArea());
 			cudaDeviceSynchronize();
 
-			g_getCLayerBgrad_1<<<dim3(Config::instance()->getConv()[cl]->m_amount),dim3(256), sizeof(double) * 256>>>
-				(cuConvDelta[cl]->devData,CLayers[cl].bgrad->m_devPoint, cuConvOutputSize[cl], cuKernelScan[cl],
-				Config::instance()->getConv()[cl]->m_amount, batch, cuConvDelta[cl]->getLen());
+			g_getCLayerBgrad_1<<<dim3(Config::instance()->getConv()[cl]->m_amount, 
+				Config::instance()->getChannels()),
+				dim3(256), 
+				sizeof(double) * 256>>>
+				(cuConvDelta[cl]->devData,
+				CLayers[cl].bgrad->m_devPoint, 
+				cuConvOutputSize[cl], 
+				cuKernelScan[cl],
+				Config::instance()->getConv()[cl]->m_amount, 
+				batch, 
+				cuConvDelta[cl]->getArea(),
+				CLayers[cl].layer[0].bgrad->getArea());
 			cudaDeviceSynchronize();
+
+// 			freopen("aaaa.txt", "w", stdout);
+// 			outputMatrix(CLayers[cl].layer[0].bgrad);
+// 			exit(0);
 		}
 	}
 }
@@ -2206,9 +2465,10 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 	int lenw, int lenb,
 	double momentum, double lrate)
 {
-	for(int i = 0; i < lenw; i += blockDim.x)
+	int idx = blockDim.x * blockIdx.x + threadIdx.x;
+	for(int i = 0; i < lenw; i += blockDim.x * gridDim.x)
 	{
-		int id = i + threadIdx.x;
+		int id = i + idx;
 		if(id < lenw)
 		{
 			v_w[id] = v_w[id] * momentum + wgrad[id] * lrate;
@@ -2216,9 +2476,9 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 		}
 	}
 
-	for(int i = 0; i < lenb; i += blockDim.x)
+	for(int i = 0; i < lenb; i += blockDim.x * gridDim.x)
 	{
-		int id = i + threadIdx.x;
+		int id = i + idx;
 		if(id < lenb)
 		{
 			v_b[id] = v_b[id] * momentum + bgrad[id] * lrate;
@@ -2234,17 +2494,24 @@ void updataWB(std::vector<cuCvl> &CLayers,
 	double momentum,
 	int batch)
 {
-	g_vecAdd<<<dim3(1),dim3(256)>>>(cu_v_smr_w->devData, smr.Wgrad->devData, smr.Weight->devData,
-		cu_v_smr_b->devData, smr.bgrad->devData, smr.b->devData, 
-		smr.Wgrad->getLen(),smr.bgrad->getLen(), momentum, lrate);
-
+	g_vecAdd<<<dim3(min((cu_v_smr_w->getLen() + 255) / 256, 5120)),
+		dim3(256)>>>(
+		cu_v_smr_w->devData, 
+		smr.Wgrad->devData, 
+		smr.Weight->devData,
+		cu_v_smr_b->devData, 
+		smr.bgrad->devData, 
+		smr.b->devData, 
+		smr.Wgrad->getLen(),
+		smr.bgrad->getLen(),
+		momentum, 
+		lrate);
 	for(int i = 0; i < hLayers.size(); i++)
 	{
-		g_vecAdd<<<dim3(1),dim3(512)>>>(cu_v_hl_w[i]->devData, hLayers[i].Wgrad->devData, hLayers[i].W->devData,
+		g_vecAdd<<<dim3(min((cu_v_hl_w[i]->getLen() + 255) / 256, 5120)),dim3(256)>>>(cu_v_hl_w[i]->devData, hLayers[i].Wgrad->devData, hLayers[i].W->devData,
 			cu_v_hl_b[i]->devData, hLayers[i].bgrad->devData, hLayers[i].b->devData,
 			hLayers[i].Wgrad->getLen(), hLayers[i].bgrad->getLen(), momentum, lrate);
 	}
-
  	for(int cl = 0; cl < CLayers.size(); cl++)
  	{
  		for(int i = 0; i < CLayers[cl].layer.size(); i++)
@@ -2255,6 +2522,7 @@ void updataWB(std::vector<cuCvl> &CLayers,
  		}
  	}
  	cudaDeviceSynchronize();
+	getLastCudaError("updateWB");
 }
 
 void getNetworkCost(double** x, 
@@ -2383,32 +2651,30 @@ void gradientChecking(std::vector<cuCvl> &CLayers, std::vector<cuFll> &hLayers, 
 				lambda, batch, ImgSize, nclasses, handle);
 			CLayers[a].layer[b].Wgrad->toCpu();
 			cuMatrix<double>* grad = new cuMatrix<double>(CLayers[a].layer[b].Wgrad->hostData, CLayers[a].layer[b].Wgrad->rows,
-				CLayers[a].layer[b].Wgrad->cols);
-			
-			for(int i = 0; i < CLayers[a].layer[b].W->rows; i++)
-			{
-				for(int j = 0; j < CLayers[a].layer[b].W->cols; j++)
-				{
-					double memo = CLayers[a].layer[b].W->get(i, j);
-					CLayers[a].layer[b].W->set(i, j, memo + epsilon);
-					CLayers[a].layer[b].W->toGpu();
-					getNetworkCost(x, y, CLayers, hLayers, smr, lambda, batch, ImgSize, nclasses, handle);
-					smr.cost->toCpu();
-					double value1 = smr.cost->get(0,0);
-					CLayers[a].layer[b].W->set(i, j, memo - epsilon);
-					CLayers[a].layer[b].W->toGpu();
-					getNetworkCost(x, y, CLayers, hLayers, smr, lambda, batch, ImgSize, nclasses, handle);
-					smr.cost->toCpu();
-					double value2 = smr.cost->get(0, 0);
-					double tp = (value1 - value2) / (2 * epsilon);
-					if(int(10000 * grad->get(i,j)) != int(10000 * tp))
-						std::cout<<i<<", "<<j<<", "<<tp<<", "<<grad->get(i,j)<<", "
-							<<tp / grad->get(i,j) <<std::endl;
-					CLayers[a].layer[b].W->set(i, j, memo);
-					CLayers[a].layer[b].W->toGpu();
+				CLayers[a].layer[b].Wgrad->cols, CLayers[a].layer[b].Wgrad->channels);
+			for(int c = 0; c < CLayers[a].layer[b].W->channels; c++){
+				for(int i = 0; i < CLayers[a].layer[b].W->rows; i++){
+					for(int j = 0; j < CLayers[a].layer[b].W->cols; j++){
+						double memo = CLayers[a].layer[b].W->get(i, j, c);
+						CLayers[a].layer[b].W->set(i, j, c, memo + epsilon);
+						CLayers[a].layer[b].W->toGpu();
+						getNetworkCost(x, y, CLayers, hLayers, smr, lambda, batch, ImgSize, nclasses, handle);
+						smr.cost->toCpu();
+						double value1 = smr.cost->get(0, 0 , 0);
+						CLayers[a].layer[b].W->set(i, j, c, memo - epsilon);
+						CLayers[a].layer[b].W->toGpu();
+						getNetworkCost(x, y, CLayers, hLayers, smr, lambda, batch, ImgSize, nclasses, handle);
+						smr.cost->toCpu();
+						double value2 = smr.cost->get(0, 0, 0);
+						double tp = (value1 - value2) / (2 * epsilon);
+						if(int(10000 * grad->get(i,j,c)) != int(10000 * tp))
+							std::cout<<i<<","<<j<<","<<c<<","<<tp<<", "<<grad->get(i,j,c)<<", "
+							<<tp / grad->get(i,j,c) <<std::endl;
+						CLayers[a].layer[b].W->set(i, j, c, memo);
+						CLayers[a].layer[b].W->toGpu();
+					}
 				}
 			}
-
 			delete grad;
 		}
 	}
@@ -2428,31 +2694,46 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 	int nclasses,
 	cublasHandle_t handle)
 {
-// 	gradientChecking(CLayers, HiddenLayers, smr, cu_D_trainX, y->devData, 
-// 		lambda, batch, handle);
-
-	cuCorrectCount->gpuClear();
-	int correct = 0;
-
 	for(int hl = 0; hl < HiddenLayers.size(); hl++)
 	{
-		dropDelta(HiddenLayers[hl].dropW, 0.0f);
+		dropDelta(HiddenLayers[hl].dropW, Config::instance()->getFC()[hl]->m_dropoutRate);
 	}
 
-	for(int p = 0; p < testX.size() / batch; p++)
+ 	if(Config::instance()->getIsGradientChecking())
+ 		gradientChecking(CLayers, HiddenLayers, smr, x.m_devPoint, y->devData, 
+ 		lambda, batch, ImgSize, nclasses, handle);
+ 
+ 	cuCorrectCount->gpuClear();
+ 	int correct = 0;
+	for(int hl = 0; hl < HiddenLayers.size(); hl++)
 	{
-		int tstart = p * batch;
-		correct += resultProdict(testX.m_devPoint + tstart,  testY->devData + tstart, 
-			CLayers, HiddenLayers, smr, lambda, batch, ImgSize, nclasses, handle);	
+		dropDelta(HiddenLayers[hl].dropW, Config::instance()->getFC()[hl]->m_dropoutRate);
 	}
-
-	if(correct >  cuCurCorrect)
-	{
-		cuCurCorrect = correct;
-		cuSaveConvNet(CLayers, HiddenLayers, smr, ImgSize, nclasses, nsamples);
-	}
-	printf(" = %d\n", correct);
-
+ 
+ 	for(int p = 0; p < testX.size() / batch; p++)
+ 	{
+ 		printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
+ 		int tstart = p * batch;
+ 		correct += resultProdict(testX.m_devPoint + tstart, 
+ 			testY->devData + tstart, 
+ 			CLayers,
+ 			HiddenLayers,
+ 			smr,
+ 			lambda,
+ 			batch,
+ 			ImgSize,
+ 			nclasses, 
+ 			handle);
+ 		printf("\b\b\b\b\b\b\b\b\b");
+ 	}
+ 
+ 	if(correct >  cuCurCorrect)
+ 	{
+ 		cuCurCorrect = correct;
+ 		cuSaveConvNet(CLayers, HiddenLayers, smr, ImgSize, nclasses, nsamples);
+ 	}
+ 	printf("correct is %d\n", correct);
+	
 	int epochs = 20000;
  	double nlrate[] =    {0.05, 0.04, 0.03, 0.02, 0.01, 0.008, 0.006, 0.001, 0.0009, 0.0008, 0.0007, 0.0006, 
 		0.025, 0.0125, 0.00625, 0.003125, 0.0015625, 0.00078125, 0.000390625, 0.0001953125, 0.00009765625, 0.000048828125, 0.0000244140625};
@@ -2463,8 +2744,8 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 	while(1)
 	{
-		double lrate = 0.05;
-		double Momentum = 0.9;
+		double lrate;
+		double Momentum;
 		int id = 0;
 		for(int epo = 0; epo < epochs; epo++){
 			if(id >= sizeof(nlrate) / sizeof(double))
@@ -2475,26 +2756,29 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			double start,end;
 			start = clock();
 
-			cuApplyRandom(batch,  time(NULL), 3.4, ImgSize);
+			cuApplyRandom(batch, clock(), ImgSize);
 			for(int hl = 0; hl < HiddenLayers.size(); hl++)
 			{
 				dropDelta(HiddenLayers[hl].dropW, Config::instance()->getFC()[hl]->m_dropoutRate);
 			}
 			for(int k = 0; k < (x.size() + batch - 1) / batch; k++)
 			{
-				//int start = k * batch;
 				int start = rand() % (x.size() - batch);
-				printf("%2d%%", k * 100 / ((x.size() + batch - 1) / batch));
-
+				//int start = k * batch;
+				printf("train %2d%%", 100 * k / ((x.size() + batch - 1) / batch));
 				cuApplyDistortion(x.m_devPoint + start, cu_distortion_vector->m_devPoint, batch, ImgSize);
 				cuApplyCrop(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
-
-// 				for(int ff = 0; ff < batch; ff++)
-// 				{
-// 					showImg(x[start + ff], 10);
-// 					showImg(cu_distortion_vector->m_vec[ff], 10);
-// 					cv::waitKey(0);
-// 				}
+ 
+				if(Config::instance()->getImageShow())
+				{
+					for(int ff = batch - 1; ff >= 0; ff--)
+					{
+						showImg(x[start + ff], 10);
+						showImg(cu_distortion_vector->m_vec[ff], 10);
+						cv::waitKey(0);
+					}
+				}
+				
 
 				getNetworkCost(cu_distortion_vector->m_devPoint,
 					y->devData + start,
@@ -2502,7 +2786,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 					smr,
 					lambda, batch, ImgSize, nclasses, handle);
 				updataWB(CLayers, HiddenLayers, smr, lrate, Momentum, batch);
-				printf("\b\b\b");
+				printf("\b\b\b\b\b\b\b\b\b");
 			}
 
 			smr.cost->toCpu();
@@ -2514,9 +2798,11 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			}
 			for(int p = 0; p < testX.size() / batch; p++)
 			{
+				printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
 				int tstart = p * batch;
 				correct += resultProdict(testX.m_devPoint + tstart,  testY->devData + tstart, 
 					CLayers, HiddenLayers, smr, lambda, batch, ImgSize, nclasses, handle);
+				printf("\b\b\b\b\b\b\b\b\b");
 			}
 
 			if(correct >  cuCurCorrect)
@@ -2547,7 +2833,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			end = clock();
 
 			sprintf(str, "e=%d t=%.03lfs cst=%lf crt=%d/%d mom=%.06lf r=%.08lf", epo,
-				(double)(end - start) / CLOCKS_PER_SEC, smr.cost->get(0,0), correct, cuCurCorrect, Momentum, lrate);
+				(double)(end - start) / CLOCKS_PER_SEC, smr.cost->get(0,0,0), correct, cuCurCorrect, Momentum, lrate);
 
 			printf("%s\n",str);
 			LOG(str,"output");
@@ -2608,9 +2894,9 @@ int cuPredictNetwork(cuMatrixVector<double>& x,
 	predict->toCpu();
 	for(int i = 0; i < predict->getLen(); i++)
 	{
-		if(predict->get(i, 0) != y->hostData[i])
+		if(predict->get(i, 0, 0) != y->hostData[i])
 		{
-			printf("id=%d predict=%lf correct=%lf\n", i, predict->get(i, 0), y->hostData[i]);
+			printf("id=%d predict=%lf correct=%lf\n", i, predict->get(i, 0, 0), y->hostData[i]);
 		}
 		else 
 		{
@@ -2627,7 +2913,7 @@ int cuPredictAdd(cuMatrix<double>* predict, cuMatrix<double>* testY, int batch, 
 	g_resultCountProdict<<<dim3(1),dim3(batch)>>>(cuCorrectCount->devData, testY->devData, cuCorrect->devData, nclasses, testY->getLen());
 	cudaDeviceSynchronize();
 	cuCorrect->toCpu();
-	return  cuCorrect->get(0,0);
+	return  cuCorrect->get(0, 0, 0);
 }
 
 void cuShowInCorrect(cuMatrixVector<double>&testX, cuMatrix<double>* testY, int ImgSize, int nclasses)
@@ -2640,9 +2926,9 @@ void cuShowInCorrect(cuMatrixVector<double>&testX, cuMatrix<double>* testY, int 
 		int id = 0;
 		for(int j = 0; j <  nclasses; j++)
 		{
-			if(cuCorrectCount->get(i, j) > _max)
+			if(cuCorrectCount->get(i, j, 0) > _max)
 			{
-				_max = cuCorrectCount->get(i, j);
+				_max = cuCorrectCount->get(i, j, 0);
 				id = j;
 			}
 		}
@@ -2650,7 +2936,7 @@ void cuShowInCorrect(cuMatrixVector<double>&testX, cuMatrix<double>* testY, int 
 		{
 			for(int j = 0; j < nclasses; j++)
 			{
-				printf("%.0lf ", cuCorrectCount->get(i,j));
+				printf("%.0lf ", cuCorrectCount->get(i, j, 0));
 			}printf("\n");
 			printf("predictId = %d correctId = %.0lf\n", id, testY->hostData[i]);
 			//cuApplyCrop(cu_D_Distortion, cu_D_Distortion, 1);

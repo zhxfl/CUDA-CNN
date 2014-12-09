@@ -17,6 +17,73 @@ private:
 	bool m_IsGradientChecking;
 };
 
+class ConfigImageShow
+{
+public:
+	ConfigImageShow(bool imageShow)
+	{
+		m_imageShow = imageShow;
+	}
+	bool getValue(){return m_imageShow;};
+private:
+	bool m_imageShow;
+};
+
+class ConfigCrop
+{
+public:
+	ConfigCrop(double crop)
+	{
+		m_crop = crop;
+	}
+	double getValue(){return m_crop;};
+private:
+	double m_crop;
+};
+
+class ConfigScale
+{
+public:
+	ConfigScale(double scale)
+	{
+		m_scale = scale;
+	}
+	double getValue(){return m_scale;}
+private:
+	double m_scale;
+};
+
+class ConfigRotation
+{
+public:
+	ConfigRotation(double rotation)
+	{
+		m_rotation = rotation;
+	}
+	double getValue()
+	{
+		return m_rotation;
+	}
+private:
+	double m_rotation;
+
+};
+
+class ConfigDistortion
+{
+public:
+	ConfigDistortion(double distortion)
+	{
+		m_distortion = distortion;
+	}
+	double getValue()
+	{
+		return m_distortion;
+	}
+private:
+	double m_distortion;
+};
+
 class ConfigBatchSize
 {
 public:
@@ -50,6 +117,15 @@ public:
 	int getValue(){return m_nonLinearity;}
 private:
 	int m_nonLinearity;
+};
+
+class ConfigChannels
+{
+public:
+	ConfigChannels(int channels):m_channels(channels){};
+	int m_channels;
+
+	int getValue(){return m_channels;};
 };
 
 class ConfigConv
@@ -94,22 +170,50 @@ public:
 	}
 };
 
+
 class Config
 {
 public:
+	void initPath(std::string path){
+		m_path = path;
+		init(m_path);
+	}
 	static Config* instance(){
-		static Config *config = new Config("Config.txt");
+		static Config* config = new Config();
 		return config;
 	}
 
 	int getNonLinearity(){
 		return m_nonLinearity->getValue();}
 
+	bool getImageShow(){
+		return m_imageShow->getValue();}
+
 	bool getIsGradientChecking(){
 		return m_isGrandientChecking->getValue();}
 
 	int getBatchSize(){
 		return m_batchSize->getValue();}
+
+	int getChannels(){
+		return m_channels->getValue();
+	}
+
+	double getCrop(){
+		return m_crop->getValue();
+	}
+
+	double getScale(){
+		return m_scale->getValue();
+	}
+
+	double getRotation(){
+		return m_rotation->getValue();
+	}
+
+	double getDistortion(){
+		return m_distortion->getValue();
+	}
 
 	const std::vector<ConfigConv*>& getConv(){
 		return m_conv;
@@ -123,8 +227,7 @@ public:
 		return m_softMax;
 	}
 private:
-	Config(std::string path):m_path(path){
-		init();
+	Config(){
 	}
 	void deleteComment();
 	void deleteSpace();
@@ -135,15 +238,24 @@ private:
 	std::string read_2_string(std::string File_name);
 	void get_layers_config(std::string &str);
 
-	void init();
+	void init(std::string path);
 	std::string m_configStr;
 	std::string m_path;
 	std::vector<ConfigFC*>m_fc;
 	std::vector<ConfigConv*>m_conv;
 	std::vector<ConfigSoftMax*>m_softMax;
 
-	ConfigNonLinearity*m_nonLinearity;
-	ConfigGradient* m_isGrandientChecking;
-	ConfigBatchSize*m_batchSize;
+	ConfigNonLinearity *m_nonLinearity;
+	ConfigGradient     *m_isGrandientChecking;
+	ConfigBatchSize    *m_batchSize;
+	ConfigChannels     *m_channels;
+
+	ConfigCrop         *m_crop;
+	ConfigScale        *m_scale;
+	ConfigRotation     *m_rotation;
+	ConfigDistortion   *m_distortion;
+	ConfigImageShow    *m_imageShow;
+
 };
+
 #endif

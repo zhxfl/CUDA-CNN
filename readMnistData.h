@@ -1,5 +1,5 @@
-#ifndef _READ_DATA_H_
-#define _READ_DATA_H_
+#ifndef _READ_MNIST_DATA_H_
+#define _READ_MNIST_DATA_H_
 
 #include "cuMatrix.h"
 #include <string>

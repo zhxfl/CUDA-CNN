@@ -43,7 +43,6 @@ typedef struct cuConvLayer{
 	}
 }cuCvl;
 
-
 /*È«Á´½Ó²ã*/
 typedef struct cuFullLayer{
 	cuMatrix<double>* W;
@@ -174,5 +173,7 @@ void cuFreeCNNMemory(
 	cuSMR &smr);
 
 int cuPredictAdd(cuMatrix<double>* predict, cuMatrix<double>* testY, int batch, int ImgSize, int nclasses);
+
 void cuShowInCorrect(cuMatrixVector<double>&testX, cuMatrix<double>* testY, int ImgSize, int nclasses);
+
 #endif

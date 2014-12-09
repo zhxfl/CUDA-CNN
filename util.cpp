@@ -1,52 +1,92 @@
 #include "util.h"
 #include <opencv2/opencv.hpp>
+#include "Config.h"
 using namespace cv;
+
+int getCV_64()
+{
+	int cv_64;
+	if(Config::instance()->getChannels() == 1){
+		cv_64 = CV_64FC1;
+	}
+	else if(Config::instance()->getChannels() == 3){
+		cv_64 = CV_64FC3;
+	}
+	else if(Config::instance()->getChannels() == 4){
+		cv_64 = CV_64FC4;
+	}
+	return cv_64;
+}
 
 void showImg(cuMatrix<double>* x, double scala)
 {
 	x->toCpu();
-	double * data = (double*) malloc(sizeof(*data) * x->cols * x->rows);
-	if(!data) {
-		printf("util::showImg memory allocation failed");
-		exit(0);
+
+	int CV_64;
+	if(x->channels == 1){
+		CV_64 = CV_64FC1;
 	}
+	else if(x->channels == 3){
+		CV_64 = CV_64FC3;
+	}
+	else if(x->channels == 4){
+		CV_64 = CV_64FC4;
+	}
+	Mat src(x->rows, x->cols, CV_64);;
+
 
 	for(int i = 0; i < x->rows; i++)
 	{
 		for(int j = 0; j < x->cols; j++)
 		{
-			data[i * x->cols + j] = x->get(i,j);
+			if(x->channels == 1){
+				src.at<double>(i, j) = x->get(i, j, 0);
+			}
+			else if(x->channels == 3){
+				src.at<Vec3d>(i, j) = 
+					Vec3d(
+					x->get(i, j, 0),
+					x->get(i, j, 1), 
+					x->get(i, j, 2));
+			}else if(x->channels == 4){
+				src.at<Vec4d>(i, j) = 
+					Vec4d(
+					x->get(i, j, 0),
+					x->get(i, j, 1),
+					x->get(i, j, 2),
+					x->get(i, j, 3));
+			}
 		}
 	}
 
-	Mat src(x->rows, x->cols, CV_64FC1, data);
-	
 	Size size;
 	size.width  = src.cols * scala;
 	size.height = src.rows * scala;
 
-	Mat dst(size.height, size.width, CV_64FC1);
+	Mat dst(size.height, size.width, CV_64);
 
 	cv::resize(src, dst, size);
 
-	static int id = 1;
+	static int id = 0;
 	id++;
 	char ch[10];
-	sprintf(ch, "%d",id);
+	sprintf(ch, "%d", id);
 	namedWindow(ch, WINDOW_AUTOSIZE);
 	imshow(ch, dst);
-	free(data);
 }
 
 void DebugPrintf(cuMatrix<double>*x)
 {
 	x->toCpu();
-	for(int i = 0; i < x->rows; i++)
+	for(int c = 0; c < x->channels; c++)
 	{
-		for(int j = 0; j < x->cols; j++)
+		for(int i = 0; i < x->rows; i++)
 		{
-			printf("%lf ", x->get(i,j));
-		}printf("\n");
+			for(int j = 0; j < x->cols; j++)
+			{
+				printf("%lf ", x->get(i, j, c));
+			}printf("\n");
+		}
 	}
 }
 

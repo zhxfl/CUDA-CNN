@@ -129,11 +129,11 @@ void Config:: get_layers_config(string &str){
 		}
 }
 
-void Config::init()
+void Config::init(std::string path)
 {
 	/*read the string from file "Config.txt"*/
 	/*delete the comment and spaces*/
-	m_configStr = read_2_string(m_path);
+	m_configStr = read_2_string(path);
 	deleteComment();
 	deleteSpace();
 
@@ -142,12 +142,36 @@ void Config::init()
 	m_isGrandientChecking = new ConfigGradient(is_gradient_checking);
 
 	/*BATCH_SIZE*/
-	bool batch_size = get_word_int(m_configStr, "BATCH_SIZE");
+	int batch_size = get_word_int(m_configStr, "BATCH_SIZE");
 	m_batchSize = new ConfigBatchSize(batch_size);
 
 	/*NON_LINEARITY*/
 	string non_linearity = get_word_type(m_configStr, "NON_LINEARITY");
 	m_nonLinearity = new ConfigNonLinearity(non_linearity);
+
+	/*CHANNELS*/
+	int channels = get_word_int(m_configStr, "CHANNELS");
+	m_channels = new ConfigChannels(channels);
+
+	/*crop*/
+	double crop = get_word_double(m_configStr, "CROP");
+	m_crop = new ConfigCrop(crop);
+
+	/*scale*/
+	double scale = get_word_double(m_configStr, "SCALE");
+	m_scale = new ConfigScale(scale);
+
+	/*rotation*/
+	double rotation = get_word_double(m_configStr, "ROTATION");
+	m_rotation = new ConfigRotation(rotation);
+
+	/*distortion*/
+	double distortion = get_word_double(m_configStr, "DISTORTION");
+	m_distortion = new ConfigDistortion(distortion);
+
+	/*ImageShow*/
+	bool imageShow = get_word_bool(m_configStr, "SHOWIMAGE");
+	m_imageShow = new ConfigImageShow(imageShow);
 
 	/*Layers*/
 	get_layers_config(m_configStr);
@@ -175,7 +199,7 @@ void Config::deleteComment()
 			break;
 		m_configStr.erase(pos1, 1);
 		pos2 = m_configStr.find("#");
-		m_configStr.erase(0, pos2 + 1);
+		m_configStr.erase(pos1, pos2 - pos1 + 1);
 	} while (pos2 != std::string::npos);
 }
 

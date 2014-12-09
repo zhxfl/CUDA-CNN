@@ -13,46 +13,46 @@ class cuMatrix
 {
 public:
 	/*constructed function with hostData*/
-	cuMatrix(T *_data, int _n,int _m):rows(_n),cols(_m){
+	cuMatrix(T *_data, int _n,int _m, int _c):rows(_n), cols(_m), channels(_c){
 		cudaError_t cudaStat;
 		/*malloc host data*/
-		hostData = (T*)malloc (cols * rows * sizeof(*hostData));
+		hostData = (T*)malloc (cols * rows * channels * sizeof(*hostData));
 		if(!hostData) {
 			printf("cuMatrix:cuMatrix host memory allocation failed\n");
 			exit(0);
 		}
 
 		/*deep copy */
-		memcpy(hostData, _data, sizeof(*hostData) * cols * rows);
+		memcpy(hostData, _data, sizeof(*hostData) * cols * rows * channels);
 
 		/*malloc device data*/
-		cudaStat = cudaMalloc ((void**)&devData, cols * rows * sizeof(*devData));
+		cudaStat = cudaMalloc ((void**)&devData, cols * rows * channels * sizeof(*devData));
 		if(cudaStat != cudaSuccess) {
 			printf ("cuMatrix::cuMatrix device memory allocation failed\n");
 			exit(0);
 		}
 	}
 	/*constructed function with rows and cols*/
-	cuMatrix(int _n,int _m):rows(_n),cols(_m){
+	cuMatrix(int _n,int _m, int _c):rows(_n), cols(_m), channels(_c){
 		cudaError_t cudaStat;
 
 		/*malloc host data*/
-		hostData = (T*)malloc (cols * rows * sizeof(*hostData));
+		hostData = (T*)malloc (cols * rows * channels * sizeof(*hostData));
 		if(!hostData) {
 			printf("cuMatrix::cuMatrix host memory allocation failed\n");
 			exit(0);
 		}
 
-		memset(hostData, 0, cols * rows * sizeof(*hostData));
+		memset(hostData, 0, cols * rows * channels * sizeof(*hostData));
 
 		//malloc device data
-		cudaStat = cudaMalloc ((void**)&devData, cols * rows * sizeof(*devData));
+		cudaStat = cudaMalloc ((void**)&devData, cols * rows * channels * sizeof(*devData));
 		if(cudaStat != cudaSuccess) {
 			printf ("cuMatrix::cuMatrix device memory allocation failed\n");
 			exit(0);
 		}
 
-		cudaStat = cudaMemset(devData,0,sizeof(*devData) * cols * rows);
+		cudaStat = cudaMemset(devData, 0, sizeof(*devData) * cols * rows * channels);
 		if(cudaStat != cudaSuccess) {
 			printf ("cuMatrix::cuMatrix device memory cudaMemset failed\n");
 			exit(0);
@@ -69,7 +69,7 @@ public:
 	void toCpu(){
 		cudaError_t cudaStat;
 
-		cudaStat = cudaMemcpy (hostData, devData, sizeof(*devData) * cols * rows, cudaMemcpyDeviceToHost);
+		cudaStat = cudaMemcpy (hostData, devData, sizeof(*devData) * cols * rows * channels, cudaMemcpyDeviceToHost);
 
 		if(cudaStat != cudaSuccess) {
 			printf("cuMatrix::toCPU data download failed\n");
@@ -82,7 +82,7 @@ public:
 	void toGpu(){
 		cudaError_t cudaStat;
 
-		cudaStat = cudaMemcpy (devData, hostData, sizeof(*devData) * cols * rows, cudaMemcpyHostToDevice);
+		cudaStat = cudaMemcpy (devData, hostData, sizeof(*devData) * cols * rows * channels, cudaMemcpyHostToDevice);
 
 		if(cudaStat != cudaSuccess) {
 			printf ("cuMatrix::toGPU data upload failed\n");
@@ -94,7 +94,7 @@ public:
 	/*set all device memory to be zeros*/
 	void gpuClear(){
 		cudaError_t cudaStat;
-		cudaStat = cudaMemset(devData,0,sizeof(*devData) * cols * rows);
+		cudaStat = cudaMemset(devData,0,sizeof(*devData) * cols * rows * channels);
 		if(cudaStat != cudaSuccess) {
 			printf ("device memory cudaMemset failed\n");
 			exit(0);
@@ -102,17 +102,22 @@ public:
 	}
 
 	/*set  value*/
-	void set(int i, int j, T v){
-		hostData[i * cols + j] = v;
+	void set(int i, int j, int k, T v){
+		hostData[(i * cols + j) + cols * rows * k] = v;
 	}
 
 	/*get value*/
-	T get(int i, int j){
-		return hostData[i * cols + j];
+	T get(int i, int j, int k){
+		return hostData[(i * cols + j) + cols * rows * k];
 	}
 
 	/*get the number of values*/
 	int getLen(){
+		return rows * cols * channels;
+	}
+
+	/*get rows * cols*/
+	int getArea(){
 		return rows * cols;
 	}
 
@@ -127,6 +132,9 @@ public:
 
 	/*row*/
 	int rows;
+
+	/*channels*/
+	int channels;
 };
 
 

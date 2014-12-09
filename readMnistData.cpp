@@ -7,6 +7,7 @@
 #include "util.h"
 #include <vector>
 #include "cuMatrixVector.h"
+#include "Config.h"
 
 int checkError(int x)
 {
@@ -62,12 +63,12 @@ int read_Mnist(std::string filename,
 			file.read((char*) &n_cols, sizeof(n_cols));
 			n_cols = ReverseInt(n_cols);
 			for(int i = 0; i < number_of_images; ++i){
-				cuMatrix<double>* tpmat = new cuMatrix<double>(n_rows, n_cols);
+				cuMatrix<double>* tpmat = new cuMatrix<double>(n_rows, n_cols, Config::instance()->getChannels());
 				for(int r = 0; r < n_rows; ++r){
 					for(int c = 0; c < n_cols; ++c){
 						unsigned char temp = 0;
 						file.read((char*) &temp, sizeof(temp));
-						tpmat->set(r, c, (double)temp * 2.0 / 255.0 - 1.0);
+						tpmat->set(r, c, 0, (double)temp * 2.0 / 255.0 - 1.0);
 					}
 				}
 				tpmat->toGpu();
@@ -111,7 +112,7 @@ int read_Mnist_Label(std::string filename,
 				file.read((char*) &temp, sizeof(temp));
 				if(!flag){
 					if(!checkError(i)){
-						mat->set(id, 0, temp);
+						mat->set(id, 0, 0, temp);
 						id++;
 					}
 					else {
@@ -119,7 +120,7 @@ int read_Mnist_Label(std::string filename,
 					}
 				}
 				else {
-					mat->set(i,0,(double)temp);
+					mat->set(i, 0, 0, (double)temp);
 					id++;
 				}
 			}
@@ -141,7 +142,7 @@ int readMnistData(cuMatrixVector<double>& x,
 		/*read MNIST iamge into cuMatrix*/
 		int len = read_Mnist(xpath, x, number_of_images, flag);
 		/*read MNIST label into cuMatrix*/
-		y = new cuMatrix<double>(len, 1);
+		y = new cuMatrix<double>(len, 1, 1);
 		int t = read_Mnist_Label(ypath, y, flag);
 		return t;
 }
