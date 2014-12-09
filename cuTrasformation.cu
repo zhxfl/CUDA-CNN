@@ -325,6 +325,7 @@ void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize)
 		cuDispV->devData,
 		ImgSize);
 	cudaDeviceSynchronize();
+	getLastCudaError("g_applyDistortionMap");
 }
 
 /*œﬂ≥Ã∞≤≈≈<<<dim3(batch, channels),dim3(ImgSize,ImgSize)>>>*/

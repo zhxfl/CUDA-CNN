@@ -65,7 +65,7 @@ void runCifar10()
 	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize, nsamples, nclasses);
 	else if(cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize, nsamples, "net.txt", nclasses);
+		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize, nsamples, "checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers,HiddenLayers, smr, ImgSize, nclasses);
 	start = clock();
@@ -114,10 +114,10 @@ void runMnist(){
 	printf("1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
 
 	scanf("%d", &cmd);
- 	if(cmd == 0)
+ 	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize, nsamples, nclasses);
-	else if(cmd == 1)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize, nsamples, "net.txt", nclasses);
+	else if(cmd == 2)
+		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize, nsamples, "checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers,HiddenLayers, smr, ImgSize, nclasses);
 	start = clock();

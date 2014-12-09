@@ -369,7 +369,7 @@ void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
 	int nclasses,
 	int nsamples)
 {	
-	FILE *pOut = fopen("net.txt", "w");
+	FILE *pOut = fopen("checkPoint.txt", "w");
 	// Init Conv layers
 	for(int i=0; i < Config::instance()->getConv().size(); i++){
 		cuCvl tpcvl = ConvLayers[i];
@@ -2707,7 +2707,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
  	int correct = 0;
 	for(int hl = 0; hl < HiddenLayers.size(); hl++)
 	{
-		dropDelta(HiddenLayers[hl].dropW, Config::instance()->getFC()[hl]->m_dropoutRate);
+		dropDelta(HiddenLayers[hl].dropW, 0.0);
 	}
  
  	for(int p = 0; p < testX.size() / batch; p++)
@@ -2836,7 +2836,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 				(double)(end - start) / CLOCKS_PER_SEC, smr.cost->get(0,0,0), correct, cuCurCorrect, Momentum, lrate);
 
 			printf("%s\n",str);
-			LOG(str,"output");
+			LOG(str,"log.txt");
 		}
 	}
 }

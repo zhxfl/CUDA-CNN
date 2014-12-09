@@ -97,4 +97,5 @@ void
 		testX.size(),
 		trainX[0]->getLen());
 	cudaDeviceSynchronize();
+	delete aver;
 }
