@@ -1,6 +1,7 @@
 #include "util.h"
 #include <opencv2/opencv.hpp>
 #include "Config.h"
+
 using namespace cv;
 
 int getCV_64()
@@ -20,6 +21,7 @@ int getCV_64()
 
 void showImg(cuMatrix<double>* x, double scala)
 {
+	cv::gpu
 	x->toCpu();
 
 	int CV_64;

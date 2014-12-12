@@ -1,13 +1,13 @@
 #Comment#
 
-IS_GRADIENT_CHECKING = false;   #is true when debug#
+IS_GRADIENT_CHECKING = false ;   #is true when debug#
 BATCH_SIZE = 200;               #test image size should be divided with no remainder#
 NON_LINEARITY = NL_RELU;        #NON_LINEARITY CAN = NL_SIGMOID , NL_TANH , NL_RELU#
 CHANNELS = 1;                   #1, 3, 4#
-CROP = 4;                       #0<= crop <=imgSize#
+CROP = 4.0;                     #0<= crop <=imgSize#
 SCALE = 13.0;                   #13% of ImgSize#
 ROTATION = 13.0;                #angle#
-DISTORTION = 3.4;               #just for mnist#
+DISTORTION = 3.5;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 
 
