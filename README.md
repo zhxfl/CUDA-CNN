@@ -45,19 +45,25 @@
 >2. Download and install <a href="http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/" title="opencv-2.4"> opencv-2.4</a> or other higher versions
 >3. Download and install <a href="https://developer.nvidia.com/cuda-downloads", title="cuda-5.0"> cuda-5.0</a> or other higher versions
 >4. When you create a new project using VS2010, You can find NVIDIA-CUDA project template, create a cuda-project.
->5. Add the opencv "include path" and "lib path" to the project
+>5. Add the "include path" and "lib path" to the project
 >
 ###Linux
 >1. Install opencv and cuda
 >2. Start the ***nsight*** from cuda
->3. Add the opencv "include path" and "lib path" to the project
+>3. Create an 'empty cuda' project and import the clone code   
+>4. Add the "include path" and "lib path" to the project
 >
+
+***
+
+>Config
+>-----------
 
 ***
 
 >Informations
 >------------
 >* Author :zhxfl  
->* mail   :zhxfl@mail.ustc.edu.cn  
+>* Mail   :zhxfl@mail.ustc.edu.cn  
 >* Welcome for any suggest!!   
 
