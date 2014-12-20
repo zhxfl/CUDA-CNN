@@ -39,9 +39,7 @@
 >
 ###GPU compute 
 >* capability 2.0   
-
-***
-
+>
 ###Windows
 >1. Install vs2010.
 >2. Download and install <a href="http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/" title="opencv-2.4"> opencv-2.4</a> or other higher versions
