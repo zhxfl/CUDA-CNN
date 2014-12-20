@@ -71,44 +71,19 @@
 >`DISTORTION = 3.5;               #just for mnist#`   
 >`SHOWIMAGE = false;              #show the images after transformation#`   
 >`HORIZONTAL = false;             #horizontal reflection#`   
->``   
->`[`   
->`LAYER = CONV;`   
->`KERNEL_SIZE = 5;`   
->`KERNEL_AMOUNT = 10;`   
->`WEIGHT_DECAY = 1e-6;`   
->`POOLING_DIM = 2;`   
->`]`   
->``   
->`[`   
->`LAYER = CONV;`   
->`KERNEL_SIZE = 5;`   
->`KERNEL_AMOUNT = 20;`   
->`WEIGHT_DECAY = 1e-6;`   
->`POOLING_DIM = 2;`   
->`]`   
->``   
->`[`   
->`LAYER = FC;`   
->`NUM_HIDDEN_NEURONS = 256;`   
->`WEIGHT_DECAY = 1e-6;`   
->`DROPOUT_RATE = 0.0;`   
->`]`   
->``   
->`[`   
->`LAYER = FC;`   
->`NUM_HIDDEN_NEURONS = 256;`   
->`WEIGHT_DECAY = 1e-6;`   
->`DROPOUT_RATE = 0.0;`   
->`]`   
->``   
->`[`   
->`LAYER = SOFTMAX;`   
->`NUM_CLASSES = 10;`   
->`WEIGHT_DECAY = 1e-6;`   
->`]`   
 >
 ###CIFAR-10
+>
+>`IS_GRADIENT_CHECKING = false;   #is true when debug#`   
+>`BATCH_SIZE = 100;               #test image size should be divided with no remainder#`   
+>`NON_LINEARITY = NL_RELU;        #NON_LINEARITY CAN = NL_SIGMOID , NL_TANH , NL_RELU#`   
+>`CHANNELS = 3;                   #1, 3, 4#`   
+>`CROP = 4;                       #0<= crop <=imgSize#`   
+>`SCALE = 0.0;                    #13% of ImgSize#`   
+>`ROTATION = 0.0;                 #angle#`   
+>`DISTORTION = 0.0;               #just for mnist#`   
+>`SHOWIMAGE = false;              #show the images after transformation#`   
+>`HORIZONTAL = true;              #horizontal reflection#` 
 >
 ***
 
