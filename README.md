@@ -59,7 +59,7 @@
 
 >Informations
 >------------
->Author :zhxfl  
->mail   :zhxfl@mail.ustc.edu.cn  
->Welcome for any suggest!!   
+>* Author :zhxfl  
+>* mail   :zhxfl@mail.ustc.edu.cn  
+>* Welcome for any suggest!!   
 
