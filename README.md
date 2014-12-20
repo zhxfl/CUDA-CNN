@@ -58,7 +58,11 @@
 
 >Config
 >-----------
-
+###MNIST
+>`#Comment#`   
+>`IS_GRADIENT_CHECKING = false;   #is true when debug#` 
+###CIFAR-10
+>
 ***
 
 >Informations
