@@ -35,7 +35,7 @@
 >* opencv_highgui   
 >* opencv_imgproc   
 >* ***cublas***   
->* ***curand***  ]
+>* ***curand***   
 >
 ###GPU compute 
 >* capability 2.0   
@@ -53,6 +53,7 @@
 >1. Install opencv and cuda
 >2. Start the ***nsight*** from cuda
 >3. Add the opencv "include path" and "lib path" to the project
+>
 
 ***
 
