@@ -7,6 +7,7 @@
 >Test on mnist and get 99.7%   
 >Test on cifar-10 and get 81.38%
 
+***
 
 >Feature
 >--------
@@ -22,22 +23,24 @@
 >Depend on opencv and cuda    
 >You can compile the code on windows or linux.   
 ###SDK path   
->*linux: /usr/local/cuda/samples/common/inc/ (For include file "helper_cuda")      
->*windows: X:/Program Files (x86) /NVIDIA Corporation/CUDA Samples/v6.5/common/inc (For include file "helper_cuda")   
+>* linux: /usr/local/cuda/samples/common/inc/ (For include file "helper_cuda")      
+>* windows: X:/Program Files (x86) /NVIDIA Corporation/CUDA Samples/v6.5/common/inc (For include file "helper_cuda")   
 >
 ###Library search path(-L)   
->*linux: /usr/local/lib/   
->*windows: X：/Program Files/opencv/vs2010/install/x86/cv10/lib (Depend on situation)    
+>* linux: /usr/local/lib/   
+>* windows: X：/Program Files/opencv/vs2010/install/x86/cv10/lib (Depend on situation)    
 >
 ###libraries(-l)      
->*opencv_core   
->*opencv_highgui   
->*opencv_imgproc   
+>* opencv_core   
+>* opencv_highgui   
+>* opencv_imgproc   
 >* ***cublas***   
 >* ***curand***  ]
 >
-###GPU compute capability 2.0   
->
+###GPU compute 
+>* capability 2.0   
+
+***
 
 ###Windows
 >1. Install vs2010.
@@ -50,6 +53,8 @@
 >1. Install opencv and cuda
 >2. Start the ***nsight*** from cuda
 >3. Add the opencv "include path" and "lib path" to the project
+
+***
 
 >Informations
 >------------
