@@ -32,13 +32,13 @@ private:
 class ConfigCrop
 {
 public:
-	ConfigCrop(double crop)
+	ConfigCrop(int crop)
 	{
 		m_crop = crop;
 	}
-	double getValue(){return m_crop;};
+	int getValue(){return m_crop;};
 private:
-	double m_crop;
+	int m_crop;
 };
 
 class ConfigScale
@@ -170,6 +170,20 @@ public:
 	}
 };
 
+class ConfigHorizontal
+{
+public:
+	ConfigHorizontal(int horizontal)
+	{
+		m_horizontal = horizontal;
+	}
+	int getValue(){
+		return m_horizontal;
+	}
+private:
+	int m_horizontal;
+};
+
 
 class Config
 {
@@ -199,8 +213,12 @@ public:
 		return m_channels->getValue();
 	}
 
-	double getCrop(){
+	int getCrop(){
 		return m_crop->getValue();
+	}
+
+	int getHorizontal(){
+		return m_horizontal->getValue();
 	}
 
 	double getScale(){
@@ -255,7 +273,7 @@ private:
 	ConfigRotation     *m_rotation;
 	ConfigDistortion   *m_distortion;
 	ConfigImageShow    *m_imageShow;
-
+	ConfigHorizontal   *m_horizontal;
 };
 
 #endif

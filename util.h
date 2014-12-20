@@ -16,4 +16,6 @@ void DebugPrintf(double* data, int len, int dim);
 void LOG(char* str, char* file);
 int  getCV_64();
 
+#define  cuAssert( X ) if ( !(X) ) {printf("tid %d: %s, %d\n", threadIdx.x, __FILE__, __LINE__); return; }
+
 #endif

@@ -10,7 +10,7 @@
 /*read trainning data and lables*/
 void read_CIFAR10_Data(cuMatrixVector<double> &trainX,
 	cuMatrixVector<double>&testX,
-	cuMatrix<double>*&trainY,
-	cuMatrix<double>*&testY);
+	cuMatrix<int>*&trainY,
+	cuMatrix<int>*&testY);
 
 #endif

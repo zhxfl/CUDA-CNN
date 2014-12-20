@@ -154,7 +154,7 @@ void Config::init(std::string path)
 	m_channels = new ConfigChannels(channels);
 
 	/*crop*/
-	double crop = get_word_double(m_configStr, "CROP");
+	int crop = get_word_int(m_configStr, "CROP");
 	m_crop = new ConfigCrop(crop);
 
 	/*scale*/
@@ -172,6 +172,10 @@ void Config::init(std::string path)
 	/*ImageShow*/
 	bool imageShow = get_word_bool(m_configStr, "SHOWIMAGE");
 	m_imageShow = new ConfigImageShow(imageShow);
+
+	/*Horizontal*/
+	bool horizontal = get_word_bool(m_configStr, "HORIZONTAL");
+	m_horizontal = new ConfigHorizontal(horizontal);
 
 	/*Layers*/
 	get_layers_config(m_configStr);

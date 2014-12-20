@@ -10,7 +10,7 @@
 #include <stdlib.h>
 using namespace std;
 
-void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<double>*&label)
+void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*&label)
 {
 	ifstream file(filename.c_str(), ios::binary);
 	if(file.is_open())
@@ -44,14 +44,14 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<doubl
 
 void read_CIFAR10_Data(cuMatrixVector<double> &trainX,
 	cuMatrixVector<double>&testX,
-	cuMatrix<double>*&trainY,
-	cuMatrix<double>*&testY)
+	cuMatrix<int>*&trainY,
+	cuMatrix<int>*&testY)
 {
 	/*read the train data and train label*/
 	string filename;
 	filename = "cifar-10-batches-bin/data_batch_";
 	
-	trainY = new cuMatrix<double>(50000, 1, 1);
+	trainY = new cuMatrix<int>(50000, 1, 1);
 	char str[25];
 	
 	for(int i = 1; i <= 5; i++)
@@ -66,7 +66,7 @@ void read_CIFAR10_Data(cuMatrixVector<double> &trainX,
 	/*read the test data and test labels*/
 
 	filename = "cifar-10-batches-bin/test_batch.bin";
-	testY = new cuMatrix<double>(10000, 1, 1);
+	testY = new cuMatrix<int>(10000, 1, 1);
 	read_batch(filename, testX,testY);
 	testX.toGpu();
 	testY->toGpu();

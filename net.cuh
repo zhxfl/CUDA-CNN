@@ -119,13 +119,13 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 */
 
 void cuTrainNetwork(cuMatrixVector<double>&x, 
-	cuMatrix<double>*y , 
+	cuMatrix<int>*y , 
 	std::vector<cuCvl> &CLayers,
 	std::vector<cuFll> &HiddenLayers, 
 	cuSMR &smr,
 	double lambda, 
 	cuMatrixVector<double>& testX,
-	cuMatrix<double>* testY,
+	cuMatrix<int>* testY,
 	int nsamples,
 	int batch,
 	int ImgSize,
@@ -141,22 +141,6 @@ void cuInitCNNMemory(
 	cuSMR& smr,
 	int ImgSize,
 	int nclasses);
-
-int cuPredictNetwork(cuMatrixVector<double>& x, 
-	cuMatrix<double>*y , 
-	std::vector<cuCvl> &CLayers,
-	std::vector<cuFll> &HiddenLayers, 
-	cuSMR &smr,
-	double lambda, 
-	cuMatrixVector<double>& testX,
-	cuMatrix<double>* testY, 
-	cuMatrix<double>* predict,
-	int imgDim, 
-	int nsamples,
-	int batch,
-	int ImgSize,
-	int nclasses,
-	cublasHandle_t handle);
 
 void cuFreeConvNet(std::vector<cuCvl> &ConvLayers,
 	std::vector<cuFll> &HiddenLayers,

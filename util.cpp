@@ -21,7 +21,6 @@ int getCV_64()
 
 void showImg(cuMatrix<double>* x, double scala)
 {
-	cv::gpu
 	x->toCpu();
 
 	int CV_64;

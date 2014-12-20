@@ -40,19 +40,19 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: cuCNN
+all: CUDA-CNN
 
 # Tool invocations
-cuCNN: $(OBJS) $(USER_OBJS)
+CUDA-CNN: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-	/usr/local/cuda-6.0/bin/nvcc --cudart static -link -o  "cuCNN" $(OBJS) $(USER_OBJS) $(LIBS)
+	/usr/local/cuda-6.5/bin/nvcc --cudart static -L/usr/local/lib --relocatable-device-code=false -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20 -link -o  "CUDA-CNN" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(CU_DEPS)$(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) cuCNN
+	-$(RM) $(CU_DEPS)$(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) CUDA-CNN
 	-@echo ' '
 
 .PHONY: all clean dependents

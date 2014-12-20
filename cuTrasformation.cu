@@ -169,32 +169,51 @@ __global__ void g_generateDistortionMap(
 				}
 			}
 
-			dispH[row * ImgSize + col] = elasticScale * fConvolvedH;
-			dispV[row * ImgSize + col] = elasticScale * fConvolvedV;
+			dispH[idx] = elasticScale * fConvolvedH;
+			dispV[idx] = elasticScale * fConvolvedV;
+		}
+	}
+	__syncthreads();
 
-			__syncthreads();
-
+	for(int is = 0; is < ImgSize2; is += blockDim.x)
+	{
+		int idx = is + threadIdx.x;
+		if(idx < ImgSize2)
+		{
+			int row = idx / ImgSize;
+			int col = idx % ImgSize;
 			double dSFHoriz = dMaxScaling / 100.0 * rand[blockIdx.x];
 			double dSFVert  = dMaxScaling / 100.0 * rand[blockIdx.x + 1];
 
 			int iMid = ImgSize / 2;
 
-			dispH[row * ImgSize + col] += dSFHoriz * (col - iMid);
-			dispV[row * ImgSize + col] += dSFVert  * (row - iMid);
+			dispH[idx] += dSFHoriz * (col - iMid);
+			dispV[idx] += dSFVert  * (row - iMid);
 
-			__syncthreads();
+		}
+	}
+	__syncthreads();
 
+	for(int is = 0; is < ImgSize2; is += blockDim.x)
+	{
+		int idx = is + threadIdx.x;
+		if(idx < ImgSize2)
+		{
+			int row = idx / ImgSize;
+			int col = idx % ImgSize;
 			double angle = dMaxRotation * rand[blockIdx.x];
 			angle = angle * 3.1415926535897932384626433832795 / 180.0;
 
 			double cosAngle = cos(angle);
 			double sinAngle = sin(angle);
 
+			int iMid = ImgSize / 2;
+
 			double xx = row - iMid;
 			double yy = col - iMid;
 
-			dispH[row * ImgSize + col] += yy - yy * cosAngle - xx * sinAngle;
-			dispV[row * ImgSize + col] += xx - xx * cosAngle + yy * sinAngle;
+			dispH[idx] += yy - yy * cosAngle - xx * sinAngle;
+			dispV[idx] += xx - xx * cosAngle + yy * sinAngle;
 		}
 	}
 }
@@ -230,8 +249,13 @@ __global__ void g_applyDistortionMap(
 			int sRow, sCol, sRowp1, sColp1;
 			bool bSkipOutOfBounds;
 
-			sourceRow = (double)row - dispV[row * ImgSize + col];
-			sourceCol = (double)col - dispH[row * ImgSize + col];
+			if(fabs(dispV[idx]) < 0.000000001 && fabs(dispH[idx]) < 0.0000000001)
+			{
+				output[idx] = input[idx];
+				continue;
+			}
+			sourceRow = (double)row - dispV[idx];
+			sourceCol = (double)col - dispH[idx];
 
 			fracRow = sourceRow - (int)sourceRow;
 			fracCol = sourceCol - (int)sourceCol;
@@ -273,10 +297,9 @@ __global__ void g_applyDistortionMap(
 			{
 				sourceValue = -1.0;  
 			}
-			output[row * ImgSize + col] = sourceValue;
+			output[idx] = sourceValue;
 		}
 	}
-
 }
 
 void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
@@ -322,40 +345,127 @@ void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize)
 }
 
 /*线程安排<<<dim3(batch, channels),dim3(ImgSize,ImgSize)>>>*/
-__global__ void g_applyCropMap(double**_inputs, double**_outputs, double* random, double crop, int ImgSize)
+__global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* random, int crop, int ImgSize)
 {
 	int c = blockIdx.y;
+
+	int outputImgSize = ImgSize;
+	int inputImgSize  = ImgSize + crop;
+
+	int inputImgSize2 = inputImgSize * inputImgSize;
+	int outputImgSize2= outputImgSize* outputImgSize;
+
+	double* input = _inputs[blockIdx.x] + c * inputImgSize2;
+	double* output= _outputs[blockIdx.x]+ c * outputImgSize2;
+
+	int sx =(int)((random[blockIdx.x]     + 1.0) / 2.0 * crop);
+	int sy =(int)((random[blockIdx.x + 1] + 1.0) / 2.0 * crop);
+
+	if(sx > crop) sx = crop;
+	if(sy > crop) sy = crop;
+
+	if(sx < 0) sx = 0;
+	if(sy < 0) sy = 0;
+
+	for(int is = 0; is < outputImgSize2; is += blockDim.x)
+	{
+		int idx = is + threadIdx.x;
+		if(idx < outputImgSize2)
+		{
+			int ox  = idx / outputImgSize;
+			int oy  = idx % outputImgSize;
+
+			int ix  = ox + sx;
+			int iy  = oy + sy;
+
+			output[idx] = input[ix * inputImgSize + iy];
+		}
+	}
+}
+
+
+
+/*线程安排<<<dim3(batch, channels),dim3(ImgSize,ImgSize)>>>*/
+__global__ void g_applyCrop(double**_inputs, double**_outputs, double* random, int croplen, int ImgSize, int cropr, int cropc)
+{
+	int c = blockIdx.y;
+	
+	int outputImgSize = ImgSize;
+	int inputImgSize  = ImgSize + croplen;
+
+	int inputImgSize2 = inputImgSize * inputImgSize;
+	int outputImgSize2= outputImgSize* outputImgSize;
+
+	double* input = _inputs [blockIdx.x]+ c * inputImgSize2 ;
+	double* output= _outputs[blockIdx.x]+ c * outputImgSize2;
+
+	int sx = cropr;
+	int sy = cropc;
+
+	for(int is = 0; is < outputImgSize2; is += blockDim.x)
+	{
+		int idx = is + threadIdx.x;
+		if(idx < outputImgSize2)
+		{
+			int ox  = idx / outputImgSize;
+			int oy  = idx % outputImgSize;
+			int ix  = ox + sx;
+			int iy  = oy + sy;
+			output[idx] = input[ix * inputImgSize + iy];
+		}
+	}
+}
+
+void cuApplyCropRandom(double**inputs, double**outputs, int batch, int ImgSize)
+{
+	int threads = min(512, ImgSize * ImgSize);
+	g_applyCropRandom<<<dim3(batch, Config::instance()->getChannels()),
+		dim3(threads)>>>(inputs, outputs, cu_d_randomNum, Config::instance()->getCrop(), ImgSize);
+	cudaDeviceSynchronize();
+	getLastCudaError("g_applyCropRandom");
+}
+
+void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cropr, int cropc)
+{
+	int threads = min(512, ImgSize * ImgSize);
+	g_applyCrop<<<dim3(batch, Config::instance()->getChannels()),
+		dim3(threads)>>>(inputs, outputs,cu_d_randomNum, Config::instance()->getCrop(), ImgSize, cropr, cropc);
+	cudaDeviceSynchronize();
+	getLastCudaError("g_applyCrop");
+}
+
+
+/*Horizontal Reflection*/
+__global__ void g_applyHorizontal(double**_inputs, double**_outputs, int ImgSize)
+{
+	int c = blockIdx.y;
+
 	int ImgSize2 = ImgSize * ImgSize;
+
 	double* input = _inputs[blockIdx.x] + c * ImgSize2;
 	double* output= _outputs[blockIdx.x]+ c * ImgSize2;
 
-	int sx =(int)(((random[blockIdx.x]     + 1.0) / 2.0 * crop) + 0.499999);
-	int sy =(int)(((random[blockIdx.x + 1] + 1.0) / 2.0 * crop) + 0.499999);
-	int ex = sx + ImgSize - 1 - crop;
-	int ey = sy + ImgSize - 1 - crop;
 	for(int is = 0; is < ImgSize2; is += blockDim.x)
 	{
 		int idx = is + threadIdx.x;
 		if(idx < ImgSize2)
 		{
-			int x  = idx / ImgSize;
-			int y  = idx % ImgSize;
-			if(x >= sx && x <= ex && y >=sy && y <= ey)
-			{
-				output[idx] = input[idx];
-			}
-			else
-			{
-				output[idx] = -1.0;
-			}
+			int ox  = idx / ImgSize;
+			int oy  = idx % ImgSize;
+			int ix  = ox;
+			int iy  = ImgSize - oy - 1;
+			output[ox * ImgSize + oy] = input[ix * ImgSize + iy];
 		}
 	}
 }
 
-void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize)
+void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize)
 {
-	g_applyCropMap<<<dim3(batch, Config::instance()->getChannels()),
-		dim3(512)>>>(inputs, outputs, cu_d_randomNum, Config::instance()->getCrop(), ImgSize);
+	int threads = std::min(ImgSize * ImgSize, 512);
+
+	g_applyHorizontal<<<dim3(batch, Config::instance()->getChannels()),
+		dim3(threads)>>>(inputs, outputs, ImgSize);
+
 	cudaDeviceSynchronize();
-	getLastCudaError("g_applyCropMap");
+	getLastCudaError("g_applyHorizontal");
 }

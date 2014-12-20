@@ -92,7 +92,7 @@ int read_Mnist(std::string filename,
 
 /*read the lable*/
 int read_Mnist_Label(std::string filename, 
-	cuMatrix<double>* &mat,
+	cuMatrix<int>* &mat,
 	int flag){
 		std::ifstream file(filename.c_str(), std::ios::binary);
 		int id = 0;
@@ -120,7 +120,7 @@ int read_Mnist_Label(std::string filename,
 					}
 				}
 				else {
-					mat->set(i, 0, 0, (double)temp);
+					mat->set(i, 0, 0, temp);
 					id++;
 				}
 			}
@@ -134,7 +134,7 @@ int read_Mnist_Label(std::string filename,
 
 /*read trainning data and lables*/
 int readMnistData(cuMatrixVector<double>& x,
-	cuMatrix<double>*& y, 
+	cuMatrix<int>*& y, 
 	std::string xpath,
 	std::string ypath, 
 	int number_of_images,
@@ -142,7 +142,7 @@ int readMnistData(cuMatrixVector<double>& x,
 		/*read MNIST iamge into cuMatrix*/
 		int len = read_Mnist(xpath, x, number_of_images, flag);
 		/*read MNIST label into cuMatrix*/
-		y = new cuMatrix<double>(len, 1, 1);
+		y = new cuMatrix<int>(len, 1, 1);
 		int t = read_Mnist_Label(ypath, y, flag);
 		return t;
 }

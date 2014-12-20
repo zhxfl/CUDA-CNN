@@ -4,51 +4,60 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../Config.cpp \
+../cuMatrix.cpp \
+../cuMatrixVector.cpp \
 ../main.cpp \
-../readData.cpp \
+../readCIFAR10Data.cpp \
+../readMnistData.cpp \
 ../util.cpp 
 
 CU_SRCS += \
-../cuDistortion.cu \
-../cuMatrix.cu \
-../cuPoints.cu \
+../cuTrasformation.cu \
+../dataPretreatment.cu \
 ../net.cu 
 
 CU_DEPS += \
-./cuDistortion.d \
-./cuMatrix.d \
-./cuPoints.d \
+./cuTrasformation.d \
+./dataPretreatment.d \
 ./net.d 
 
 OBJS += \
-./cuDistortion.o \
+./Config.o \
 ./cuMatrix.o \
-./cuPoints.o \
+./cuMatrixVector.o \
+./cuTrasformation.o \
+./dataPretreatment.o \
 ./main.o \
 ./net.o \
-./readData.o \
+./readCIFAR10Data.o \
+./readMnistData.o \
 ./util.o 
 
 CPP_DEPS += \
+./Config.d \
+./cuMatrix.d \
+./cuMatrixVector.d \
 ./main.d \
-./readData.d \
+./readCIFAR10Data.d \
+./readMnistData.d \
 ./util.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
-%.o: ../%.cu
-	@echo 'Building file: $<'
-	@echo 'Invoking: NVCC Compiler'
-	/usr/local/cuda-6.0/bin/nvcc -G -g -O0 -gencode arch=compute_20,code=sm_20  -odir "" -M -o "$(@:%.o=%.d)" "$<"
-	/usr/local/cuda-6.0/bin/nvcc --compile -G -O0 -g -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20  -x cu -o  "$@" "$<"
-	@echo 'Finished building: $<'
-	@echo ' '
-
 %.o: ../%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: NVCC Compiler'
-	/usr/local/cuda-6.0/bin/nvcc -G -g -O0 -gencode arch=compute_20,code=sm_20  -odir "" -M -o "$(@:%.o=%.d)" "$<"
-	/usr/local/cuda-6.0/bin/nvcc -G -g -O0 --compile  -x c++ -o  "$@" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda/samples/common/inc/ -G -g -O0 -gencode arch=compute_20,code=sm_20  -odir "" -M -o "$(@:%.o=%.d)" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda/samples/common/inc/ -G -g -O0 --compile  -x c++ -o  "$@" "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+%.o: ../%.cu
+	@echo 'Building file: $<'
+	@echo 'Invoking: NVCC Compiler'
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda/samples/common/inc/ -G -g -O0 -gencode arch=compute_20,code=sm_20  -odir "" -M -o "$(@:%.o=%.d)" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda/samples/common/inc/ -G -g -O0 --compile --relocatable-device-code=false -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20  -x cu -o  "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

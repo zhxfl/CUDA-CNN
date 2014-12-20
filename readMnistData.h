@@ -9,7 +9,7 @@
 
 /*read trainning data and lables*/
 int readMnistData(cuMatrixVector<double> &x,
-	cuMatrix<double>* &y, 
+	cuMatrix<int>* &y, 
 	std::string xpath,
 	std::string ypath,
 	int number_of_images,
