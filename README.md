@@ -22,17 +22,17 @@
 >Depend on opencv and cuda    
 >You can compile the code on windows or linux.   
 >1. SDK path   
->linux: /usr/local/cuda/samples/common/inc/ (For include file "helper_cuda")      
->windows: X:/Program Files (x86) /NVIDIA Corporation/CUDA Samples/v6.5/common/inc (For include file "helper_cuda")   
+>>linux: /usr/local/cuda/samples/common/inc/ (For include file "helper_cuda")      
+>>windows: X:/Program Files (x86) /NVIDIA Corporation/CUDA Samples/v6.5/common/inc (For include file "helper_cuda")   
 >2. Library search path(-L)   
->linux: /usr/local/lib/   
->windows: X：/Program Files/opencv/vs2010/install/x86/cv10/lib (Depend on situation)    
->3. libraries(-l)   
->opencv_core   
->opencv_highgui    
->opencv_imgproc    
->***cublas***   
->***curand***   
+>>linux: /usr/local/lib/   
+>>windows: X：/Program Files/opencv/vs2010/install/x86/cv10/lib (Depend on situation)    
+>3. libraries(-l)      
+>>opencv_core   
+>>opencv_highgui   
+>>opencv_imgproc   
+>>***cublas***   
+>>***curand***  
 >4. GPU compute capability 2.0   
 >
 ###Windows
