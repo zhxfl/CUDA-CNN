@@ -16,7 +16,7 @@ std::vector<int> cuPoolOutputSize;
 std::vector<int> cuConvOutputSize;
 std::vector<int> cuKernelScan;
 
-//¾í»ý²ãÊä³ö
+//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 std::vector<cuMatrix<int>*>cuPointX;
 std::vector<cuMatrix<int>*>cuPointY;
 std::vector<cuMatrix<double>*>cuConv;
@@ -24,14 +24,14 @@ std::vector<cuMatrix<double>*>cuPool;
 
 cuMatrix<double>* cuPoolToFlActi;
 
-//Òþ²Ø²ãµÄÊä³ö
+//ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½
 std::vector<cuMatrix<double>*>cuHiddenActi;
 
-//»Ø¹é²ãµÄÊä³ö
+//ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 cuMatrix<double>* cuSoftMaxP;
 cuMatrix<double>* cuGroundTruth;
 
-//·´Ïò´«µ¼
+//ï¿½ï¿½ï¿½ò´«µï¿½
 cuMatrix<double>* cuSoftMaxDelta;
 std::vector<cuMatrix<double>*>cuHiddenDelta;
 std::vector<cuMatrix<double>*>cuConvDelta;
@@ -41,7 +41,7 @@ std::vector<cuMatrix<double>*>cuConvLayerWgradTmp;
 
 cuMatrix<double>* cuPoolToFlDelta;
 
-//ÊÆ
+//ï¿½ï¿½
 cuMatrix<double>* cu_v_smr_w;
 cuMatrix<double>* cu_v_smr_b;
 std::vector<cuMatrix<double>*>cu_v_hl_w;
@@ -54,9 +54,9 @@ cuMatrix<int>*cuVote = NULL;
 
 void outputMatrix(cuMatrix<double>* m);
 /*
-	º¯Êý¹¦ÄÜ£º¾í»ý²ãÓÐ¶à¸öºË£¬ÔÚGPU×ö²¢·¢Ê±£¬
-			  ÄÚ´æ±È½ÏÉ¢ÂÒ£¬ÕâÀï½²ÕâÐ©ºËµÄ²ÎÊý×éÖ¯³É
-			  ¶þÎ¬Êý×é·½±ã²¢·¢·ÃÎÊ
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½GPUï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+			  ï¿½Ú´ï¿½È½ï¿½É¢ï¿½Ò£ï¿½ï¿½ï¿½ï¿½ï½²ï¿½ï¿½Ð©ï¿½ËµÄ²ï¿½ï¿½ï¿½ï¿½ï¿½Ö¯ï¿½ï¿½
+			  ï¿½ï¿½Î¬ï¿½ï¿½ï¿½é·½ï¿½ã²¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 */
 void cuConvLayer::init()
 {
@@ -169,10 +169,10 @@ void dropDelta(cuMatrix<double>* M, double cuDropProb)
 }
 
 /*
-º¯Êý¹¦ÄÜ£º¾í»ý²ã²ÎÊý³õÊ¼»¯
-²Î    Êý£º
-ConvK &convk  ¾í»ý²ã
-int width     ´óÐ¡
+ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
+ï¿½ï¿½    ï¿½ï¿½
+ConvK &convk  ï¿½ï¿½ï¿½ï¿½
+int width     ï¿½ï¿½Ð¡
 */
 
 void weightRandomInit(cuConvK &convk, int width){
@@ -203,11 +203,11 @@ void weightRandomInit(cuConvK &convk, int width){
 
 
 /*
-º¯Êý¹¦ÄÜ£ºÒþ²Ø²ã²ÎÊý³õÊ¼»¯
-²Î    Êý£º
-fll &fll Òþ²Ø²ã
-int inputsize  Ã¿¸öÉñ¾­ÔªÁ´½ÓÉÏÒ»²ãÉñ¾­Ôª¸öÊý 
-int hiddensize ±¾²ãµÄÉñ¾­Ôª¸öÊý
+ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
+ï¿½ï¿½    ï¿½ï¿½
+fll &fll ï¿½ï¿½ï¿½Ø²ï¿½
+int inputsize  Ã¿ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½
+int hiddensize ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½ï¿½ï¿½
 */
 
 void weightRandomInit(cuFll &fll, int inputsize, int hiddensize, double dropRate){
@@ -236,11 +236,11 @@ void weightRandomInit(cuFll &fll, int inputsize, int hiddensize, double dropRate
 }
 
 /*
-º¯Êý¹¦ÄÜ£ºsoftMax²ãÉñ¾­Ôª³õÊ¼»¯
-²Î    Êý£º
-SMR &smr      softMax²ã
-int nclasses  Êä³öÀà±ð¸öÊý
-int nfeatures ÊäÈë
+ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½softMaxï¿½ï¿½ï¿½ï¿½Ôªï¿½ï¿½Ê¼ï¿½ï¿½
+ï¿½ï¿½    ï¿½ï¿½
+SMR &smr      softMaxï¿½ï¿½
+int nclasses  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+int nfeatures ï¿½ï¿½ï¿½ï¿½
 */
 void weightRandomInit(cuSMR &smr, int nclasses, int nfeatures){
 	double epsilon = 0.01f;
@@ -509,9 +509,9 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 {	
 	FILE *pIn = fopen(path, "r");
 	// Init Conv layers
-	// ÕâÀïËäÈ»Ã»ÓÐÇ³¿½±´ºÍÐ¹Â¶µÄÎÊÌâ£¬µ«ÊÇÔÚÄÚ´æ¹ÜÀíÉÏÒÀÈ»´æÔÚÒþ»¼
-	// cuConvkÊÇÒ»¸öÁÙÊ±±äÁ¿,ÏµÍ³»áÊÍ·ÅËû(new³öÀ´µÄÃ»ÓÐÊÍ·Å)
-	// µ«ÊÇpush_backÐÂ½¨Ò»¸ö¶ÔÏóÓÖÓÃµ½ÁËÖ®Ç°Ã»ÓÐÊÍ·ÅµÄ¿Õ¼ä£¬ËùÒÔ¸ÕºÃÃ»ÓÐÐ¹Â¶
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È»Ã»ï¿½ï¿½Ç³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¹Â¶ï¿½ï¿½ï¿½ï¿½ï¿½â£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	// cuConvkï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½,ÏµÍ³ï¿½ï¿½ï¿½Í·ï¿½ï¿½ï¿½(newï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½Í·ï¿½)
+	// ï¿½ï¿½ï¿½ï¿½push_backï¿½Â½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½ï¿½ï¿½Ö®Ç°Ã»ï¿½ï¿½ï¿½Í·ÅµÄ¿Õ¼ä£¬ï¿½ï¿½ï¿½Ô¸Õºï¿½Ã»ï¿½ï¿½Ð¹Â¶
 	for(int i=0; i < Config::instance()->getConv().size(); i++){
 		cuCvl tpcvl;
 		for(int j=0; j < Config::instance()->getConv()[i]->m_amount; j++){
@@ -567,7 +567,7 @@ void cuInitCNNMemory(
 {
 	cudaError_t cudaStat;
 	//////////////
-	//¾í»ý²ãµÄÊä³ö
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	//////////////
 	int curSize = ImgSize;
 	int curKernelAmount = 1;
@@ -599,7 +599,7 @@ void cuInitCNNMemory(
 		1);
 
 	//////////////
-	//Òþ²Ø²ãµÄÊä³ö
+	//ï¿½ï¿½ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½
 	//////////////
 	for(int i = 0; i < HiddenLayers.size(); i++)
 	{
@@ -607,13 +607,13 @@ void cuInitCNNMemory(
 	}
 
 	//////////////
-	//»Ø¹é²ãµÄÊä³ö
+	//ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	//////////////
 	cuSoftMaxP    = new cuMatrix<double>(batch, nclasses, 1);
 	cuGroundTruth = new cuMatrix<double>(batch, nclasses, 1);
 
 	/////////////
-	//·´Ïò´«µ¼
+	//ï¿½ï¿½ï¿½ò´«µï¿½
 	/////////////
 	cuSoftMaxDelta = new cuMatrix<double>(batch, nclasses, 1);
 	for(int i = 0; i < HiddenLayers.size(); i++)
@@ -622,7 +622,7 @@ void cuInitCNNMemory(
 	}
 
 	//////////
-	//¾í»ý²ã
+	//ï¿½ï¿½ï¿½ï¿½
 	//////////
 	for(int i = 0; i < cuPool.size(); i++)
 	{
@@ -652,7 +652,7 @@ void cuInitCNNMemory(
 		cuPoolDelta[cuPoolDelta.size() - 1]->cols * Config::instance()->getChannels(),
 		1);
 
-	//ÊÆÄÜ
+	//ï¿½ï¿½ï¿½ï¿½
 	cu_v_smr_w = new cuMatrix<double>(smr.Weight->rows, smr.Weight->cols, smr.Weight->channels);
 	cu_v_smr_b = new cuMatrix<double>(smr.b->rows, smr.b->cols, smr.b->channels);
 	for(int i = 0; i < HiddenLayers.size(); i++)
@@ -680,14 +680,14 @@ void cuInitCNNMemory(
 		cu_v_cvl_b.push_back(tmpVecb);
 	}
 
-	//´ú¼Û
+	//ï¿½ï¿½ï¿½
 	if(cuCorrect == NULL)
 	{
 		cuCorrect = new cuMatrix<int>(1,1,1);
 		cuVote    = new cuMatrix<int>(testX.size(), Config::instance()->getSoftMax()[0]->m_numClasses, 1);
 	}
 
-	//»û±äÖ®ºóµÄÊý¾Ý
+	//ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	cu_distortion_vector = new cuMatrixVector<double>();
 	for(int i = 0; i < batch; i++){
 		cu_distortion_vector->push_back(new cuMatrix<double>(ImgSize, ImgSize, Config::instance()->getChannels()));
@@ -760,7 +760,7 @@ void cuFreeCNNMemory(
 	}
 	cuConvLayerWgradTmp.clear();
 
-	//ÊÆÄÜ
+	//ï¿½ï¿½ï¿½ï¿½
 	delete cu_v_smr_w;
 	delete cu_v_smr_b;
 	for(int i = 0; i < cu_v_hl_w.size(); i++)
@@ -783,30 +783,30 @@ void cuFreeCNNMemory(
 	}
 	cu_v_cvl_b.clear();
 	cu_v_cvl_w.clear();
-	//´ú¼Û
+	//ï¿½ï¿½ï¿½
 
-	//»û±äÖ®ºóµÄÊý¾Ý
+	//ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	delete cu_distortion_vector;
 }
 
 /*
-	º¯ÊýËµÃ÷   £ºµÚÒ»¸ö¾í»ý²ãºÍ³Ø»¯²ãÇ°Ïò´«µ¼µÄGPUº¯Êý
-	arrayS     : ÊäÈëµÄÑù±¾Êý¾Ý±£´æÎª¶þÎ¬Êý×é
-	arrayW     : µÚÒ»¸ö¾í»ý²ãµÄÍøÂçÈ¨Öµ
-	arrayB     : µÚÒ»¸ö¾í»ý²ãµÄÆ«ÖÃÖµ
-	conv       : ¾í»ý²ãÊä³ö
-	pool       : ³Ø»¯²ãÊä³ö
-	pointX	   : ³Ø»¯Ö®ºóËùÑ¡ÖÐµÄx×ø±ê¼ÇÂ¼£¬ÔÚ·´Ïò´«µ¼ÖÐÊ¹ÓÃ
-	pointY     : ³Ø»¯Ö®ºóËùÑ¡ÖÐµÄy×ø±ê¼ÇÂ¼£¬ÔÚ·´Ïò´«µ¼ÖÐÊ¹ÓÃ
-	inputSize  : ÊäÈëÑù±¾µÄ³ß´ç
-	kernelSize : ¾í»ýºËµÄ³ß´ç
-	convSize   : ¾í»ý²ãÊä³öÖ®ºóµÄ³ß´ç
-	poolSize   : ³Ø»¯²ãÊä³öÖ®ºóµÄ³ß´ç
-	poolingDim : ³Ø»¯²ãµÄÌø²½£¨Ã¿¸ö´óÐ¡ÎªpoolingDim X PoolingDimµÄÍ¼Æ¬Ñ¡È¡Ò»¸ö×î´óÖµ£©
-	k1Amount   : µÚÒ»¸ö¾í»ý²ãµÄ¾í»ýºË¸öÊý£¨Ä¬ÈÏÎª7£©
+	ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½   ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í³Ø»ï¿½ï¿½ï¿½Ç°ï¿½ò´«µï¿½ï¿½ï¿½GPUï¿½ï¿½ï¿½ï¿½
+	arrayS     : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý±ï¿½ï¿½ï¿½Îªï¿½ï¿½Î¬ï¿½ï¿½ï¿½ï¿½
+	arrayW     : ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¨Öµ
+	arrayB     : ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ«ï¿½ï¿½Öµ
+	conv       : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	pool       : ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	pointX	   : ï¿½Ø»ï¿½Ö®ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½Ðµï¿½xï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ò´«µï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+	pointY     : ï¿½Ø»ï¿½Ö®ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½Ðµï¿½yï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ò´«µï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+	inputSize  : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä³ß´ï¿½
+	kernelSize : ï¿½ï¿½ï¿½ËµÄ³ß´ï¿½
+	convSize   : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä³ß´ï¿½
+	poolSize   : ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä³ß´ï¿½
+	poolingDim : ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½Ð¡ÎªpoolingDim X PoolingDimï¿½ï¿½Í¼Æ¬Ñ¡È¡Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½
+	k1Amount   : ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¾ï¿½ï¿½Ë¸ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½Îª7ï¿½ï¿½
 
 
-	²¢ÐÐÏß³Ì·ÖÅä£º
+	ï¿½ï¿½ï¿½ï¿½ï¿½ß³Ì·ï¿½ï¿½ä£º
 	dim3(batch, cuKernelScan[0], Config::instance()->getChannels()), dim3(threadidx)
 */
 __global__ void g_convAndPooling_1(
@@ -908,24 +908,24 @@ __global__ void g_convAndPooling_1(
 }
 
 /*
-	º¯ÊýËµÃ÷   £ºµÚ¶þ¸ö£¨»òÕßÖ®ºó£©¾í»ý²ãºÍ³Ø»¯²ãÇ°Ïò´«µ¼µÄGPUº¯Êý
-	pool1      : µÚÒ»¸ö¾í»ý²ã³Ø»¯Ö®ºóµÄÊý¾Ý£¬×÷ÎªµÚ¶þ¸ö¾í»ý²ãµÄÊäÈë
-	arrayW     : µÚ¶þ¸ö¾í»ý²ãµÄÍøÂçÈ¨Öµ
-	arrayB     : µÚ¶þ¸ö¾í»ý²ãµÄÆ«ÖÃÖµ
-	conv2      : µÚ¶þ¸ö¾í»ý²ãÊä³ö
-	pool2      : µÚ¶þ¸ö³Ø»¯²ãÊä³ö
-	pointX	   : ³Ø»¯Ö®ºóËùÑ¡ÖÐµÄx×ø±ê¼ÇÂ¼£¬ÔÚ·´Ïò´«µ¼ÖÐÊ¹ÓÃ
-	pointY     : ³Ø»¯Ö®ºóËùÑ¡ÖÐµÄy×ø±ê¼ÇÂ¼£¬ÔÚ·´Ïò´«µ¼ÖÐÊ¹ÓÃ
-	pool1Size  : ÊäÈëÑù±¾µÄ³ß´ç
-	kernelSize : ¾í»ýºËµÄ³ß´ç
-	conv2Size  : ¾í»ý²ãÊä³öÖ®ºóµÄ³ß´ç
-	pool2Size  : ³Ø»¯²ãÊä³öÖ®ºóµÄ³ß´ç
-	poolingDim : ³Ø»¯²ãµÄÌø²½£¨Ã¿¸ö´óÐ¡ÎªpoolingDim X PoolingDimµÄÍ¼Æ¬Ñ¡È¡Ò»¸ö×î´óÖµ£©
-	k1Amount   : µÚÒ»¸ö¾í»ý²ãµÄ¾í»ýºË¸öÊý£¨Ä¬ÈÏÎª7£©
-	k2Amount   : µÚ¶þ¸ö¾í»ý²ãµÄ¾í»ýºË¸öÊý£¨Ä¬ÈÏÎª9£©
+	ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½   ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ó£©¾ï¿½ï¿½ï¿½Í³Ø»ï¿½ï¿½ï¿½Ç°ï¿½ò´«µï¿½ï¿½ï¿½GPUï¿½ï¿½ï¿½ï¿½
+	pool1      : ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø»ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½Îªï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	arrayW     : ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¨Öµ
+	arrayB     : ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ«ï¿½ï¿½Öµ
+	conv2      : ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	pool2      : ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	pointX	   : ï¿½Ø»ï¿½Ö®ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½Ðµï¿½xï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ò´«µï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+	pointY     : ï¿½Ø»ï¿½Ö®ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½Ðµï¿½yï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ú·ï¿½ï¿½ò´«µï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+	pool1Size  : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä³ß´ï¿½
+	kernelSize : ï¿½ï¿½ï¿½ËµÄ³ß´ï¿½
+	conv2Size  : ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä³ß´ï¿½
+	pool2Size  : ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½Ä³ß´ï¿½
+	poolingDim : ï¿½Ø»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½Ð¡ÎªpoolingDim X PoolingDimï¿½ï¿½Í¼Æ¬Ñ¡È¡Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½
+	k1Amount   : ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¾ï¿½ï¿½Ë¸ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½Îª7ï¿½ï¿½
+	k2Amount   : ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¾ï¿½ï¿½Ë¸ï¿½ï¿½ï¿½Ä¬ï¿½ï¿½Îª9ï¿½ï¿½
 
 
-	²¢ÐÐÏß³Ì·ÖÅä£º
+	ï¿½ï¿½ï¿½ï¿½ï¿½ß³Ì·ï¿½ï¿½ä£º
 	dim3(batch, cuKernelScan[i], Config::instance()->getChannels()),
 	dim3(threadidx)
 */
@@ -1071,7 +1071,7 @@ void outputMatrix(cuMatrix<double>* m)
 
 void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgSize)
 {
-	//µÚÒ»²ã
+	//ï¿½ï¿½Ò»ï¿½ï¿½
 	int curSize = ImgSize - Config::instance()->getConv()[0]->m_kernelSize + 1;//24
 	int outputSize = curSize;//24
 
@@ -1138,12 +1138,12 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 }
 
 /*
-	º¯Êý¹¦ÄÜ£ºÒþ²Ø¼¤»îº¯Êý
-	acti    £ºÊäÈë
-	b       £ºÆ«ÖÃÖµ
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ï¿½îº¯ï¿½ï¿½
+	acti    ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	b       ï¿½ï¿½Æ«ï¿½ï¿½Öµ
 
-	Ïß³Ì·ÖÅä<<<dim3(batch), dim3(NumHiddenNeurons)>>>
-	batchÎªÑù±¾µÄ¸öÊý£¬NumHiddenNeuronsÎªµ±Ç°Òþ²ãÉñ¾­ÔªµÄ¸öÊý
+	ï¿½ß³Ì·ï¿½ï¿½ï¿½<<<dim3(batch), dim3(NumHiddenNeurons)>>>
+	batchÎªï¿½ï¿½Ä¸ï¿½ï¿½ï¿½NumHiddenNeuronsÎªï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ôªï¿½Ä¸ï¿½ï¿½ï¿½
 */
 __global__ void g_hiddenLayerActi(double* acti, double* b, int NONLIN)
 {
@@ -1246,18 +1246,19 @@ void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 }
 
 /*
-	º¯Êý¹¦ÄÜ£º¼ÆËã»Ø¹é²ãµÄÊä³ö
-	softMaxp: »Ø¹é²ãÊý¾Ý´æ·Å´¦
-	b       : »Ø¹é²ãµÄÆ«ÖÃÁ¿
-	Ïß³Ì·ÖÅä£º<<<cuSoftMaxP->rows, cuSoftMaxP->cols>>>
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	softMaxp: ï¿½Ø¹ï¿½ï¿½ï¿½ï¿½Ý´ï¿½Å´ï¿½
+	b       : ï¿½Ø¹ï¿½ï¿½ï¿½Æ«ï¿½ï¿½ï¿½ï¿½
+	ï¿½ß³Ì·ï¿½ï¿½ä£º<<<cuSoftMaxP->rows, cuSoftMaxP->cols>>>
 */
 __global__ void g_getSoftMaxP(double* softMaxP, double* b)
 {
 	int bid = blockIdx.x;
 	int tid = threadIdx.x;
+	extern __shared__ double _share[];
 
-	__shared__ double _max[10];
-	__shared__ double _sum[10];
+	double * _max = _share;
+	double * _sum = _share + blockDim.x;
 
 	double* sp = softMaxP + bid * blockDim.x;
 	sp[tid] += b[tid];
@@ -1308,28 +1309,28 @@ void getSoftMaxP(cuSMR& smr, cublasHandle_t handle)
 		exit(0);
 	}
 
-	g_getSoftMaxP<<<cuSoftMaxP->rows, cuSoftMaxP->cols>>>(cuSoftMaxP->devData, smr.b->devData);
+	g_getSoftMaxP<<<cuSoftMaxP->rows, cuSoftMaxP->cols, sizeof(double) * cuSoftMaxP->cols * 2>>>(cuSoftMaxP->devData, smr.b->devData);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getSoftMaxP");
 }
 
 /*
-	º¯Êý¹¦ÄÜ   £º¼ÆËã»Ø¹é²ãµÄ´ú¼Û
-	softMaxP   : »Ø¹é²ã¼¤»îÖµ
-	groundTruth: ±êÇ©µÄ¾ØÕó
-	cost       : ´ú¼Û½á¹ûÐ´ÈëÕâÀï
-	y          : b±êÇ©
-	rows       : Êý¾ÝµÄÐÐ£¬
-	cols       : Êý¾ÝµÄÁÐ
-	batch      : Ñù±¾µÄ¸öÊý
-	Ïß³Ì·ÖÅä   £ºÓÉÓÚÉæ¼°µ½ÇóºÍ²Ù×÷£¬¶øÇÒÊý¾ÝÁ¿²»ÊÇÌØ±ð´ó£¬ËùÒÔ¿ªÆô
-				<<<dim3(1),dim3(256)>>>ÕâÑù¿ÉÒÔ±ÜÃâÒªÈ¥Í¬²½²»Í¬blockÖ®¼äµÄÊý¾Ý
+	ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½Ä´ï¿½ï¿½
+	softMaxP   : ï¿½Ø¹ï¿½ã¼¤ï¿½ï¿½Öµ
+	groundTruth: ï¿½ï¿½Ç©ï¿½Ä¾ï¿½ï¿½ï¿½
+	cost       : ï¿½ï¿½Û½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	y          : bï¿½ï¿½Ç©
+	rows       : ï¿½ï¿½Ýµï¿½ï¿½Ð£ï¿½
+	cols       : ï¿½ï¿½Ýµï¿½ï¿½ï¿½
+	batch      : ï¿½ï¿½Ä¸ï¿½ï¿½ï¿½
+	ï¿½ß³Ì·ï¿½ï¿½ï¿½   ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ¼°ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø±ï¿½ï¿½ï¿½ï¿½ï¿½Ô¿ï¿½ï¿½ï¿½
+				<<<dim3(1),dim3(256)>>>ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô±ï¿½ï¿½ï¿½ÒªÈ¥Í¬ï¿½ï¿½ï¿½ï¿½Í¬blockÖ®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 */
 __global__ void g_getCost_1(double* softMaxP,
 	double* groundTruth, double* cost, int*y, int rows, int cols, int batch)
 {
 	extern __shared__ double _sum[];
-	//grounTruth ÇåÁã
+	//grounTruth ï¿½ï¿½ï¿½ï¿½
 	int len = rows * cols;
 	for(int i = 0; i < len; i += blockDim.x)
 	{
@@ -1340,7 +1341,7 @@ __global__ void g_getCost_1(double* softMaxP,
 		}
 	}
 	__syncthreads();
-	//grounTruth¸³Öµ
+	//grounTruthï¿½ï¿½Öµ
 	for(int i = 0; i < rows; i += blockDim.x)
 	{
 		int id = i + threadIdx.x;
@@ -1363,7 +1364,7 @@ __global__ void g_getCost_1(double* softMaxP,
 		}
 	}
 
-	//ÇóºÍ
+	//ï¿½ï¿½ï¿½
 	len = blockDim.x;
 	while(len != 1)
 	{
@@ -1383,13 +1384,13 @@ __global__ void g_getCost_1(double* softMaxP,
 }
 
 /*
-	º¯Êý¹¦ÄÜ£ºsoftMax²ãµÄÈ¨ÖØ´ú¼Û
-	cost    : ´ú¼ÛµÄÊä³ö 
-	weight  : È¨ÖØ
-	lambda  : ÏµÊý
-	rows    : È¨ÖØµÄÐÐÊý
-	cols    : È¨ÖØµÄÁÐÊý
-	Ïß³Ì·ÖÅä£º<<<dim3(1),dim3(256)>>>
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½softMaxï¿½ï¿½ï¿½È¨ï¿½Ø´ï¿½ï¿½
+	cost    : ï¿½ï¿½Ûµï¿½ï¿½ï¿½ï¿½
+	weight  : È¨ï¿½ï¿½
+	lambda  : Ïµï¿½ï¿½
+	rows    : È¨ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½
+	cols    : È¨ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½
+	ï¿½ß³Ì·ï¿½ï¿½ä£º<<<dim3(1),dim3(256)>>>
 */
  __global__ void g_getCost_2(double* cost,
  	double* weight,
@@ -1442,13 +1443,13 @@ __global__ void g_getCost_1(double* softMaxP,
  }
 
  /*
-	º¯Êý¹¦ÄÜ£º¾í»ý²ãµÄ´ú¼Ûº¯ÊýµÄ¼ÆËã
-	cost    : ´ú¼ÛµÄÊä³ö 
-	weight  : È¨ÖØ
-	lambda  : ÏµÊý
-	rows    : È¨ÖØµÄÐÐÊý
-	cols    : È¨ÖØµÄÁÐÊý
-	Ïß³Ì·ÖÅä£º<<<dim3(¾í»ýºËµÄ¸öÊý),dim3(256)>>>
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½Ûºï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
+	cost    : ï¿½ï¿½Ûµï¿½ï¿½ï¿½ï¿½
+	weight  : È¨ï¿½ï¿½
+	lambda  : Ïµï¿½ï¿½
+	rows    : È¨ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½
+	cols    : È¨ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½
+	ï¿½ß³Ì·ï¿½ï¿½ä£º<<<dim3(ï¿½ï¿½ï¿½ËµÄ¸ï¿½ï¿½ï¿½),dim3(256)>>>
 */
  __global__ void g_getCost_3(double* cost,
  	double** weight,
@@ -1526,7 +1527,7 @@ __global__ void g_getSoftMaxDelta(double* softMaxDelta, double* softMaxP, double
 }
 
 /*
-	Ïß³Ì°²ÅÅ:<<<dim3(1),dim3(256)>>>
+	ï¿½ß³Ì°ï¿½ï¿½ï¿½:<<<dim3(1),dim3(256)>>>
 */
 
 __global__ void g_getSmrWgrad(double* wgrad, double* weight, double lambda, int len, int batch)
@@ -1544,9 +1545,9 @@ __global__ void g_getSmrWgrad(double* wgrad, double* weight, double lambda, int 
 }
 
 /*
-	º¯Êý¹¦ÄÜ£ºÇó½âbgrad
-	Ïß³Ì·ÖÅä<<<dim3(ÌØÕ÷Êý),dim3(Ñù±¾Êý)>>>
-	Ã¿¸öblock¼ÆËãÒ»¸öÌØÕ÷,²ÉÓÃ¶þ·ÖµÄ·½·¨
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½bgrad
+	ï¿½ß³Ì·ï¿½ï¿½ï¿½<<<dim3(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½),dim3(ï¿½ï¿½ï¿½ï¿½)>>>
+	Ã¿ï¿½ï¿½blockï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½ÖµÄ·ï¿½ï¿½ï¿½
 */
 __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, int batch)
 {
@@ -1573,9 +1574,9 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, i
 }
 
 /*
-	º¯Êý¹¦ÄÜ£ºÇó½âbgrad
-	Ïß³Ì·ÖÅä<<<dim3(ÌØÕ÷Êý),dim3(Ñù±¾Êý)>>>
-	Ã¿¸öblock¼ÆËãÒ»¸öÌØÕ÷,²ÉÓÃ¶þ·ÖµÄ·½·¨
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½bgrad
+	ï¿½ß³Ì·ï¿½ï¿½ï¿½<<<dim3(ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½),dim3(ï¿½ï¿½ï¿½ï¿½)>>>
+	Ã¿ï¿½ï¿½blockï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Ã¶ï¿½ï¿½ÖµÄ·ï¿½ï¿½ï¿½
 */
 __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
 {
@@ -1724,10 +1725,10 @@ void getHiddenDelta(
 }
 
 /*
-	function£º·´Ïò´«µ¼ÖÐµÄunpooling²Ù×÷£¬Ö÷Òª¸ù¾Ý
-			  ¼ÇÂ¼µÄpointxºÍpointyÊý¾Ý£¬¶ÔdeltaÏò³Ø»¯²ãµÄ
-			  ÉÏÒ»²ã´«µ¼
-	threads£º<<<dim3(min(512), dim3(min(512))>>>
+	functionï¿½ï¿½ï¿½ï¿½ï¿½ò´«µï¿½ï¿½Ðµï¿½unpoolingï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½
+			  ï¿½ï¿½Â¼ï¿½ï¿½pointxï¿½ï¿½pointyï¿½ï¿½Ý£ï¿½ï¿½ï¿½deltaï¿½ï¿½Ø»ï¿½ï¿½ï¿½ï¿½
+			  ï¿½ï¿½Ò»ï¿½ã´«ï¿½ï¿½
+	threadsï¿½ï¿½<<<dim3(min(512), dim3(min(512))>>>
 */
 
 __global__ void g_unPooling(int* pointX, int* pointY,
@@ -1760,12 +1761,12 @@ __global__ void g_unPooling(int* pointX, int* pointY,
 }
 
 /*
-	function£º½«µÚ¶þ²ãµÄconvdelta·´ÏòÍÆµ¼µ½µÚÒ»²ãµÄpooldelta£¬
-			  ÕâÀïÐèÒª¾­¹ýµÚ¶þ²ãµÄºËº¯Êý£¬ÐèÒª½«ºËº¯ÊýÐý×ª180¶È¡£
-	threads £º<<<dim3(batch, k1 * k2, channel),dim3(nxtSize, nxtSize)>>>
-			  ÓÉÓÚÉæ¼°µÄ¼Ó·¨(reduce²Ù×÷£©,µ«ÊÇÃ¿¸öÏß³ÌÖ»¸ºÔðÀÛ¼Ók1¸öÔªËØ£¬
-			  ËùÒÔÖ±½ÓÓÃÔ­×Ó²Ù×÷¾Í¿ÉÒÔ´ïµ½Ä¿µÄ£¨ÀÛ¼ÓÔªËØ¹ý¶à£¬
-			  ÔòÐèÒª²ÉÓÃ¶þ·ÖµÄ·½·¨À´ÊµÏÖ£©
+	functionï¿½ï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½ï¿½convdeltaï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½pooldeltaï¿½ï¿½
+			  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ú¶ï¿½ï¿½ï¿½ÄºËºï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ëºï¿½ï¿½ï¿½ï¿½ï¿½×ª180ï¿½È¡ï¿½
+	threads ï¿½ï¿½<<<dim3(batch, k1 * k2, channel),dim3(nxtSize, nxtSize)>>>
+			  ï¿½ï¿½ï¿½ï¿½ï¿½æ¼°ï¿½Ä¼Ó·ï¿½(reduceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ß³ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½Û¼ï¿½k1ï¿½ï¿½Ôªï¿½Ø£ï¿½
+			  ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½Ô­ï¿½Ó²ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½Ô´ïµ½Ä¿ï¿½Ä£ï¿½ï¿½Û¼ï¿½Ôªï¿½Ø¹ï¿½à£¬
+			  ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½Ã¶ï¿½ï¿½ÖµÄ·ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½Ö£ï¿½
 
 */
 __global__ void g_dConvAdd(
@@ -1855,9 +1856,9 @@ __global__ void g_dConvAdd(
 
 /*
 	
-	º¯Êý¹¦ÄÜ£ºÇó½â¾í»ý²ãµÄwgradµÄµÚÒ»¸öº¯Êý£¬ÓÉÓÚÉæ¼°¼ÆËãÁ¿±È½Ï´óµÄreduce²Ù×÷£¬ËùÒÔ²»½¨ÒéÖ±½ÓÓÃactom²Ù×÷£¬
-			  ¶øÊÇ
-	Ïß³Ì·ÖÅä£ºdim3<<<dim3(batch, kernelAmount2, channels), dim3(nxtSize * nxtSize, kernelAmount1)>>>
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½wgradï¿½Äµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ¼°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È½Ï´ï¿½ï¿½reduceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô²ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½actomï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			  ï¿½ï¿½ï¿½ï¿½
+	ï¿½ß³Ì·ï¿½ï¿½ä£ºdim3<<<dim3(batch, kernelAmount2, channels), dim3(nxtSize * nxtSize, kernelAmount1)>>>
 */
 __global__ void g_conv(double* pool,
 	double* convDelta,
@@ -1928,7 +1929,7 @@ __global__ void g_conv(double* pool,
 }
 
 /*
-	Ïß³Ì·ÖÅä£º<<<dim3(k2, kernelSize*kernelSize, channels), dim3(256)>>>
+	ï¿½ß³Ì·ï¿½ï¿½ä£º<<<dim3(k2, kernelSize*kernelSize, channels), dim3(256)>>>
 */
 __global__ void g_convAdd(
 	double* WgradTmp, 
@@ -1992,7 +1993,7 @@ __global__ void g_convAdd(
 }
 
 /*
-	Ïß³Ì·ÖÅä£º<<<dim3(kernelAmount2, channels), dim3(256)>>>
+	ï¿½ß³Ì·ï¿½ï¿½ä£º<<<dim3(kernelAmount2, channels), dim3(256)>>>
 */
 __global__ void g_getCLayerBgrad(double* delta,
 	double** bgrad,
@@ -2057,8 +2058,8 @@ __global__ void g_getCLayerBgrad(double* delta,
 
 /*
 	
-	º¯Êý¹¦ÄÜ£ºÇó½â¾í»ý²ãµÄwgradµÄµÚÒ»¸öº¯Êý£¬ÓÉÓÚÉæ¼°¼ÆËãÁ¿±È½Ï´óµÄreduce²Ù×÷£¬
-			ËùÒÔ²»½¨ÒéÖ±½ÓÓÃactom²Ù×÷£¬¶øÊÇ²ÉÓÃ¶þ·ÖÀ´ÇóºÍ
+	ï¿½ï¿½ï¿½ï¿½ï¿½Ü£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½wgradï¿½Äµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ¼°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È½Ï´ï¿½ï¿½reduceï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			ï¿½ï¿½ï¿½Ô²ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½actomï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç²ï¿½ï¿½Ã¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 			dim3(threadidx)>>>
 */
@@ -2120,7 +2121,7 @@ __global__ void g_conv_1(double** sArray,
 
 
 /*
-	Ïß³Ì·ÖÅä£º<<<dim3(k1, kernelSize*kernelSize, channels), dim3(256)>>>
+	ï¿½ß³Ì·ï¿½ï¿½ä£º<<<dim3(k1, kernelSize*kernelSize, channels), dim3(256)>>>
 */
 __global__ void g_convAdd_1(double* WgradTmp, double** Wgrad,
 	double** w,
@@ -2178,7 +2179,7 @@ __global__ void g_convAdd_1(double* WgradTmp, double** Wgrad,
 }
 
 /*
-	Ïß³Ì·ÖÅä£º<<<dim3(kernelAmount2, channels), dim3(256)>>>
+	ï¿½ß³Ì·ï¿½ï¿½ä£º<<<dim3(kernelAmount2, channels), dim3(256)>>>
 */
 __global__ void g_getCLayerBgrad_1(double* delta,
 	double** bgrad,
@@ -2650,91 +2651,121 @@ void __global__ g_getVotingResult(int* voting, int* y, int* correct, int len, in
 	}
 }
 
+void predictTestDate(cuMatrixVector<double>&x,
+		cuMatrix<int>*y ,
+		std::vector<cuCvl> &CLayers,
+		std::vector<cuFll> &HiddenLayers,
+		cuSMR &smr,
+		double lambda,
+		cuMatrixVector<double>&testX,
+		cuMatrix<int>* testY,
+		int nsamples,
+		int batch,
+		int ImgSize,
+		int nclasses,
+		cublasHandle_t handle) {
 
-void cuTrainNetwork(cuMatrixVector<double>&x, 
-	cuMatrix<int>*y , 
+	for (int hl = 0; hl < HiddenLayers.size(); hl++) {
+		dropDelta(HiddenLayers[hl].dropW, 0.0);
+	}
+
+	cuVote->gpuClear();
+
+	int cropr[] = { Config::instance()->getCrop() / 2, 0, 0,
+			Config::instance()->getCrop(), Config::instance()->getCrop() };
+	int cropc[] = { Config::instance()->getCrop() / 2, 0,
+			Config::instance()->getCrop(), 0, Config::instance()->getCrop() };
+
+//	double scale[] = {0.0, -Config::instance()->getScale(), Config::instance()->getScale()};
+//	double rotation[] = {0.0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
+
+//	for (int s = 0; s < (Config::instance()->getScale() <= 0.00001 ? 1 : 3);s++) {
+//		for (int r = 0; r < (Config::instance()->getRotation() <= 0.00001 ? 1 : 3); r++) {
+			for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 2 : 1); h++) {
+				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 5); c++) {
+					for (int p = 0; p < testX.size() / batch; p++) {
+						printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
+						int tstart = p * batch;
+						cuApplyCrop(testX.m_devPoint + tstart,
+								cu_distortion_vector->m_devPoint, batch,
+								ImgSize, cropr[c], cropc[c]);
+
+						if (h == 1)
+							cuApplyHorizontal(cu_distortion_vector->m_devPoint,
+									cu_distortion_vector->m_devPoint, batch,
+									ImgSize);
+
+//						cuApplyScaleAndRotate(batch, ImgSize, scale[s], rotation[r]);
+//						cuApplyDistortion(cu_distortion_vector->m_devPoint,
+//								cu_distortion_vector->m_devPoint, batch, ImgSize);
+
+//						for (int ff = batch - 1; ff >= 0; ff--) {
+//							showImg(testX[tstart + ff], 10);
+//							showImg(cu_distortion_vector->m_vec[ff], 10);
+//							cv::waitKey(0);
+//						}
+
+						resultProdict(cu_distortion_vector->m_devPoint,
+								testY->devData + tstart,
+								cuVote->devData + tstart * nclasses, CLayers,
+								HiddenLayers, smr, lambda, batch, ImgSize,
+								nclasses, handle);
+
+						printf("\b\b\b\b\b\b\b\b\b");
+					}
+				}
+			}
+//		}
+//	}
+
+	cuCorrect->gpuClear();
+	g_getVotingResult<<<dim3((testX.size() + batch - 1) / batch), dim3(batch)>>>(
+			cuVote->devData,
+			testY->devData,
+			cuCorrect->devData,
+			testX.size(),
+			nclasses);
+	cudaDeviceSynchronize();
+	getLastCudaError("g_getVotingResult");
+	cuCorrect->toCpu();
+
+	if (cuCorrect->get(0, 0, 0) > cuCurCorrect) {
+		cuCurCorrect = cuCorrect->get(0, 0, 0);
+		cuSaveConvNet(CLayers, HiddenLayers, smr, ImgSize, nclasses, nsamples);
+	}
+}
+
+void cuTrainNetwork(cuMatrixVector<double>&x,
+	cuMatrix<int>*y ,
 	std::vector<cuCvl> &CLayers,
-	std::vector<cuFll> &HiddenLayers, 
+	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr,
-	double lambda, 
+	double lambda,
 	cuMatrixVector<double>&testX,
-	cuMatrix<int>* testY, 
+	cuMatrix<int>* testY,
 	int nsamples,
 	int batch,
-	int ImgSize, 
+	int ImgSize,
 	int nclasses,
 	cublasHandle_t handle)
 {
  	if(Config::instance()->getIsGradientChecking())
  		gradientChecking(CLayers, HiddenLayers, smr, x.m_devPoint, y->devData, lambda, batch, ImgSize, nclasses, handle);
- 
-	for(int hl = 0; hl < HiddenLayers.size(); hl++)
-	{
-		dropDelta(HiddenLayers[hl].dropW, 0.0);
-	}
- 
-	cuVote->gpuClear();
 
-	int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop()};
-	int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop()};
-	int clen = sizeof(cropc) / sizeof(int);
-	int hlen = 0;
-	if(Config::instance()->getHorizontal())
-	{
-		hlen = 1;
-	}
-	if(Config::instance()->getCrop() <= 0)
-	{
-		clen = 1;
-	}
-	for(int h = 0; h <= hlen; h++)
-	{
-		for(int c = 0; c < clen; c++)
-		{
-			for(int p = 0; p < testX.size() / batch; p++)
-			{
-				printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
-				int tstart = p * batch;
+ 	predictTestDate(x,
+ 			y,
+ 			CLayers,
+ 			HiddenLayers,
+ 			smr,
+ 			lambda,
+ 			testX,
+ 			testY,
+ 			nsamples,
+ 			batch,
+ 			ImgSize,
+ 			nclasses,
+ 			handle);
 
-				cuApplyCrop(testX.m_devPoint + tstart, cu_distortion_vector->m_devPoint, batch, ImgSize, cropr[c], cropc[c]);
-
-
-				if(h == 1)
-					cuApplyHorizontal(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
-				
-				resultProdict(cu_distortion_vector->m_devPoint,
-					testY->devData + tstart, 
-					cuVote->devData+ tstart * nclasses,
-					CLayers,
-					HiddenLayers,
-					smr,
-					lambda,
-					batch,
-					ImgSize,
-					nclasses, 
-					handle);
-
-				printf("\b\b\b\b\b\b\b\b\b");
-			}
-		}
-	}
-
-	cuCorrect->gpuClear();
-	g_getVotingResult<<<dim3((testX.size() + batch - 1) / batch), dim3(batch)>>>(
-		cuVote->devData, 
-		testY->devData, 
-		cuCorrect->devData,
-		testX.size(),
-		nclasses);
-	cudaDeviceSynchronize();
-	getLastCudaError("g_getVotingResult");
-	cuCorrect->toCpu();
-	
- 	if(cuCorrect->get(0,0,0) >  cuCurCorrect)
- 	{
- 		cuCurCorrect = cuCorrect->get(0,0,0);
- 		cuSaveConvNet(CLayers, HiddenLayers, smr, ImgSize, nclasses, nsamples);
- 	}
  	printf("correct is %d\n", cuCorrect->get(0,0,0));
 	
 	int epochs = 20000;
@@ -2798,71 +2829,19 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			smr.cost->toCpu();
 			char str[512];
 
-			for(int hl = 0; hl < HiddenLayers.size(); hl++)
-			{
-				dropDelta(HiddenLayers[hl].dropW, 0.0f);
-			}
-	
-
-			int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop()};
-			int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop()};
-			int clen = sizeof(cropc) / sizeof(int);
-			int hlen = 0;
-			if(Config::instance()->getHorizontal())
-			{
-				hlen = 1;
-			}
-			if(Config::instance()->getCrop() <= 0)
-			{
-				clen = 1;
-			}
-			cuVote->gpuClear();
-			for(int h = 0; h <= hlen; h++)
-			{
-				for(int c = 0; c < clen; c++)
-				{
-					for(int p = 0; p < testX.size() / batch; p++)
-					{
-						printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
-						int tstart = p * batch;
-
-						cuApplyCrop(testX.m_devPoint + tstart, cu_distortion_vector->m_devPoint, batch, ImgSize, cropr[c], cropc[c]);
-
-						if(h == 1)
-							cuApplyHorizontal(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
-
-						resultProdict(cu_distortion_vector->m_devPoint,
-						//resultProdict(testX.m_devPoint + tstart,
-							testY->devData + tstart, 
-							cuVote->devData + tstart * nclasses,
-							CLayers,
-							HiddenLayers,
-							smr,
-							lambda,
-							batch,
-							ImgSize,
-							nclasses, 
-							handle);
-						printf("\b\b\b\b\b\b\b\b\b");
-					}
-				}
-			}
-			cuCorrect->gpuClear();
-			g_getVotingResult<<<dim3((testX.size() + batch - 1) / batch), dim3(batch)>>>(
-				cuVote->devData, 
-				testY->devData, 
-				cuCorrect->devData,
-				testX.size(),
-				nclasses);
-			cudaDeviceSynchronize();
-			getLastCudaError("g_getVotingResult");
-			cuCorrect->toCpu();
-
-			if(cuCorrect->get(0, 0, 0) >  cuCurCorrect)
-			{
-				cuCurCorrect = cuCorrect->get(0, 0, 0);
-				cuSaveConvNet(CLayers, HiddenLayers, smr, ImgSize, nclasses, nsamples);
-			}
+				predictTestDate(x,
+			 			y,
+			 			CLayers,
+			 			HiddenLayers,
+			 			smr,
+			 			lambda,
+			 			testX,
+			 			testY,
+			 			nsamples,
+			 			batch,
+			 			ImgSize,
+			 			nclasses,
+			 			handle);
 
 			if(epo && epo % epoCount[id] == 0)
 			{

@@ -245,8 +245,6 @@ public:
 		return m_softMax;
 	}
 private:
-	Config(){
-	}
 	void deleteComment();
 	void deleteSpace();
 	bool get_word_bool(std::string &str, std::string name);
