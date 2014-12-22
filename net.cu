@@ -1071,11 +1071,13 @@ void outputMatrix(cuMatrix<double>* m)
 
 void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgSize)
 {
-	//��һ��
 	int curSize = ImgSize - Config::instance()->getConv()[0]->m_kernelSize + 1;//24
 	int outputSize = curSize;//24
 
 	int threadidx = min(outputSize * outputSize, 512);
+	int kernelAmount = Config::instance()->getConv()[0]->m_amount;
+	int kernelSize = Config::instance()->getConv()[0]->m_kernelSize;
+	int poolingDim = Config::instance()->getConv()[0]->m_poolingDim;
 
 	g_convAndPooling_1<<<
 		dim3(batch, 
@@ -1090,14 +1092,14 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 		cuPointX[0]->devData,
 		cuPointY[0]->devData,
 		ImgSize,
-		Config::instance()->getConv()[0]->m_kernelSize,
+		kernelSize,
 		cuConvOutputSize[0],
 		cuPoolOutputSize[0],
-		Config::instance()->getConv()[0]->m_poolingDim,
+		poolingDim,
 		cuConv[0]->getArea(),
 		cuPool[0]->getArea(),
 		batch,
-		Config::instance()->getConv()[0]->m_amount,
+		kernelAmount,
 		Config::instance()->getNonLinearity()
 	);
 
@@ -1107,6 +1109,10 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 	for(int i = 1; i < Config::instance()->getConv().size(); i++)
 	{
 		int threadidx = min(cuConvOutputSize[i] * cuConvOutputSize[i], 512);
+		int kernelAmount1 = Config::instance()->getConv()[i - 1]->m_amount;
+		int kernelAmount2 = Config::instance()->getConv()[i]->m_amount;
+		int kernelSize = Config::instance()->getConv()[i]->m_kernelSize;
+		int poolingDim = Config::instance()->getConv()[i]->m_poolingDim;
 
 		g_convAndPooling_2<<<
 			dim3(batch, cuKernelScan[i], Config::instance()->getChannels()),
@@ -1119,14 +1125,14 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 			cuPointX[i]->devData,
 			cuPointY[i]->devData,
 			cuPoolOutputSize[i - 1],
-			Config::instance()->getConv()[i]->m_kernelSize,
+			kernelSize,
 			cuConvOutputSize[i],
 			cuPoolOutputSize[i],
-			Config::instance()->getConv()[i]->m_poolingDim,
+			poolingDim,
 			cuKernelScan[i - 1],
 			cuKernelScan[i],
-			Config::instance()->getConv()[i - 1]->m_amount,
-			Config::instance()->getConv()[i]->m_amount,
+			kernelAmount1,
+			kernelAmount2,
 			cuPool[i - 1]->getArea(),
 			cuConv[i]->getArea(),
 			cuPool[i]->getArea(),
@@ -1138,27 +1144,29 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 }
 
 /*
-	�����ܣ����ؼ����
-	acti    ������
-	b       ��ƫ��ֵ
-
-	�̷߳���<<<dim3(batch), dim3(NumHiddenNeurons)>>>
-	batchΪ��ĸ���NumHiddenNeuronsΪ��ǰ������Ԫ�ĸ���
+ * blocks  = dim3(min(512, (len + threads) / threads));
+ * threads = dim3(min(512, len));
 */
-__global__ void g_hiddenLayerActi(double* acti, double* b, int NONLIN)
+__global__ void g_hiddenLayerActi(double* acti, double* b, int NumofNeurons, int NONLIN)
 {
-	double* data  = acti + blockIdx.x * blockDim.x;
-	double val = data[threadIdx.x];
-
-	val = val + b[threadIdx.x];
-	data[threadIdx.x] = d_nonLinearity(val, NONLIN);
+	double* data  = acti + blockIdx.x * NumofNeurons;
+	for(int id = 0; id < NumofNeurons; id += blockDim.x)
+	{
+		int idx = id + threadIdx.x;
+		if(idx < NumofNeurons)
+		{
+			double val = data[idx];
+			val = val + b[idx];
+			data[idx] = d_nonLinearity(val, NONLIN);
+		}
+	}
 }
 
 __global__ void g_dropW(double * w, double * dropW, double* afterDropW, int len)
 {
-	for(int i = 0; i < len; i += blockDim.x)
+	for(int i = 0; i < len; i += blockDim.x * gridDim.x)
 	{
-		int id = i + threadIdx.x;
+		int id = i + blockIdx.x * blockDim.x + threadIdx.x;
 		if(id < len)
 		{
 			afterDropW[id] = dropW[id] * w[id];
@@ -1206,7 +1214,9 @@ void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 
 	for(int hl = 0; hl < Config::instance()->getFC().size(); hl++)
 	{
-		g_dropW<<<1, 256>>>(hLayers[hl].W->devData,
+		int threads = min(512, hLayers[hl].W->getLen());
+		int blocks = min(1024, (hLayers[hl].W->getLen() + threads - 1) / threads);
+		g_dropW<<<blocks, threads>>>(hLayers[hl].W->devData,
 			hLayers[hl].dropW->devData, 
 			hLayers[hl].afterDropW->devData, 
 			hLayers[hl].W->getLen());
@@ -1217,13 +1227,9 @@ void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 		{
 			matrixMulTB(cuPoolToFlActi, 
 				hLayers[hl].afterDropW, cuHiddenActi[hl], handle);
-			if(cuHiddenActi[hl]->cols > MAX_THREADS){
-				printf("g_hiddenLayerActi > MAX_THREADS\n");
-				exit(0);
-			}
-
-			g_hiddenLayerActi<<<cuHiddenActi[hl]->rows, cuHiddenActi[hl]->cols>>>(cuHiddenActi[hl]->devData, 
-				hLayers[hl].b->devData, Config::instance()->getNonLinearity());
+			int threads = min(512, cuHiddenActi[hl]->cols);
+			g_hiddenLayerActi<<<cuHiddenActi[hl]->rows, threads>>>(cuHiddenActi[hl]->devData,
+					hLayers[hl].b->devData, cuHiddenActi[hl]->cols, Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_hiddenLayerActi");
 		}
@@ -1232,13 +1238,12 @@ void getHiddenLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 			matrixMulTB(cuHiddenActi[hl - 1], 
 				hLayers[hl].afterDropW, cuHiddenActi[hl], handle);
 
-			if(cuHiddenActi[hl]->cols > MAX_THREADS){
-				printf("g_hiddenLayerActi > MAX_THREADS\n");
-				exit(0);
-			}
+			int threads = min(512, cuHiddenActi[hl]->cols);
 
-			g_hiddenLayerActi<<<cuHiddenActi[hl]->rows, cuHiddenActi[hl]->cols>>>(cuHiddenActi[hl]->devData, 
-				hLayers[hl].b->devData, Config::instance()->getNonLinearity());
+			g_hiddenLayerActi<<<cuHiddenActi[hl]->rows, threads>>>(cuHiddenActi[hl]->devData,
+					hLayers[hl].b->devData,
+					cuHiddenActi[hl]->cols,
+					Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_hiddenLayerActi");
 		}
@@ -1680,7 +1685,8 @@ void getHiddenDelta(
 			g_dnonLinearity<<<dim3(256), dim3(256)>>>(
 				cuHiddenDelta[hl]->devData, 
 				cuHiddenActi[hl]->devData,
-				cuHiddenDelta[hl]->getLen(), Config::instance()->getNonLinearity());
+				cuHiddenDelta[hl]->getLen(),
+				Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_dnonLinearity");
 		}
@@ -1720,8 +1726,6 @@ void getHiddenDelta(
 		cudaDeviceSynchronize();
 		getLastCudaError("g_getBgrad");
 	}
-
-	
 }
 
 /*
@@ -1769,7 +1773,7 @@ __global__ void g_unPooling(int* pointX, int* pointY,
 			  ����Ҫ���ö��ֵķ�����ʵ�֣�
 
 */
-__global__ void g_dConvAdd(
+__global__ void g_dPoolToConv(
 	double* _convDelta,
 	double* _addBorder,
 	double**_w,
@@ -1860,7 +1864,7 @@ __global__ void g_dConvAdd(
 			  ����
 	�̷߳��䣺dim3<<<dim3(batch, kernelAmount2, channels), dim3(nxtSize * nxtSize, kernelAmount1)>>>
 */
-__global__ void g_conv(double* pool,
+__global__ void g_wgrad(double* pool,
 	double* convDelta,
 	double* WgradTmp,
 	int poolOutputSize,
@@ -1931,7 +1935,7 @@ __global__ void g_conv(double* pool,
 /*
 	�̷߳��䣺<<<dim3(k2, kernelSize*kernelSize, channels), dim3(256)>>>
 */
-__global__ void g_convAdd(
+__global__ void g_wgradAdd(
 	double* WgradTmp, 
 	double** Wgrad,
 	double** w,
@@ -2063,7 +2067,7 @@ __global__ void g_getCLayerBgrad(double* delta,
 	<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 			dim3(threadidx)>>>
 */
-__global__ void g_conv_1(double** sArray,
+__global__ void g_wgrad_1(double** sArray,
 	double* convDelta,
 	double* WgradTmp,
 	int imgSize,
@@ -2123,7 +2127,7 @@ __global__ void g_conv_1(double** sArray,
 /*
 	�̷߳��䣺<<<dim3(k1, kernelSize*kernelSize, channels), dim3(256)>>>
 */
-__global__ void g_convAdd_1(double* WgradTmp, double** Wgrad,
+__global__ void g_wgradAdd_1(double* WgradTmp, double** Wgrad,
 	double** w,
 	int kernelScan2,
 	int kernelAmount2,
@@ -2304,8 +2308,11 @@ void dConvAndUnpooling(double**x,
 			cuPoolDelta[cl - 1]->gpuClear();
 			cuPoolDeltaAndBorder[cl - 1]->gpuClear();
 			int threadidx = min(cuPoolOutputSize[cl - 1] * cuPoolOutputSize[cl - 1], 512);
-			
-			g_dConvAdd<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
+			int kernelAmount1 = Config::instance()->getConv()[cl - 1]->m_amount;
+			int kernelAmount2 = Config::instance()->getConv()[cl]->m_amount;
+			int kernelSize = Config::instance()->getConv()[cl]->m_kernelSize;
+
+			g_dPoolToConv<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 				dim3(threadidx)>>>
 			(
 				cuConvDelta[cl]->devData,
@@ -2323,11 +2330,11 @@ void dConvAndUnpooling(double**x,
 				cuPoolDeltaAndBorder[cl - 1]->getArea(),
 				cuPoolDelta[cl - 1]->getArea());
 			cudaDeviceSynchronize();
-			getLastCudaError("g_dConvAdd");
+			getLastCudaError("g_dPoolToConv");
 			
-			threadidx = min(Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize, 512);
+			threadidx = min(kernelSize * kernelSize, 512);
 
-			g_conv<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
+			g_wgrad<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 				dim3(threadidx)>>>(
 				cuPool[cl - 1]->devData,
 				cuConvDelta[cl]->devData,
@@ -2336,16 +2343,16 @@ void dConvAndUnpooling(double**x,
 				cuConvOutputSize[cl],
 				cuKernelScan[cl - 1],
 				cuKernelScan[cl],
-				Config::instance()->getConv()[cl - 1]->m_amount,
-				Config::instance()->getConv()[cl]->m_amount,
-				Config::instance()->getConv()[cl]->m_kernelSize,
+				kernelAmount1,
+				kernelAmount2,
+				kernelSize,
 				cuPool[cl - 1]->getArea(),
 				cuConvDelta[cl]->getArea(),
 				cuConvLayerWgradTmp[cl]->getArea());
 			cudaDeviceSynchronize();
-			getLastCudaError("g_conv");
+			getLastCudaError("g_wgrad");
 
-			g_convAdd<<<dim3(Config::instance()->getConv()[cl]->m_amount,
+			g_wgradAdd<<<dim3(Config::instance()->getConv()[cl]->m_amount,
 				Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize,
 				Config::instance()->getChannels()),
 				dim3(256),
@@ -2355,18 +2362,18 @@ void dConvAndUnpooling(double**x,
 				CLayers[cl].w->m_devPoint,
 				cuKernelScan[cl - 1],
 				cuKernelScan[cl],
-				Config::instance()->getConv()[cl - 1]->m_amount,
-				Config::instance()->getConv()[cl]->m_amount,
-				Config::instance()->getConv()[cl]->m_kernelSize,
+				kernelAmount1,
+				kernelAmount2,
+				kernelSize,
 				batch,
 				cuConvLayerWgradTmp[cl]->getArea(),
 				CLayers[cl].layer[0].Wgrad->getArea(),
 				CLayers[cl].layer[0].W->getArea(),
 				lambda);
 			cudaDeviceSynchronize();
-			getLastCudaError("g_convAdd");
+			getLastCudaError("g_wgradAdd");
 
-			g_getCLayerBgrad<<<dim3(Config::instance()->getConv()[cl]->m_amount,
+			g_getCLayerBgrad<<<dim3(kernelAmount2,
 				Config::instance()->getChannels()), 
 				dim3(256),
 				sizeof(double) * 256>>>(cuConvDelta[cl]->devData,
@@ -2374,8 +2381,8 @@ void dConvAndUnpooling(double**x,
 				cuConvOutputSize[cl],
 				cuKernelScan[cl - 1],
 				cuKernelScan[cl],
-				Config::instance()->getConv()[cl - 1]->m_amount,
-				Config::instance()->getConv()[cl]->m_amount,
+				kernelAmount1,
+				kernelAmount2,
 				batch,
 				cuConvDelta[cl]->getArea());
 			cudaDeviceSynchronize();
@@ -2383,10 +2390,11 @@ void dConvAndUnpooling(double**x,
 		}
 		else
 		{
-			int threadidx = min(Config::instance()->getConv()[cl]->m_kernelSize 
-				* Config::instance()->getConv()[cl]->m_kernelSize, 
-				512);
-			g_conv_1<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
+			int kernelSize = Config::instance()->getConv()[cl]->m_kernelSize;
+			int threadidx = min(kernelSize * kernelSize, 512);
+			int kernelAmount2 = Config::instance()->getConv()[cl]->m_amount;
+
+			g_wgrad_1<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 				dim3(threadidx)>>>
 				(x,
 				cuConvDelta[cl]->devData,
@@ -2394,16 +2402,16 @@ void dConvAndUnpooling(double**x,
 				ImgSize,
 				cuConvOutputSize[cl],
 				cuKernelScan[cl],
-				Config::instance()->getConv()[cl]->m_amount,
-				Config::instance()->getConv()[cl]->m_kernelSize,
+				kernelAmount2,
+				kernelSize,
 				ImgSize * ImgSize,
 				cuConvDelta[cl]->getArea(),
 				cuConvLayerWgradTmp[cl]->getArea());
 			cudaDeviceSynchronize();
-			getLastCudaError("g_conv_1");
+			getLastCudaError("g_wgrad_1");
 
-			g_convAdd_1<<<dim3(Config::instance()->getConv()[cl]->m_amount, 
-				Config::instance()->getConv()[cl]->m_kernelSize * Config::instance()->getConv()[cl]->m_kernelSize,
+			g_wgradAdd_1<<<dim3(kernelAmount2,
+				kernelSize * kernelSize,
 				Config::instance()->getChannels()),
 				dim3(256),
 				sizeof(double) * 256>>>(
@@ -2411,18 +2419,17 @@ void dConvAndUnpooling(double**x,
 				CLayers[cl].wgrad->m_devPoint,
 				CLayers[cl].w->m_devPoint,
 				cuKernelScan[cl],
-				Config::instance()->getConv()[cl]->m_amount,
-				Config::instance()->getConv()[cl]->m_kernelSize,
+				kernelAmount2,
+				kernelSize,
 				batch,
 				lambda,
 				cuConvLayerWgradTmp[cl]->getArea(),
 				CLayers[cl].layer[0].Wgrad->getArea(),
 				CLayers[cl].layer[0].W->getArea());
 			cudaDeviceSynchronize();
-			getLastCudaError("g_convAdd_1");
+			getLastCudaError("g_wgradAdd_1");
 
-
-			g_getCLayerBgrad_1<<<dim3(Config::instance()->getConv()[cl]->m_amount, 
+			g_getCLayerBgrad_1<<<dim3(kernelAmount2,
 				Config::instance()->getChannels()),
 				dim3(256), 
 				sizeof(double) * 256>>>
@@ -2430,7 +2437,7 @@ void dConvAndUnpooling(double**x,
 				CLayers[cl].bgrad->m_devPoint, 
 				cuConvOutputSize[cl], 
 				cuKernelScan[cl],
-				Config::instance()->getConv()[cl]->m_amount, 
+				kernelAmount2,
 				batch, 
 				cuConvDelta[cl]->getArea(),
 				CLayers[cl].layer[0].bgrad->getArea());
@@ -2679,21 +2686,20 @@ void predictTestDate(cuMatrixVector<double>&x,
 //	double scale[] = {0.0, -Config::instance()->getScale(), Config::instance()->getScale()};
 //	double rotation[] = {0.0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
 
-//	for (int s = 0; s < (Config::instance()->getScale() <= 0.00001 ? 1 : 3);s++) {
-//		for (int r = 0; r < (Config::instance()->getRotation() <= 0.00001 ? 1 : 3); r++) {
-			for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 2 : 1); h++) {
-				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 5); c++) {
-					for (int p = 0; p < testX.size() / batch; p++) {
-						printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
-						int tstart = p * batch;
-						cuApplyCrop(testX.m_devPoint + tstart,
-								cu_distortion_vector->m_devPoint, batch,
-								ImgSize, cropr[c], cropc[c]);
+	for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 2 : 1);
+			h++) {
+		for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 5); c++) {
+			for (int p = 0; p < testX.size() / batch; p++) {
+				printf("test  %2d%%",
+						100 * p / ((testX.size() + batch - 1) / batch));
+				int tstart = p * batch;
+				cuApplyCrop(testX.m_devPoint + tstart,
+						cu_distortion_vector->m_devPoint, batch, ImgSize,
+						cropr[c], cropc[c]);
 
-						if (h == 1)
-							cuApplyHorizontal(cu_distortion_vector->m_devPoint,
-									cu_distortion_vector->m_devPoint, batch,
-									ImgSize);
+				if (h == 1)
+					cuApplyHorizontal(cu_distortion_vector->m_devPoint,
+							cu_distortion_vector->m_devPoint, batch, ImgSize);
 
 //						cuApplyScaleAndRotate(batch, ImgSize, scale[s], rotation[r]);
 //						cuApplyDistortion(cu_distortion_vector->m_devPoint,
@@ -2705,18 +2711,16 @@ void predictTestDate(cuMatrixVector<double>&x,
 //							cv::waitKey(0);
 //						}
 
-						resultProdict(cu_distortion_vector->m_devPoint,
-								testY->devData + tstart,
-								cuVote->devData + tstart * nclasses, CLayers,
-								HiddenLayers, smr, lambda, batch, ImgSize,
-								nclasses, handle);
+				resultProdict(cu_distortion_vector->m_devPoint,
+						testY->devData + tstart,
+						cuVote->devData + tstart * nclasses, CLayers,
+						HiddenLayers, smr, lambda, batch, ImgSize, nclasses,
+						handle);
 
-						printf("\b\b\b\b\b\b\b\b\b");
-					}
-				}
+				printf("\b\b\b\b\b\b\b\b\b");
 			}
-//		}
-//	}
+		}
+	}
 
 	cuCorrect->gpuClear();
 	g_getVotingResult<<<dim3((testX.size() + batch - 1) / batch), dim3(batch)>>>(

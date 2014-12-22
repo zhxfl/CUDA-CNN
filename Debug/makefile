@@ -46,7 +46,7 @@ all: CUDA-CNN
 CUDA-CNN: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-	/usr/local/cuda-6.5/bin/nvcc --cudart static --relocatable-device-code=false -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20 -link -o  "CUDA-CNN" $(OBJS) $(USER_OBJS) $(LIBS)
+	/usr/local/cuda-6.5/bin/nvcc --cudart static -L/usr/local/lib --relocatable-device-code=false -gencode arch=compute_20,code=compute_20 -gencode arch=compute_20,code=sm_20 -link -o  "CUDA-CNN" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
