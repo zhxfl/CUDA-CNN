@@ -7,7 +7,7 @@
 #include <cuda_runtime.h>
 #include "cuMatrixVector.h"
 
-/*卷积核*/
+/*Convolution layer kernel*/
 typedef struct cuConvKernel{
 	cuMatrix<double>* W;
 	cuMatrix<double>* b;
@@ -22,7 +22,7 @@ typedef struct cuConvKernel{
 	}
 }cuConvK;
 
-/*卷积层*/
+/*Convolution layer*/
 typedef struct cuConvLayer{
 	std::vector<cuConvK> layer;
 	cuMatrixVector<double>* w;
@@ -43,7 +43,7 @@ typedef struct cuConvLayer{
 	}
 }cuCvl;
 
-/*全链接层*/
+/*Full Connnect Layer*/
 typedef struct cuFullLayer{
 	cuMatrix<double>* W;
 	cuMatrix<double>* b;
@@ -62,7 +62,7 @@ typedef struct cuFullLayer{
 	}
 }cuFll;
 
-/*输出层，采用softmax回归*/
+/*SoftMax*/
 typedef struct cuSoftmaxRegession{
 	cuMatrix<double>* Weight;
 	cuMatrix<double>* Wgrad;
@@ -80,23 +80,30 @@ typedef struct cuSoftmaxRegession{
 }cuSMR;
 
 /*
-	function ：init network
-	parameter：
-	vector<Cvl> &ConvLayers      convolution
-	vector<Ntw> &HiddenLayers	 hidden
-	SMR &smr					 softmax
-	int imgDim					 total pixel 
-	int nsamples			     number of samples
+ * function               : init network
+ * parameter              :
+ * vector<Cvl> &ConvLayers: convolution
+ * vector<Ntw> &FullLayers:	Full connect
+ * SMR &smr			      :	softmax
+ * int imgDim			  :	Image Size
 */
 void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuFll> &HiddenLayers,
+	std::vector<cuFll> &FullLayers,
 	cuSMR &smr,
 	int imgDim,
-	int nsamples,
 	int nclasses);
 
+/*
+ *function                : read the network weight from checkpoint
+ * parameter              :
+ * vector<Cvl> &ConvLayers: convolution
+ * vector<Ntw> &FullLayers:	Full connect
+ * SMR &smr			      :	softmax
+ * int imgDim			  :	Image Size
+ * int nsamples		      : number of samples
+ */
 void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuFll> &HiddenLayers, 
+	std::vector<cuFll> &FullLayers,
 	cuSMR &smr, 
 	int imgDim, 
 	int nsamples, 
@@ -104,26 +111,14 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 	int nclasses);
 
 /*
-	函数功能：神经网络的训练
-	函数参数：
-	vector<Mat> &x            ：输入的训练样本
-	Mat &y                    ：训练样本对应的标签
-	vector<Cvl> &CLayers      ：卷积层
-	vector<Ntw> &HiddenLayers ：隐藏层
-	SMR &smr				  ：softMax层
-	double lambda			  ：？？？？
-	vector<Mat>&testX		  ：测试集合
-	Mat& testY				  ：测试集合标签
-	int imgDim				  ：每个图片像素总和
-	int nsamples              ：训练样本总数
+ *function: trainning the network
 */
 
 void cuTrainNetwork(cuMatrixVector<double>&x, 
 	cuMatrix<int>*y , 
 	std::vector<cuCvl> &CLayers,
-	std::vector<cuFll> &HiddenLayers, 
+	std::vector<cuFll> &FULLLayers,
 	cuSMR &smr,
-	double lambda, 
 	cuMatrixVector<double>& testX,
 	cuMatrix<int>* testY,
 	int nsamples,
@@ -146,8 +141,6 @@ void cuFreeConvNet(std::vector<cuCvl> &ConvLayers,
 	std::vector<cuFll> &HiddenLayers,
 	cuSMR &smr);
 
-void cuClearCorrectCount();
-
 void cuFreeCNNMemory(
 	int batch,
 	cuMatrixVector<double>&trainX, 
@@ -155,9 +148,5 @@ void cuFreeCNNMemory(
 	std::vector<cuCvl>&ConvLayers,
 	std::vector<cuFll>&HiddenLayers, 
 	cuSMR &smr);
-
-int cuPredictAdd(cuMatrix<double>* predict, cuMatrix<double>* testY, int batch, int ImgSize, int nclasses);
-
-void cuShowInCorrect(cuMatrixVector<double>&testX, cuMatrix<double>* testY, int ImgSize, int nclasses);
 
 #endif

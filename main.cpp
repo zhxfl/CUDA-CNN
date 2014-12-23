@@ -65,13 +65,13 @@ void runCifar10()
 
 	scanf("%d", &cmd);
 	if(cmd == 1)
-		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nsamples, nclasses);
+		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)
 		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, nsamples, "checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, 4e-4, testX, testY, nsamples, batch, ImgSize - crop, nclasses, handle);
+	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, nsamples, batch, ImgSize - crop, nclasses, handle);
 	end = clock();
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }
@@ -119,13 +119,13 @@ void runMnist(){
 
 	scanf("%d", &cmd);
  	if(cmd == 1)
-		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nsamples, nclasses);
+		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)
 		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, nsamples, "checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers,HiddenLayers, smr, ImgSize - crop, nclasses);
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, 4e-4, testX, testY, nsamples, batch, ImgSize - crop, nclasses, handle);
+	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, nsamples, batch, ImgSize - crop, nclasses, handle);
 	end = clock();
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }

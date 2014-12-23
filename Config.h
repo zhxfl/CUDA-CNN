@@ -29,6 +29,17 @@ private:
 	bool m_imageShow;
 };
 
+class ConfigCombineFeatureMaps
+{
+public:
+	ConfigCombineFeatureMaps(bool combine){
+		m_cfm = combine;
+	}
+	bool getValue(){return m_cfm;}
+private:
+	bool m_cfm;
+};
+
 class ConfigCrop
 {
 public:
@@ -146,14 +157,14 @@ public:
 class ConfigFC
 {
 public:
-	ConfigFC(int numHiddenNeurons, double weightDecay,
+	ConfigFC(int numFullConnectNeurons, double weightDecay,
 		double dropoutRate)
 	{
-		m_numHiddenNeurons = numHiddenNeurons;
+		m_numFullConnectNeurons = numFullConnectNeurons;
 		m_weightDecay = weightDecay;
 		m_dropoutRate = dropoutRate;
 	}
-	int m_numHiddenNeurons;
+	int m_numFullConnectNeurons;
 	double m_weightDecay;
 	double m_dropoutRate;
 };
@@ -213,6 +224,10 @@ public:
 		return m_channels->getValue();
 	}
 
+	bool getCFM(){
+		return m_cfm->getValue();
+	}
+
 	int getCrop(){
 		return m_crop->getValue();
 	}
@@ -261,17 +276,18 @@ private:
 	std::vector<ConfigConv*>m_conv;
 	std::vector<ConfigSoftMax*>m_softMax;
 
-	ConfigNonLinearity *m_nonLinearity;
-	ConfigGradient     *m_isGrandientChecking;
-	ConfigBatchSize    *m_batchSize;
-	ConfigChannels     *m_channels;
+	ConfigNonLinearity       *m_nonLinearity;
+	ConfigGradient           *m_isGrandientChecking;
+	ConfigBatchSize          *m_batchSize;
+	ConfigChannels           *m_channels;
 
-	ConfigCrop         *m_crop;
-	ConfigScale        *m_scale;
-	ConfigRotation     *m_rotation;
-	ConfigDistortion   *m_distortion;
-	ConfigImageShow    *m_imageShow;
-	ConfigHorizontal   *m_horizontal;
+	ConfigCrop               *m_crop;
+	ConfigScale              *m_scale;
+	ConfigRotation           *m_rotation;
+	ConfigDistortion         *m_distortion;
+	ConfigImageShow          *m_imageShow;
+	ConfigHorizontal         *m_horizontal;
+	ConfigCombineFeatureMaps *m_cfm;
 };
 
 #endif

@@ -10,7 +10,7 @@
 #include <helper_functions.h>
 #include <helper_cuda.h>
 
-#define GAUSSIAN_FIELD_SIZE (21) // strictly odd number
+#define GAUSSIAN_FIELD_SIZE (21) /* strictly odd number */
 curandGenerator_t rand_generator_device;
 const curandRngType_t generator_type = CURAND_RNG_PSEUDO_DEFAULT;
 
@@ -21,7 +21,7 @@ cuMatrix<double>* cuDispV;
 float * cu_d_randonNumf;
 double* cu_d_randomNum;
 double* cu_h_randomNum;
-double dElasticSigma   = 4.0;   // higher numbers are more smooth and less distorted; Simard uses 4.0
+double dElasticSigma   = 4.0;   /* higher numbers are more smooth and less distorted; Simard uses 4.0*/
 
 
 int getRandomNumLen(int batch, int ImgSize)
@@ -30,8 +30,8 @@ int getRandomNumLen(int batch, int ImgSize)
 }
 
 /*
-�����ܣ�������˹�˲�
-�̷߳���<<<dim3(1),dim3(GAUSSIAN_FIELD_SIZE*GAUSSIAN_FIELD_SIZE)>>>
+ * blocks : dim3(1)
+ * threads: dim3(GAUSSIAN_FIELD_SIZE*GAUSSIAN_FIELD_SIZE)
 */
 __global__ void g_createGaussianKernel(double* gaussian, double dElasticSigma, int ImgSize)
 {
@@ -60,22 +60,21 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 		ImgSize);
 	cudaDeviceSynchronize();
 
-	//cu_d_randomNum
-
+	/*cu_d_randomNum*/
 	checkCudaErrors(cudaMalloc((void**)&cu_d_randomNum, sizeof(double) * getRandomNumLen(batch, ImgSize)));
 
-	//cu_d_randonNumf
+	/*cu_d_randonNumf*/
 	checkCudaErrors(cudaMalloc((void**)&cu_d_randonNumf, sizeof(float) * getRandomNumLen(batch, ImgSize)));
 
-	//cu_h_randomNum
+	/*cu_h_randomNum*/
 	cu_h_randomNum = (double*)malloc(sizeof(double) * getRandomNumLen(batch, ImgSize));
 	if(!cu_h_randomNum)
 	{
 		printf("malloc cu_h_randomNum fail\n");
+		exit(0);
 	}
 
-	//curandCreateGenerator
-
+	/*curandCreateGenerator*/
 	curandstatus = curandCreateGenerator(&rand_generator_device, generator_type);
 	if(curandstatus != CURAND_STATUS_SUCCESS)
 	{
@@ -100,7 +99,10 @@ __global__ void g_getRandomUniform(float* r1, double* r2, int len)
 	}
 }
 
-/*�̷߳��䣺dim3(batch),dim3(ImgSize,ImgSize)*/
+/*
+ * blocks  : dim3(batch)
+ * threads : dim3(512)
+ */
 __global__ void g_generateDistortionMap(
 	double* _dispH,
 	double* _dispV,
@@ -275,7 +277,10 @@ __global__ void g_scaleAndRotate(
 	}
 }
 
-/*�̷߳��䣺dim3(batch, channels),dim3(512)*/
+/*
+ * blocks : dim3(batch, Config::instance()->getChannels())
+ * threads: dim3(min(512, ImgSize * ImgSize))
+ */
 __global__ void g_applyDistortionMap(
 	double** _inputs,
 	double** _outputs,
@@ -371,7 +376,6 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 	cudaError_t cudasSatus;
 	unsigned long long seed = s;
 	curandStatus = curandSetPseudoRandomGeneratorSeed(rand_generator_device, seed);
-
 	if(curandStatus != CURAND_STATUS_SUCCESS)
 	{
 		printf("curandSetPseudoRandomGeneratorSeed fail\n");
@@ -379,12 +383,14 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 	}
 
 	curandGenerateUniform(rand_generator_device, cu_d_randonNumf, getRandomNumLen(batch, ImgSize));
-
 	g_getRandomUniform<<<dim3(256),dim3(256)>>>(cu_d_randonNumf, cu_d_randomNum, getRandomNumLen(batch, ImgSize));
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getRandomUniform");
 
-	g_generateDistortionMap<<<dim3(batch),dim3(512)>>>(cuDispH->devData,
+
+
+	int threads = min(512, ImgSize * ImgSize);
+	g_generateDistortionMap<<<dim3(batch),threads>>>(cuDispH->devData,
 		cuDispV->devData, cu_d_randomNum, cuGaussianKernel->devData,
 		Config::instance()->getDistortion(),
 		Config::instance()->getScale(),
@@ -422,7 +428,10 @@ void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize)
 	getLastCudaError("g_applyDistortionMap");
 }
 
-/*�̰߳���<<<dim3(batch, channels),dim3(ImgSize,ImgSize)>>>*/
+/*
+ * blocks  : dim3(batch, channels)
+ * threads : dim3(min(ImgSize*ImgSize, 512))
+ */
 __global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* random, int crop, int ImgSize)
 {
 	int c = blockIdx.y;
@@ -456,6 +465,7 @@ __global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* ran
 			int ix  = ox + sx;
 			int iy  = oy + sy;
 
+			cuAssert(ix < inputImgSize && iy < inputImgSize);
 			output[idx] = input[ix * inputImgSize + iy];
 		}
 	}
@@ -463,7 +473,10 @@ __global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* ran
 
 
 
-/*�̰߳���<<<dim3(batch, channels),dim3(ImgSize,ImgSize)>>>*/
+/*
+ * blocks : dim3(batch, channels)
+ * threads: dim3(min(ImgSize * ImgSize, 512);
+*/
 __global__ void g_applyCrop(double**_inputs, double**_outputs, double* random, int croplen, int ImgSize, int cropr, int cropc)
 {
 	int c = blockIdx.y;
@@ -489,6 +502,7 @@ __global__ void g_applyCrop(double**_inputs, double**_outputs, double* random, i
 			int oy  = idx % outputImgSize;
 			int ix  = ox + sx;
 			int iy  = oy + sy;
+			cuAssert(ix < inputImgSize && iy < inputImgSize);
 			output[idx] = input[ix * inputImgSize + iy];
 		}
 	}
@@ -513,7 +527,11 @@ void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cr
 }
 
 
-/*Horizontal Reflection*/
+/*
+ * function: orizontal Reflection
+ * blocks  : dim3(batch, Config::instance()->getChannels()),
+ * threads : dim3(threads)
+ */
 __global__ void g_applyHorizontal(double**_inputs, double**_outputs, int ImgSize)
 {
 	int c = blockIdx.y;
@@ -532,6 +550,7 @@ __global__ void g_applyHorizontal(double**_inputs, double**_outputs, int ImgSize
 			int oy  = idx % ImgSize;
 			int ix  = ox;
 			int iy  = ImgSize - oy - 1;
+			cuAssert(ix < ImgSize && iy < ImgSize);
 			output[idx] = input[ix * ImgSize + iy];
 		}
 	}

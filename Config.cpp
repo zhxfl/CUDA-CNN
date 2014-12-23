@@ -115,10 +115,10 @@ void Config:: get_layers_config(string &str){
 			}
 			else if(type == string("FC"))
 			{
-				int hn = get_word_int(layers[i], "NUM_HIDDEN_NEURONS");
+				int hn = get_word_int(layers[i], "NUM_FULLCONNECT_NEURONS");
 				double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-				double dor = get_word_double(layers[i], "DROPOUT_RATE");
-				m_fc.push_back(new ConfigFC(hn, wd, dor));
+				double drop = get_word_double(layers[i], "DROPCONNECT_RATE");
+				m_fc.push_back(new ConfigFC(hn, wd, drop));
 			}
 			else if(type == string("SOFTMAX"))
 			{
@@ -131,6 +131,7 @@ void Config:: get_layers_config(string &str){
 
 void Config::init(std::string path)
 {
+	printf("\n\n*******************CONFIG*******************\n");
 	/*read the string from file "Config.txt"*/
 	/*delete the comment and spaces*/
 	m_configStr = read_2_string(path);
@@ -140,45 +141,61 @@ void Config::init(std::string path)
 	/*IS_GRADIENT_CHECKING*/
 	bool is_gradient_checking = get_word_bool(m_configStr, "IS_GRADIENT_CHECKING");
 	m_isGrandientChecking = new ConfigGradient(is_gradient_checking);
+	printf("Is Grandient Checking : %d\n", is_gradient_checking);
 
 	/*BATCH_SIZE*/
 	int batch_size = get_word_int(m_configStr, "BATCH_SIZE");
 	m_batchSize = new ConfigBatchSize(batch_size);
+	printf("batch Size            : %d\n", batch_size);
 
 	/*NON_LINEARITY*/
 	string non_linearity = get_word_type(m_configStr, "NON_LINEARITY");
 	m_nonLinearity = new ConfigNonLinearity(non_linearity);
+	printf("non_linearity         : %s\n", non_linearity.c_str());
 
 	/*CHANNELS*/
 	int channels = get_word_int(m_configStr, "CHANNELS");
 	m_channels = new ConfigChannels(channels);
+	printf("channels              : %d\n", channels);
 
 	/*crop*/
 	int crop = get_word_int(m_configStr, "CROP");
 	m_crop = new ConfigCrop(crop);
+	printf("crop                  : %d\n", crop);
 
 	/*scale*/
 	double scale = get_word_double(m_configStr, "SCALE");
 	m_scale = new ConfigScale(scale);
+	printf("scale                 : %lf\n", scale);
 
 	/*rotation*/
 	double rotation = get_word_double(m_configStr, "ROTATION");
 	m_rotation = new ConfigRotation(rotation);
+	printf("rotation              : %lf\n", rotation);
 
 	/*distortion*/
 	double distortion = get_word_double(m_configStr, "DISTORTION");
 	m_distortion = new ConfigDistortion(distortion);
+	printf("distortion            : %lf\n", distortion);
 
 	/*ImageShow*/
 	bool imageShow = get_word_bool(m_configStr, "SHOWIMAGE");
 	m_imageShow = new ConfigImageShow(imageShow);
+	printf("imageShow             : %d\n", imageShow);
 
 	/*Horizontal*/
 	bool horizontal = get_word_bool(m_configStr, "HORIZONTAL");
 	m_horizontal = new ConfigHorizontal(horizontal);
+	printf("HORIZONTAL            : %d\n", horizontal);
+
+	/*Combine Feature Maps*/
+	bool cfm = get_word_bool(m_configStr, "COMBINE_FEATRUE_MAPS");
+	m_cfm = new ConfigCombineFeatureMaps(cfm);
+	printf("combine feature maps  : %d\n", cfm);
 
 	/*Layers*/
 	get_layers_config(m_configStr);
+	printf("********************************************\n\n\n");
 }
 
 void Config::deleteSpace()
