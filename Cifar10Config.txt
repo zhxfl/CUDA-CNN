@@ -15,7 +15,7 @@ COMBINE_FEATRUE_MAPS = true;    #According to paper "notes on Convolutional Neur
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
-KERNEL_AMOUNT = 7;
+KERNEL_AMOUNT = 10;
 WEIGHT_DECAY = 4e-4;
 POOLING_DIM = 2;
 ]
@@ -23,7 +23,7 @@ POOLING_DIM = 2;
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
-KERNEL_AMOUNT = 9;
+KERNEL_AMOUNT = 10;
 WEIGHT_DECAY = 4e-4;
 POOLING_DIM = 2;
 ]
