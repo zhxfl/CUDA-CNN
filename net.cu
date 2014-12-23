@@ -2001,8 +2001,9 @@ __global__ void g_cfm_dPoolToConv(
 					int cy = j + y - (wSize >> 1);
 					int wx = wSize - x - 1;
 					int wy = wSize - y - 1;
-					cuAssert(cx >= 0 && cx < curAddBorderSize && cy >= 0 && cy < curAddBorderSize);
-					val += addBorder[cx * curAddBorderSize + cy] * w[wx * wSize + wy];
+					if(cx >= 0 && cx < curAddBorderSize && cy >= 0 && cy < curAddBorderSize){
+						val += addBorder[cx * curAddBorderSize + cy] * w[wx * wSize + wy];
+					}
 				}
 			}
 			atomicAdd(nxtDelta + idx, val);
