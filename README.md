@@ -15,6 +15,8 @@
 >2. Support checkpoint, the program will save the best test result and save the network weight in the file "checkPoint.txt", If the program exit accidentally, you can continue the program form this checkpoint.
 >3. Translate the data set of mnist, including scale, rotate, ***distortion***.
 >4. The log will be saved in the file "log.txt".  
+>5. In the convolutional layers, you can chose ***combine feature maps***, according to "notes on Convolutional Neural NetWorks"
+>
 
 ***
 
@@ -71,6 +73,7 @@
 >`DISTORTION = 3.5;               #just for mnist#`   
 >`SHOWIMAGE = false;              #show the images after transformation#`   
 >`HORIZONTAL = false;             #horizontal reflection#`   
+>`COMBINE_FEATRUE_MAPS = false;   #According to paper "notes on Convolutional Neural NetWorks"#`
 >
 ###CIFAR-10
 >
@@ -84,6 +87,7 @@
 >`DISTORTION = 0.0;               #just for mnist#`   
 >`SHOWIMAGE = false;              #show the images after transformation#`   
 >`HORIZONTAL = true;              #horizontal reflection#` 
+>`COMBINE_FEATRUE_MAPS = false;   #According to paper "notes on Convolutional Neural NetWorks"#`
 >
 ***
 
