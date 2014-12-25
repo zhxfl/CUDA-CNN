@@ -58,6 +58,24 @@ public:
 		}
 	}
 
+	void shuffle(int times, cuMatrix<int>*&labels){
+		cudaError_t cudaStat;
+
+		for(int i = 0; i < times; i++){
+			int x = rand() % m_vec.size();
+			int y = rand() % m_vec.size();
+			swap(m_vec[x], m_vec[y]);
+			swap(m_hstPoint[x], m_hstPoint[y]);
+			swap(labels->hostData[x], labels->hostData[y]);
+		}
+		cudaStat = cudaMemcpy(m_devPoint, m_hstPoint, sizeof(T*) * m_vec.size(), cudaMemcpyHostToDevice);
+		if(cudaStat != cudaSuccess){
+			printf("cuConvLayer::init cudaMemcpy w fail\n");
+			exit(0);
+		}
+		labels->toGpu();
+	}
+
 	vector<cuMatrix<T>*>m_vec;
 	T** m_hstPoint;
 	T** m_devPoint;

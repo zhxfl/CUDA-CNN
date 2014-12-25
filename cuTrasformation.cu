@@ -532,7 +532,7 @@ void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cr
  * blocks  : dim3(batch, Config::instance()->getChannels()),
  * threads : dim3(threads)
  */
-__global__ void g_applyHorizontal(double**_inputs, double**_outputs, int ImgSize)
+__global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* rand, int ImgSize)
 {
 	int c = blockIdx.y;
 
@@ -549,7 +549,11 @@ __global__ void g_applyHorizontal(double**_inputs, double**_outputs, int ImgSize
 			int ox  = idx / ImgSize;
 			int oy  = idx % ImgSize;
 			int ix  = ox;
-			int iy  = ImgSize - oy - 1;
+			int iy;
+			if(rand[blockIdx.y] <= 0.0)
+				iy  = ImgSize - oy - 1;
+			else
+				iy = oy;
 			cuAssert(ix < ImgSize && iy < ImgSize);
 			output[idx] = input[ix * ImgSize + iy];
 		}
@@ -561,7 +565,7 @@ void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize)
 	int threads = std::min(ImgSize * ImgSize, 512);
 
 	g_applyHorizontal<<<dim3(batch, Config::instance()->getChannels()),
-		dim3(threads)>>>(inputs, outputs, ImgSize);
+		dim3(threads)>>>(inputs, outputs, cu_d_randomNum,  ImgSize);
 
 	cudaDeviceSynchronize();
 	getLastCudaError("g_applyHorizontal");
