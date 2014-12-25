@@ -68,12 +68,12 @@ void showImg(cuMatrix<double>* x, double scala)
 
 	cv::resize(src, dst, size);
 
-	static int id = 0;
-	id++;
-	char ch[10];
-	sprintf(ch, "%d", id);
-	namedWindow(ch, WINDOW_AUTOSIZE);
-	imshow(ch, dst);
+	//static int id = 0;
+	//id++;
+	//char ch[10];
+	//sprintf(ch, "%d", id);
+	//namedWindow(ch, WINDOW_AUTOSIZE);
+	cv::imshow("", dst);
 }
 
 void DebugPrintf(cuMatrix<double>*x)
