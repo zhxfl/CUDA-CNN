@@ -36,6 +36,7 @@
 >* opencv_core   
 >* opencv_highgui   
 >* opencv_imgproc   
+>* opencv_imgcodecs
 >* ***cublas***   
 >* ***curand***   
 >
