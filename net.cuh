@@ -7,6 +7,7 @@
 #include <cuda_runtime.h>
 #include "cuMatrixVector.h"
 
+
 /*Convolution layer kernel*/
 typedef struct cuConvKernel{
 	cuMatrix<double>* W;

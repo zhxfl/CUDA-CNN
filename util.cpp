@@ -64,6 +64,7 @@ void showImg(cuMatrix<double>* x, double scala)
 	size.width  = src.cols * scala;
 	size.height = src.rows * scala;
 
+
 	Mat dst(size.height, size.width, CV_64);
 
 	cv::resize(src, dst, size);

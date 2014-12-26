@@ -1,6 +1,7 @@
 #ifndef __CU_MATRIX_VECTOR_H_
 #define __CU_MATRIX_VECTOR_H_
 
+
 #include <vector>
 #include "cuMatrix.h"
 #include "cuda_runtime.h"

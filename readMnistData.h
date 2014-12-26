@@ -7,6 +7,7 @@
 #include "util.h"
 #include "cuMatrixVector.h"
 
+
 /*read trainning data and lables*/
 int readMnistData(cuMatrixVector<double> &x,
 	cuMatrix<int>* &y, 

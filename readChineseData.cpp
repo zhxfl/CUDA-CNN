@@ -14,6 +14,7 @@ using namespace std;
 #include <dirent.h>
 #endif
 
+
 #ifdef linux
 void readChineseData(cuMatrixVector<double> &trainX,
 		cuMatrixVector<double>&testX, cuMatrix<int>*&trainY,

@@ -4,7 +4,6 @@
 #include "cuMatrix.h"
 #include "cuMatrixVector.h"
 
-
 __global__ void g_getAver(double ** input1,
 	double** input2, 
 	double* aver,

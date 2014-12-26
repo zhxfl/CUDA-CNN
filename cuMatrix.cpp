@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 #include "cublas_v2.h"
 
+
 /*matrix multiply*/
 /*z = x * y*/
 void matrixMul(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z, cublasHandle_t handle)

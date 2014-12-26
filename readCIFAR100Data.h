@@ -7,6 +7,7 @@
 #include "util.h"
 #include "cuMatrixVector.h"
 
+
 /*read trainning data and lables*/
 void read_CIFAR100_Data(cuMatrixVector<double> &trainX,
 	cuMatrixVector<double>&testX,

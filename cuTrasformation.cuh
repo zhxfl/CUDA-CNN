@@ -9,4 +9,5 @@ void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cr
 void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize);
 void cuApplyScaleAndRotate(int batch, int ImgSize, double scaling, double rotation);
 
+
 #endif

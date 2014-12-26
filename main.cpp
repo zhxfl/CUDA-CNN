@@ -92,6 +92,7 @@ void runChinese(){
 }
 #endif
 
+
 void runCifar100(){
 	/*state and cublas handle*/
 	cublasHandle_t handle;

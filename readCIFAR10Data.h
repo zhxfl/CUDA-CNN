@@ -13,4 +13,5 @@ void read_CIFAR10_Data(cuMatrixVector<double> &trainX,
 	cuMatrix<int>*&trainY,
 	cuMatrix<int>*&testY);
 
+
 #endif

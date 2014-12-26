@@ -9,6 +9,7 @@
 #include "cuMatrixVector.h"
 #include "Config.h"
 
+
 int checkError(int x)
 {
 	int mark[] = {2426,3532,4129,4476,7080,8086,9075,10048,10800,10994,

@@ -4,6 +4,7 @@
 #include <string>
 using namespace std;
 
+
 bool Config::get_word_bool(string &str, string name){
 
 	size_t pos = str.find(name);    
