@@ -9,6 +9,7 @@ CPP_SRCS += \
 ../cuMatrixVector.cpp \
 ../main.cpp \
 ../readCIFAR10Data.cpp \
+../readChineseData.cpp \
 ../readMnistData.cpp \
 ../util.cpp 
 
@@ -31,6 +32,7 @@ OBJS += \
 ./main.o \
 ./net.o \
 ./readCIFAR10Data.o \
+./readChineseData.o \
 ./readMnistData.o \
 ./util.o 
 
@@ -40,6 +42,7 @@ CPP_DEPS += \
 ./cuMatrixVector.d \
 ./main.d \
 ./readCIFAR10Data.d \
+./readChineseData.d \
 ./readMnistData.d \
 ./util.d 
 
