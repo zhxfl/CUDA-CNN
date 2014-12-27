@@ -3231,12 +3231,12 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
  	printf("correct is %d\n", cuCorrect->get(0,0,0));
 	
 	int epochs = 1000;
- 	double nlrate[] =    {0.05, 0.04, 0.03, 0.02, 0.01, 0.008, 0.006, 0.001, 0.0009, 0.0008, 0.0007, 0.0006,
-		0.025, 0.0125, 0.00625, 0.003125, 0.0015625, 0.00078125, 0.000390625, 0.0001953125, 0.00009765625, 0.000048828125, 0.0000244140625};
- 	double nMomentum[] = {0.90, 0.91, 0.92, 0.93, 0.94, 0.942, 0.944, 0.95,    0.96,   0.97,  0.995,  0.90,
-		0.92,  0.93,   0.94,    0.95,     0.96,      0.97,       0.98,        0.99,         0.994,         0.995,          0.996};
- 	int epoCount[] =     {50,   50,     50,   50,   50,    50,    50,   50,      50,     50,     50,   50,
-		50,    50,     50,      50,       50,        50,         50,          50,           50,            50,             50};
+ 	double nlrate[] =    {0.05, 0.04, 0.03, 0.02, 0.01, 0.008, 0.006, 0.001, 0.0009, 0.0008, 0.0007, 0.0006/*,
+		0.025, 0.0125, 0.00625, 0.003125, 0.0015625, 0.00078125, 0.000390625, 0.0001953125, 0.00009765625, 0.000048828125, 0.0000244140625*/};
+ 	double nMomentum[] = {0.90, 0.91, 0.92, 0.93, 0.94, 0.942, 0.944, 0.95,    0.96,   0.97,  0.995,  0.90/*,
+		0.92,  0.93,   0.94,    0.95,     0.96,      0.97,       0.98,        0.99,         0.994,         0.995,          0.996*/};
+ 	int epoCount[] =     {50,   50,     50,   50,   50,    50,    50,   50,      50,     50,     50,   50/*,
+		50,    50,     50,      50,       50,        50,         50,          50,           50,            50,             50*/};
 	double lrate = 0.05;
 	double Momentum = 0.9;
 	int id = 0;
@@ -3257,13 +3257,16 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 		x.shuffle(500, y);
 
 		//for (int k = 0; k < 300; k++) {
-		for (int k = 0; k < (x.size() + batch - 1) / batch; k++) {
-			int start = rand() % (x.size() - batch);
+		for (int k = 0; k < x.size() - batch; k += batch) {
+			//int start = rand() % (x.size() - batch);
+			int start = k;
 			//int start = k * batch;
-			printf("train %2d%%", 100 * k / ((x.size() + batch - 1) / batch));
+			//printf("train %2d%%", 100 * k / ((x.size() + batch - 1) / batch));
+			printf("train %2d%%", 100 * k / ((x.size() + batch - 1)));
 			cuApplyCropRandom(x.m_devPoint + start,
 					cu_distortion_vector->m_devPoint, batch, ImgSize);
-			cuApplyDistortion(cu_distortion_vector->m_devPoint,
+			if(fabs(Config::instance()->getDistortion()) >= 0.1)
+				cuApplyDistortion(cu_distortion_vector->m_devPoint,
 					cu_distortion_vector->m_devPoint, batch, ImgSize);
 			if (Config::instance()->getHorizontal()) {
 				cuApplyHorizontal(cu_distortion_vector->m_devPoint,
