@@ -80,10 +80,26 @@ void runChinese() {
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr,
 			ImgSize - crop, nclasses);
+
+	/*learning rate*/
+	std::vector<double>nlrate;
+	std::vector<double>nMomentum;
+	std::vector<int>epoCount;
+	double r = 0.05;
+	double m = 0.90;
+	int e = 50;
+	for(int i = 0; i < 20; i++){
+		nlrate.push_back(r);
+		nMomentum.push_back(m);
+		epoCount.push_back(e);
+		r = r * 0.75;
+		m = m + 0.005;
+		if(m >= 1.0) m = 0.99;
+	}
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY,
-			batch, ImgSize - crop, nclasses, handle);
+	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
+
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }
 #else
@@ -130,9 +146,26 @@ void runCifar100(){
 		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
+
+	/*learning rate*/
+	std::vector<double>nlrate;
+	std::vector<double>nMomentum;
+	std::vector<int>epoCount;
+	double r = 0.05;
+	double m = 0.90;
+	int e = 50;
+	for(int i = 0; i < 20; i++){
+		nlrate.push_back(r);
+		nMomentum.push_back(m);
+		epoCount.push_back(e);
+		r = r * 0.75;
+		m = m + 0.005;
+		if(m >= 1.0) m = 0.99;
+	}
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, handle);
+	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
+
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }
 void runCifar10()
@@ -173,8 +206,24 @@ void runCifar10()
 		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
+	
+	/*learning rate*/
+	std::vector<double>nlrate;
+	std::vector<double>nMomentum;
+	std::vector<int>epoCount;
+	double r = 0.05;
+	double m = 0.90;
+	int e = 50;
+	for(int i = 0; i < 20; i++){
+		nlrate.push_back(r);
+		nMomentum.push_back(m);
+		epoCount.push_back(e);
+		r = r * 0.75;
+		m = m + 0.005;
+		if(m >= 1.0) m = 0.99;
+	}
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, handle);
+	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }
@@ -227,8 +276,28 @@ void runMnist(){
 		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers,HiddenLayers, smr, ImgSize - crop, nclasses);
+
+
+
+	/*learning rate*/
+	std::vector<double>nlrate;
+	std::vector<double>nMomentum;
+	std::vector<int>epoCount;
+	nlrate.push_back(0.05);   nMomentum.push_back(0.90);  epoCount.push_back(50);
+	nlrate.push_back(0.04);   nMomentum.push_back(0.91);  epoCount.push_back(50);
+	nlrate.push_back(0.03);   nMomentum.push_back(0.92);  epoCount.push_back(50);
+	nlrate.push_back(0.02);   nMomentum.push_back(0.93);  epoCount.push_back(50);
+	nlrate.push_back(0.01);   nMomentum.push_back(0.94);  epoCount.push_back(50);
+	nlrate.push_back(0.008);  nMomentum.push_back(0.942); epoCount.push_back(50);
+	nlrate.push_back(0.006);  nMomentum.push_back(0.944); epoCount.push_back(50);
+	nlrate.push_back(0.001);  nMomentum.push_back(0.95);  epoCount.push_back(50);
+	nlrate.push_back(0.0009); nMomentum.push_back(0.96);  epoCount.push_back(50);
+	nlrate.push_back(0.0008); nMomentum.push_back(0.97);  epoCount.push_back(50);
+	nlrate.push_back(0.0007); nMomentum.push_back(0.995); epoCount.push_back(50);
+	nlrate.push_back(0.0006); nMomentum.push_back(0.90);  epoCount.push_back(50);
+
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, handle);
+	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }

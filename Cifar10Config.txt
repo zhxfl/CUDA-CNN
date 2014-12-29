@@ -1,7 +1,7 @@
 #Comment#
 
 IS_GRADIENT_CHECKING = false;   #is true when debug#
-BATCH_SIZE = 50;               #test image size should be divided with no remainder#
+BATCH_SIZE = 100;               #test image size should be divided with no remainder#
 NON_LINEARITY = NL_RELU;        #NON_LINEARITY CAN = NL_SIGMOID , NL_TANH , NL_RELU#
 CHANNELS = 3;                   #1, 3, 4#
 CROP = 4;                       #0<= crop <=imgSize#
@@ -16,24 +16,32 @@ COMBINE_FEATRUE_MAPS = false;    #According to paper "notes on Convolutional Neu
 LAYER = CONV;
 KERNEL_SIZE = 5;
 KERNEL_AMOUNT = 10;
-WEIGHT_DECAY = 4e-4;
+WEIGHT_DECAY = 1e-4;
 POOLING_DIM = 2;
 ]
 
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
-KERNEL_AMOUNT = 10;
-WEIGHT_DECAY = 4e-4;
+KERNEL_AMOUNT = 20;
+WEIGHT_DECAY = 1e-4;
 POOLING_DIM = 2;
 ]
 
 [
 LAYER = FC;
 NUM_FULLCONNECT_NEURONS = 256;
-WEIGHT_DECAY = 4e-4;
-DROPCONNECT_RATE = 0.0;
+WEIGHT_DECAY = 1e-4;
+DROPCONNECT_RATE = 0.5;
 ]
+
+[
+LAYER = FC;
+NUM_FULLCONNECT_NEURONS = 256;
+WEIGHT_DECAY = 1e-4;
+DROPCONNECT_RATE = 0.5;
+]
+
 
 [
 LAYER = SOFTMAX;

@@ -374,7 +374,6 @@ __global__ void g_applyDistortionMap(
 void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 {
 	curandStatus_t curandStatus;
-	cudaError_t cudasSatus;
 	unsigned long long seed = s;
 	curandStatus = curandSetPseudoRandomGeneratorSeed(rand_generator_device, seed);
 	if(curandStatus != CURAND_STATUS_SUCCESS)
@@ -532,8 +531,11 @@ void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cr
  * function: orizontal Reflection
  * blocks  : dim3(batch, Config::instance()->getChannels()),
  * threads : dim3(threads)
+ * flag : 0. Random
+ *		  1. Horizontal
+ *		  2. Not Horizontal
  */
-__global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* rand, int ImgSize)
+__global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* rand, int ImgSize, int flag)
 {
 	int c = blockIdx.y;
 
@@ -551,22 +553,37 @@ __global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* ran
 			int oy  = idx % ImgSize;
 			int ix  = ox;
 			int iy;
-			if(rand[blockIdx.y] <= 0.0)
+			if(flag == RANDOM_HORIZONTAL)
+			{
+				if(rand[blockIdx.y] <= 0.0)
+					iy  = ImgSize - oy - 1;
+				else
+					iy = oy;
+			}
+			else if(flag == HORIZONTAL){
 				iy  = ImgSize - oy - 1;
-			else
+			}
+			else if(flag == NOT_HORIZONTAL){
 				iy = oy;
+			}
+		
 			cuAssert(ix < ImgSize && iy < ImgSize);
 			output[idx] = input[ix * ImgSize + iy];
 		}
 	}
 }
 
-void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize)
+/*
+ * flag : 0. Random
+ *		  1. Horizontal
+ *		  2. Not Horizontal
+*/
+void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize, int flag)
 {
 	int threads = std::min(ImgSize * ImgSize, 512);
 
 	g_applyHorizontal<<<dim3(batch, Config::instance()->getChannels()),
-		dim3(threads)>>>(inputs, outputs, cu_d_randomNum,  ImgSize);
+		dim3(threads)>>>(inputs, outputs, cu_d_randomNum,  ImgSize, flag);
 
 	cudaDeviceSynchronize();
 	getLastCudaError("g_applyHorizontal");

@@ -5,7 +5,7 @@
 >--------
 >CNN accelerated by cuda.    
 >Test on mnist and get 99.7%       (best 99.74%)   
->Test on cifar-10 and get 81.38%   (best 90%)   
+>Test on cifar-10  and get 81.38%   (best 90%)   
 >Test on cifar-100 and get 51.13%   (best 65%)   
 ***
 
@@ -36,7 +36,7 @@
 >* opencv_core   
 >* opencv_highgui   
 >* opencv_imgproc   
->* opencv_imgcodecs
+>* opencv_imgcodecs (need for opencv3.0)   
 >* ***cublas***   
 >* ***curand***   
 >

@@ -124,6 +124,9 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 	int batch,
 	int ImgSize,
 	int nclasses,
+	std::vector<double>&nlrate,
+	std::vector<double>&nMomentum,
+	std::vector<int>&epoCount,
 	cublasHandle_t handle);
 
 void cuInitCNNMemory(

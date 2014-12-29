@@ -113,6 +113,11 @@ void Config:: get_layers_config(string &str){
 				double wd = get_word_double(layers[i], "WEIGHT_DECAY");
 				int pd = get_word_int(layers[i], "POOLING_DIM");
 				m_conv.push_back(new ConfigConv(ks, ka, wd, pd));
+				printf("\n\n********conv layer********\n");
+				printf("KERNEL_SIZE   : %d\n", ks);
+				printf("KERNEL_AMOUNT : %d\n", ka);
+				printf("WEIGHT_DECAY  : %lf\n", wd);
+				printf("POOLING_DIM   : %d\n", pd);
 			}
 			else if(type == string("FC"))
 			{
@@ -120,12 +125,21 @@ void Config:: get_layers_config(string &str){
 				double wd = get_word_double(layers[i], "WEIGHT_DECAY");
 				double drop = get_word_double(layers[i], "DROPCONNECT_RATE");
 				m_fc.push_back(new ConfigFC(hn, wd, drop));
+
+				printf("\n\n********Full Connect Layer********\n");
+				printf("NUM_FULLCONNECT_NEURONS : %d\n", hn);
+				printf("WEIGHT_DECAY            : %lf\n", wd);
+				printf("DROPCONNECT_RATE        : %lf\n", drop);
 			}
 			else if(type == string("SOFTMAX"))
 			{
 				int numClasses = get_word_int(layers[i], "NUM_CLASSES");
 				double weightDecay = get_word_double(layers[i], "WEIGHT_DECAY");
 				m_softMax.push_back(new ConfigSoftMax(numClasses, weightDecay));
+
+				printf("\n\n********SoftMax Layer********\n");
+				printf("NUM_CLASSES  : %d\n", numClasses);
+				printf("WEIGHT_DECAY : %lf\n", weightDecay);
 			}
 		}
 }
@@ -196,7 +210,7 @@ void Config::init(std::string path)
 
 	/*Layers*/
 	get_layers_config(m_configStr);
-	printf("********************************************\n\n\n");
+	printf("\n\n\n");
 }
 
 void Config::deleteSpace()

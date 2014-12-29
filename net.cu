@@ -1465,13 +1465,12 @@ __global__ void g_getCost_1(double* softMaxP,
 */
  __global__ void g_getCost_2(double* cost,
  	double* weight,
- 	double lambda, int rows, int cols)
+ 	double lambda, int len)
  {
  	extern __shared__ double _sum[];
  	_sum[threadIdx.x] = 0;
  	__syncthreads();
- 
-	int len = rows * cols;
+
  	for(int i = 0; i < len; i += blockDim.x)
  	{
  		int id = i + threadIdx.x;
@@ -1515,64 +1514,79 @@ __global__ void g_getCost_1(double* softMaxP,
   *
 */
  __global__ void g_getCost_3(double* cost,
- 	double** weight,
- 	double lambda, int rows, int cols)
+	 double** weight,
+	 double lambda, int rows, int cols)
  {
- 	extern __shared__ double _sum[];
- 	_sum[threadIdx.x] = 0;
- 	__syncthreads();
-	double* w = weight[blockIdx.x];
- 
- 	for(int i = 0; i < rows * cols; i += blockDim.x)
- 	{
- 		int id = i + threadIdx.x;
- 		if(id < rows * cols)
- 		{
- 			_sum[threadIdx.x] += w[id] * w[id];
- 		}
- 	}
- 
- 	int len = blockDim.x;
- 	while(len != 1)
- 	{
- 		__syncthreads();
- 		int skip = (len + 1) >> 1;
- 		if(threadIdx.x < (len >> 1))
- 		{
- 			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
- 		}
- 		len = (len + 1) >> 1;
- 	}
- 
- 	if(threadIdx.x == 0)
- 	{
- 		atomicAdd(cost, _sum[0] * lambda * 0.5);
- 	}
+	 extern __shared__ double _sum[];
+	 _sum[threadIdx.x] = 0;
+	 __syncthreads();
+	 double* w = weight[blockIdx.x];
+
+	 for(int i = 0; i < rows * cols; i += blockDim.x)
+	 {
+		 int id = i + threadIdx.x;
+		 if(id < rows * cols)
+		 {
+			 _sum[threadIdx.x] += w[id] * w[id];
+		 }
+	 }
+
+	 int len = blockDim.x;
+	 while(len != 1)
+	 {
+		 __syncthreads();
+		 int skip = (len + 1) >> 1;
+		 if(threadIdx.x < (len >> 1))
+		 {
+			 _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		 }
+		 len = (len + 1) >> 1;
+	 }
+
+	 if(threadIdx.x == 0)
+	 {
+		 atomicAdd(cost, _sum[0] * lambda * 0.5);
+	 }
  }
+
 void getCost(
 	int*y,
 	std::vector<cuCvl> &CLayers, 
 	std::vector<cuFll> &hLayers,
 	cuSMR &smr,
-	double lambda,
 	int batch)
 {
 	g_getCost_1<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cuSoftMaxP->devData, cuGroundTruth->devData,
 		smr.cost->devData, y, cuSoftMaxP->rows, cuSoftMaxP->cols, batch);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getCost_1");
-	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(smr.cost->devData,  smr.Weight->devData, lambda,
-		smr.Weight->rows, smr.Weight->cols);
+  
+	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(smr.cost->devData,  smr.Weight->devData, Config::instance()->getSoftMax()[0]->m_weightDecay,
+		smr.Weight->getLen());
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getCost_2");
+
+	/*full connnect layers*/
+	for(int h = 0; h < hLayers.size(); h++){
+		if(fabs(Config::instance()->getFC()[h]->m_weightDecay) >= 1e-10)
+		{
+			g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(smr.cost->devData,  hLayers[h].W->devData, Config::instance()->getFC()[h]->m_weightDecay,
+				hLayers[h].W->getLen());
+			cudaDeviceSynchronize();
+			getLastCudaError("g_getCost_2");
+		}
+	}
+
 	for(int cl = 0; cl < CLayers.size(); cl++)
 	{
-		g_getCost_3<<<dim3(Config::instance()->getConv()[cl]->m_amount), dim3(32), sizeof(double) * 32>>>(smr.cost->devData, CLayers[cl].w->m_devPoint, lambda,
+		g_getCost_3<<<dim3(Config::instance()->getConv()[cl]->m_amount), dim3(32), sizeof(double) * 32>>>(smr.cost->devData, CLayers[cl].w->m_devPoint, 
+			Config::instance()->getConv()[cl]->m_weightDecay,
 			Config::instance()->getConv()[cl]->m_kernelSize, Config::instance()->getConv()[cl]->m_kernelSize);
 		cudaDeviceSynchronize();
 	}
 	getLastCudaError("g_getCost_3");
 }
+
 __global__ void g_getSoftMaxDelta(double* softMaxDelta, double* softMaxP, double* groudTruth, int len)
 {
 	for(int i = 0; i < len; i += blockDim.x)
@@ -1622,9 +1636,6 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, i
 	}
 }
 /*
-	�����ܣ����bgrad
-	�̷߳���<<<dim3(������),dim3(����)>>>
-	ÿ��block����һ������,���ö��ֵķ���
 */
 __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
 {
@@ -1649,7 +1660,6 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
 }
 void getSoftMaxDelta(cuSMR &smr, double lambda, int batch, cublasHandle_t handle)
 {
-	int blocks, threads;
 	g_getSoftMaxDelta<<<dim3(1), dim3(256)>>>(cuSoftMaxDelta->devData,
 		cuSoftMaxP->devData,
 		cuGroundTruth->devData, cuSoftMaxDelta->getLen());
@@ -1685,14 +1695,17 @@ __global__ void g_dnonLinearity(double* delta, double*acti, int len, int NONLIN)
 		}
 	}
 }
-__global__ void g_getFullConnectWgrad(double* wgrad, double* dropM, int len, int batch)
+__global__ void g_getFullConnectWgrad(double* wgrad, double* w, double* dropM, int len, double lambda, int batch)
 {
 	for(int i = 0; i < len; i += blockDim.x * gridDim.x)
 	{
 		int id = i + blockDim.x * blockIdx.x + threadIdx.x;
 		if(id < len)
 		{
-			wgrad[id] = wgrad[id] / batch * dropM[id];
+			if(fabs(lambda) < 1e-10)
+				wgrad[id] = wgrad[id] / batch * dropM[id];
+			else
+				wgrad[id] = (wgrad[id] / batch + lambda * w[id]) * dropM[id];
 		}
 	}
 }
@@ -1733,8 +1746,8 @@ void getFullConnectDelta(
 			matrixMulTA(cuFullConnectDelta[hl],
 				cuFullConnectActi[hl - 1],
 				hLayers[hl].Wgrad, handle);
-			g_getFullConnectWgrad<<<dim3(256), dim3(256)>>>(hLayers[hl].Wgrad->devData, hLayers[hl].dropW->devData,
-				hLayers[hl].Wgrad->getLen(), batch);
+			g_getFullConnectWgrad<<<dim3(256), dim3(256)>>>(hLayers[hl].Wgrad->devData, hLayers[hl].W->devData, hLayers[hl].dropW->devData,
+				hLayers[hl].Wgrad->getLen(), Config::instance()->getFC()[hl]->m_weightDecay, batch);
 			cudaDeviceSynchronize();
 			getLastCudaError("g_getFullConnectWgrad");
 		}
@@ -1743,8 +1756,8 @@ void getFullConnectDelta(
 			matrixMulTA(cuFullConnectDelta[hl],
 				cuPoolToFlActi,
 				hLayers[hl].Wgrad, handle);
-			g_getFullConnectWgrad<<<dim3(256), dim3(256)>>>(hLayers[hl].Wgrad->devData, hLayers[hl].dropW->devData,
-				hLayers[hl].Wgrad->getLen(), batch);
+			g_getFullConnectWgrad<<<dim3(256), dim3(256)>>>(hLayers[hl].Wgrad->devData, hLayers[hl].W->devData, hLayers[hl].dropW->devData,
+				hLayers[hl].Wgrad->getLen(), Config::instance()->getFC()[hl]->m_weightDecay, batch);
 			cudaDeviceSynchronize();
 			getLastCudaError("g_getFullConnectWgrad");
 		}
@@ -2310,6 +2323,7 @@ void dConvAndUnpooling(double**x,
 		cuPoolDelta[cuPoolDelta.size() - 1]->channels);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_cuPoolFlDelta");
+
 	for(int cl = CLayers.size() - 1; cl >= 0; cl--)
 	{
 		cuConvDelta[cl]->gpuClear();
@@ -2328,10 +2342,12 @@ void dConvAndUnpooling(double**x,
 		cudaDeviceSynchronize();
 		getLastCudaError("g_unPooling");
 
+
 		g_dnonLinearity<<<dim3(256),dim3(256)>>>(cuConvDelta[cl]->devData,
 			cuConv[cl]->devData, cuConvDelta[cl]->getLen(), Config::instance()->getNonLinearity());
 		cudaDeviceSynchronize();
 		getLastCudaError("g_dnonLinearity");
+
 
 		if(cl > 0)
 		{
@@ -2361,6 +2377,7 @@ void dConvAndUnpooling(double**x,
 			cudaDeviceSynchronize();
 			getLastCudaError("g_dPoolToConv");
 
+
 			threadidx = min(kernelSize * kernelSize, 512);
 			g_wgrad<<<dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 			dim3(threadidx)>>>(
@@ -2379,6 +2396,7 @@ void dConvAndUnpooling(double**x,
 					cuConvLayerWgradTmp[cl]->getArea());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_wgrad");
+
 
 			g_wgradAdd<<<dim3(kernelAmount2, kernelSize * kernelSize, Config::instance()->getChannels()),
 					dim3(256), sizeof(double) * 256>>>(
@@ -2431,6 +2449,8 @@ void dConvAndUnpooling(double**x,
 				cuConvLayerWgradTmp[cl]->getArea());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_wgrad_1");
+
+
 			g_wgradAdd_1<<<dim3(kernelAmount2,
 				kernelSize * kernelSize,
 				Config::instance()->getChannels()),
@@ -2449,6 +2469,8 @@ void dConvAndUnpooling(double**x,
 				CLayers[cl].layer[0].W->getArea());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_wgradAdd_1");
+
+
 			g_getCLayerBgrad_1<<<dim3(kernelAmount2,
 				Config::instance()->getChannels()),
 				dim3(256), 
@@ -2463,7 +2485,7 @@ void dConvAndUnpooling(double**x,
 				CLayers[cl].layer[0].bgrad->getArea());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_getCLayerBgrad_1");
-			}
+		}
 	}
 }
 /*
@@ -3026,7 +3048,7 @@ void getNetworkCost(double** x,
 	convAndPooling(x, CLayers, batch, ImgSize);
 	getFullConnectLayerActi(hLayers, handle);
 	getSoftMaxP(smr, handle);
-	getCost(y,CLayers,hLayers,smr, Config::instance()->getSoftMax()[0]->m_weightDecay, batch);
+	getCost(y,CLayers,hLayers,smr, batch);
 	getSoftMaxDelta(smr,Config::instance()->getSoftMax()[0]->m_weightDecay, batch, handle);
 	getFullConnectDelta(hLayers, smr, batch, handle);
 	if(Config::instance()->getCFM())
@@ -3179,7 +3201,7 @@ void predictTestDate(cuMatrixVector<double>&x,
 						cropr[c], cropc[c]);
 				if (h == 1)
 					cuApplyHorizontal(cu_distortion_vector->m_devPoint,
-							cu_distortion_vector->m_devPoint, batch, ImgSize);
+							cu_distortion_vector->m_devPoint, batch, ImgSize, HORIZONTAL);
 //						cuApplyScaleAndRotate(batch, ImgSize, scale[s], rotation[r]);
 //						cuApplyDistortion(cu_distortion_vector->m_devPoint,
 //								cu_distortion_vector->m_devPoint, batch, ImgSize);
@@ -3223,25 +3245,29 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 	int batch,
 	int ImgSize,
 	int nclasses,
+	std::vector<double>&nlrate,
+	std::vector<double>&nMomentum,
+	std::vector<int>&epoCount,
 	cublasHandle_t handle)
 {
+	if(nlrate.size() != nMomentum.size() || nMomentum.size() != epoCount.size() || nlrate.size() != epoCount.size())
+	{
+		printf("nlrate, nMomentum, epoCount size not equal\n");
+		exit(0);
+	}
+
  	if(Config::instance()->getIsGradientChecking())
  		gradientChecking(CLayers, FullConnectLayers, smr, x.m_devPoint, y->devData, batch, ImgSize, nclasses, handle);
 	predictTestDate(x, y, CLayers, FullConnectLayers, smr, testX, testY, batch, ImgSize, nclasses, handle);
  	printf("correct is %d\n", cuCorrect->get(0,0,0));
 	
-	int epochs = 1000;
- 	double nlrate[] =    {0.05, 0.04, 0.03, 0.02, 0.01, 0.008, 0.006, 0.001, 0.0009, 0.0008, 0.0007, 0.0006/*,
-		0.025, 0.0125, 0.00625, 0.003125, 0.0015625, 0.00078125, 0.000390625, 0.0001953125, 0.00009765625, 0.000048828125, 0.0000244140625*/};
- 	double nMomentum[] = {0.90, 0.91, 0.92, 0.93, 0.94, 0.942, 0.944, 0.95,    0.96,   0.97,  0.995,  0.90/*,
-		0.92,  0.93,   0.94,    0.95,     0.96,      0.97,       0.98,        0.99,         0.994,         0.995,          0.996*/};
- 	int epoCount[] =     {50,   50,     50,   50,   50,    50,    50,   50,      50,     50,     50,   50/*,
-		50,    50,     50,      50,       50,        50,         50,          50,           50,            50,             50*/};
+	int epochs = 10000;
+
 	double lrate = 0.05;
 	double Momentum = 0.9;
 	int id = 0;
 	for (int epo = 0; epo < epochs; epo++) {
-		if (id >= sizeof(nlrate) / sizeof(double))
+		if (id >= nlrate.size())
 			break;
 		lrate = nlrate[id];
 		Momentum = nMomentum[id];
@@ -3256,12 +3282,8 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 		x.shuffle(500, y);
 
-		//for (int k = 0; k < 300; k++) {
 		for (int k = 0; k < x.size() - batch; k += batch) {
-			//int start = rand() % (x.size() - batch);
 			int start = k;
-			//int start = k * batch;
-			//printf("train %2d%%", 100 * k / ((x.size() + batch - 1) / batch));
 			printf("train %2d%%", 100 * k / ((x.size() + batch - 1)));
 			cuApplyCropRandom(x.m_devPoint + start,
 					cu_distortion_vector->m_devPoint, batch, ImgSize);
@@ -3270,7 +3292,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 					cu_distortion_vector->m_devPoint, batch, ImgSize);
 			if (Config::instance()->getHorizontal()) {
 				cuApplyHorizontal(cu_distortion_vector->m_devPoint,
-						cu_distortion_vector->m_devPoint, batch, ImgSize);
+						cu_distortion_vector->m_devPoint, batch, ImgSize, RANDOM_HORIZONTAL);
 			}
 			if (Config::instance()->getImageShow()) {
 				for (int ff = batch - 1; ff >= 0; ff--) {
