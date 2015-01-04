@@ -204,7 +204,7 @@ void Config::init(std::string path)
 	printf("HORIZONTAL            : %d\n", horizontal);
 
 	/*Combine Feature Maps*/
-	bool cfm = get_word_bool(m_configStr, "COMBINE_FEATRUE_MAPS");
+	int cfm = get_word_int(m_configStr, "COMBINE_FEATRUE_MAPS");
 	m_cfm = new ConfigCombineFeatureMaps(cfm);
 	printf("combine feature maps  : %d\n", cfm);
 

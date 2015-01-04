@@ -33,12 +33,12 @@ private:
 class ConfigCombineFeatureMaps
 {
 public:
-	ConfigCombineFeatureMaps(bool combine){
+	ConfigCombineFeatureMaps(int combine){
 		m_cfm = combine;
 	}
-	bool getValue(){return m_cfm;}
+	int getValue(){return m_cfm;}
 private:
-	bool m_cfm;
+	int m_cfm;
 };
 
 class ConfigCrop

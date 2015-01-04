@@ -615,7 +615,7 @@ void cuInitCNNMemory(
 	for(int cl = ConvLayers.size() - 1; cl > 0; cl--)
 	{
 		if (Config::instance()->getCFM()) {
-			int kernelAmount1 = Config::instance()->getConv()[cl - 1]->m_amount;
+			int kernelAmount1 = Config::instance()->getCFM();
 			int kernelAmount2 = Config::instance()->getConv()[cl]->m_amount;
 			int size = cuConvOutputSize[cl]
 					+ Config::instance()->getConv()[cl]->m_kernelSize - 1;
@@ -638,9 +638,10 @@ void cuInitCNNMemory(
 			int kernelSize = Config::instance()->getConv()[cl]->m_kernelSize;
 
 			if(cl != 0)
-				kernelAmount1 = Config::instance()->getConv()[cl - 1]->m_amount;
+				kernelAmount1 = Config::instance()->getCFM();
 			else
 				kernelAmount1 = 1;
+
 				kernelAmount2 = Config::instance()->getConv()[cl]->m_amount;
 
 			    cuConvLayerWgradTmp.push_back(new cuMatrix<double>(batch,
@@ -1042,6 +1043,7 @@ __global__ void g_cfm_convAndPooling_2(
 	int pool1Area,
 	int conv2Area,
 	int pool2Area,
+	int numOfCFM,
 	int NONLIN)
 {
 	int sp = blockIdx.x;
@@ -1076,11 +1078,12 @@ __global__ void g_cfm_convAndPooling_2(
 			int x = idx / conv2Size;
 			int y = idx % conv2Size;
 			double val = 0.0;
-			for(int k1 = 0; k1 < k1Amount; k1++)
+			for(int k1 = 0; k1 < numOfCFM; k1++)
 			{
+				int kk1 = (k1 + k2) % k1Amount;
 				double* pl1 = pool1
 					+ pool1Area * c
-					+ (sp * k1Amount + k1) * pool1Size2;
+					+ (sp * k1Amount + kk1) * pool1Size2;
 
 				for (int i = 0; i < kernelSize; i++) {
 					for (int j = 0; j < kernelSize; j++) {
@@ -1221,6 +1224,7 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 					cuPool[i - 1]->getArea(),
 					cuConv[i]->getArea(),
 					cuPool[i]->getArea(),
+					Config::instance()->getCFM(),
 					Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_cfm_convAndPooling_2");
@@ -1885,7 +1889,7 @@ __global__ void g_dPoolToConv(
 	}
 }
 /*
- * blocks : dim3(batch, kernelAmount1 * kernelAmount2, Config::instance()->getChannels())
+ * blocks : dim3(batch, numOfCFM * kernelAmount2, Config::instance()->getChannels())
  * threads: dim3(threadidx)
 */
 __global__ void g_cfm_dPoolToConv(
@@ -1900,14 +1904,20 @@ __global__ void g_cfm_dPoolToConv(
 	int     _kernelSize,
 	int     _convDeltaArea,
 	int     _addBorderArea,
-	int     _poolDeltaArea)
+	int     _poolDeltaArea,
+	int numOfCFM)
 {
 	int curSize = _convOutputSize;
 	int curAddBorderSize = _poolOutputSize;
 	int wSize = _kernelSize;
 	int nxtSize = _poolOutputSize;
-	int k1 = blockIdx.y / _kernelAmount2;
 	int k2 = blockIdx.y % _kernelAmount2;
+	int k1 = blockIdx.y / _kernelAmount2;
+	
+	cuAssert(k1 < numOfCFM);
+
+	int kk1= (k1 + k2) % _kernelAmount1;
+	
 	int s = blockIdx.x;
 	int c = blockIdx.z;
 	int curSize2 = curSize * curSize;
@@ -1915,9 +1925,10 @@ __global__ void g_cfm_dPoolToConv(
 	double* curDelta = _convDelta + c * _convDeltaArea
 			+ curSize2 * (s * _kernelAmount2 + k2);
 	double* nxtDelta = _poolDelta + c * _poolDeltaArea
-			+ nxtSize2 * (s * _kernelAmount1 + k1);
+			+ nxtSize2 * (s * _kernelAmount1 + kk1);
 	double* addBorder = _addBorder + c * _addBorderArea
-			+ nxtSize2 * (s * _kernelAmount1 * _kernelAmount2 + k1 * _kernelAmount2 + k2);
+			+ nxtSize2 * (s * numOfCFM * _kernelAmount2 + k1 * _kernelAmount2 + k2);
+
 	double* w = _w[k2] + c * _kernelSize * _kernelSize;
 	for (int tidx = 0; tidx < curSize2; tidx += blockDim.x) {
 		int idx = tidx + threadIdx.x;
@@ -2490,7 +2501,7 @@ void dConvAndUnpooling(double**x,
 }
 /*
  * function: get convolution layer weight gradient
- * blocks  : dim3(batch, kernelAmount1 * kernelAmount2, Config::instance()->getChannels())
+ * blocks  : dim3(batch, numOfCMF * kernelAmount2, Config::instance()->getChannels())
  * threads : dim3(threadidx)
 */
 __global__ void g_cfm_wgrad(double* pool,
@@ -2503,12 +2514,18 @@ __global__ void g_cfm_wgrad(double* pool,
 	int kernelSize,
 	int poolArea,
 	int convDeltaArea,
-	int wgradTmpArea)
+	int wgradTmpArea,
+	int numOfCMF)
 {
-	int c = blockIdx.z;
-	int s = blockIdx.x;
-	int k2= blockIdx.y % kernelAmount2;
-	int k1= blockIdx.y / kernelAmount2;
+	int c  = blockIdx.z;
+	int s  = blockIdx.x;
+	int k2 = blockIdx.y % kernelAmount2;
+	int k1 = blockIdx.y / kernelAmount2;
+	
+	cuAssert(k1 < numOfCMF);
+
+	int kk1= (k1 + k2) % kernelAmount1;
+
 	int curSize = poolOutputSize;
 	int wSize   = convOutputSize;
 	int nxtSize = kernelSize;
@@ -2517,13 +2534,14 @@ __global__ void g_cfm_wgrad(double* pool,
 	int nxtSize2 = nxtSize * nxtSize;
 	double* cur   = pool
 		+ c * poolArea
-		+ curSize2 * (s * kernelAmount1 + k1);
+		+ curSize2 * (s * kernelAmount1 + kk1);
 	double* w     = convDelta
 		+ c * convDeltaArea
 		+ wSize2 * (s * kernelAmount2 + k2);
 	double* nxt   = WgradTmp
 		+ c * wgradTmpArea
-		+ nxtSize2 * (s * kernelAmount1 * kernelAmount2 + k1 * kernelAmount2 + k2);
+		+ nxtSize2 * (s * numOfCMF * kernelAmount2 + k1 * kernelAmount2 + k2);
+
 	for(int tidx = 0; tidx < nxtSize2; tidx += blockDim.x)
 	{
 		int idx = tidx + threadIdx.x;
@@ -2562,7 +2580,9 @@ __global__ void g_cfm_wgradAdd(
 	int wgradTmpArea,
 	int wgradArea,
 	int wArea,
-	double lambda)
+	double lambda,
+	int numOfCFM
+	)
 {
 	extern __shared__ double _sum[];
 	int k2 = blockIdx.x;
@@ -2571,17 +2591,19 @@ __global__ void g_cfm_wgradAdd(
 	_sum[threadIdx.x] = 0;
 	__syncthreads();
 	int kernelSize2 = kernelSize * kernelSize;
-	int  tlen = batch * kernelAmount1;
+	int  tlen = batch * numOfCFM;
 	for(int i = 0; i <  tlen; i += blockDim.x)
 	{
 		int idx = i + threadIdx.x;
 		if(idx < tlen)
 		{
-			int s = idx / kernelAmount1;
-			int k1= idx % kernelAmount1;
+			int s  = idx / numOfCFM;
+			int k1 = idx % numOfCFM;
+			int kk1= (k1 + k2) % kernelAmount1;
+
 			int id =
 				c * wgradTmpArea
-				+ kernelSize2 * (s * kernelAmount1 * kernelAmount2 + k1* kernelAmount2 + k2)
+				+ kernelSize2 * (s * numOfCFM * kernelAmount2 + k1* kernelAmount2 + k2)
 				+ kid;
 			_sum[threadIdx.x] += WgradTmp[id];
 		}
@@ -2858,7 +2880,7 @@ void cfm_dConvAndUnpooling(double**x,
 			int kernelAmount1 = Config::instance()->getConv()[cl - 1]->m_amount;
 			int kernelAmount2 = Config::instance()->getConv()[cl]->m_amount;
 			int kernelSize = Config::instance()->getConv()[cl]->m_kernelSize;
-			g_cfm_dPoolToConv<<<dim3(batch, kernelAmount1 * kernelAmount2, Config::instance()->getChannels()),
+			g_cfm_dPoolToConv<<<dim3(batch, Config::instance()->getCFM() * kernelAmount2, Config::instance()->getChannels()),
 					dim3(threadidx)>>>(
 					cuConvDelta[cl]->devData,
 					cuPoolDeltaAndBorder[cl - 1]->devData,
@@ -2871,11 +2893,12 @@ void cfm_dConvAndUnpooling(double**x,
 					kernelSize,
 					cuConvDelta[cl]->getArea(),
 					cuPoolDeltaAndBorder[cl - 1]->getArea(),
-					cuPoolDelta[cl - 1]->getArea());
+					cuPoolDelta[cl - 1]->getArea(),
+					Config::instance()->getCFM());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_dPoolToConv");
 			threadidx = min(kernelSize * kernelSize, 512);
-			g_cfm_wgrad<<<dim3(batch, kernelAmount1 * kernelAmount2, Config::instance()->getChannels()),
+			g_cfm_wgrad<<<dim3(batch, Config::instance()->getCFM() * kernelAmount2, Config::instance()->getChannels()),
 				dim3(threadidx)>>>(
 				cuPool[cl - 1]->devData,
 				cuConvDelta[cl]->devData,
@@ -2887,10 +2910,11 @@ void cfm_dConvAndUnpooling(double**x,
 				kernelSize,
 				cuPool[cl - 1]->getArea(),
 				cuConvDelta[cl]->getArea(),
-				cuConvLayerWgradTmp[cl]->getArea());
+				cuConvLayerWgradTmp[cl]->getArea(),
+				Config::instance()->getCFM());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_wgrad");
-			threads = min(kernelAmount1 * batch, 256);
+			threads = min(Config::instance()->getCFM() * batch, 256);
 			g_cfm_wgradAdd<<<dim3(kernelAmount2,
 				kernelSize * kernelSize,
 				Config::instance()->getChannels()),
@@ -2906,7 +2930,8 @@ void cfm_dConvAndUnpooling(double**x,
 				cuConvLayerWgradTmp[cl]->getArea(),
 				CLayers[cl].layer[0].Wgrad->getArea(),
 				CLayers[cl].layer[0].W->getArea(),
-				Config::instance()->getConv()[cl]->m_weightDecay);
+				Config::instance()->getConv()[cl]->m_weightDecay,
+				Config::instance()->getCFM());
 			cudaDeviceSynchronize();
 			getLastCudaError("g_wgradAdd");
 			g_cfm_getCLayerBgrad<<<dim3(kernelAmount2,

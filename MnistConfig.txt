@@ -10,12 +10,12 @@ ROTATION = 12.0;                 #angle#
 DISTORTION = 3.4;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = false;             #horizontal reflection#
-COMBINE_FEATRUE_MAPS = false;   #According to paper "notes on Convolutional Neural NetWorks"#
+COMBINE_FEATRUE_MAPS = 3;       #According to paper "notes on Convolutional Neural NetWorks"#
 
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
-KERNEL_AMOUNT = 10;
+KERNEL_AMOUNT = 32;
 WEIGHT_DECAY = 1e-4;
 POOLING_DIM = 2;
 ]
@@ -23,7 +23,7 @@ POOLING_DIM = 2;
 [  
 LAYER = CONV;
 KERNEL_SIZE = 5;
-KERNEL_AMOUNT = 20;
+KERNEL_AMOUNT = 64;
 WEIGHT_DECAY = 1e-4;
 POOLING_DIM = 2;
 ]
@@ -31,17 +31,9 @@ POOLING_DIM = 2;
 [
 LAYER = FC;
 NUM_FULLCONNECT_NEURONS = 256;
-WEIGHT_DECAY = 0.0;
+WEIGHT_DECAY = 1e-4;
 DROPCONNECT_RATE = 0.0;
 ]
-
-[
-LAYER = FC;
-NUM_FULLCONNECT_NEURONS = 256;
-WEIGHT_DECAY = 0.0;
-DROPCONNECT_RATE = 0.0;
-]
-
 
 [
 LAYER = SOFTMAX;
