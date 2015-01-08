@@ -7,7 +7,6 @@
 #include "util.h"
 #include <vector>
 #include "cuMatrixVector.h"
-#include "Config.h"
 
 
 int checkError(int x)
@@ -64,7 +63,7 @@ int read_Mnist(std::string filename,
 			file.read((char*) &n_cols, sizeof(n_cols));
 			n_cols = ReverseInt(n_cols);
 			for(int i = 0; i < number_of_images; ++i){
-				cuMatrix<double>* tpmat = new cuMatrix<double>(n_rows, n_cols, Config::instance()->getChannels());
+				cuMatrix<double>* tpmat = new cuMatrix<double>(n_rows, n_cols, 1);
 				for(int r = 0; r < n_rows; ++r){
 					for(int c = 0; c < n_cols; ++c){
 						unsigned char temp = 0;

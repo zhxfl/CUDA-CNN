@@ -1,7 +1,7 @@
 #Comment#
 
 IS_GRADIENT_CHECKING = false;   #is true when debug#
-BATCH_SIZE = 50;               #test image size should be divided with no remainder#
+BATCH_SIZE = 100;               #test image size should be divided with no remainder#
 NON_LINEARITY = NL_RELU;        #NON_LINEARITY CAN = NL_SIGMOID , NL_TANH , NL_RELU#
 CHANNELS = 3;                   #1, 3, 4#
 CROP = 4;                       #0<= crop <=imgSize#
@@ -10,12 +10,12 @@ ROTATION = 0.0;                 #angle from -13.0 to 13.0#
 DISTORTION = 0.0;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = true;             #horizontal reflection#
-COMBINE_FEATRUE_MAPS = 3;       #According to paper "notes on Convolutional Neural NetWorks"#
+COMBINE_FEATRUE_MAPS = 2;       #According to paper "notes on Convolutional Neural NetWorks"#
 
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
-KERNEL_AMOUNT = 7;
+KERNEL_AMOUNT = 20;
 WEIGHT_DECAY = 1e-4;
 POOLING_DIM = 2;
 ]
@@ -23,7 +23,7 @@ POOLING_DIM = 2;
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
-KERNEL_AMOUNT = 9;
+KERNEL_AMOUNT = 40;
 WEIGHT_DECAY = 1e-4;
 POOLING_DIM = 2;
 ]

@@ -151,4 +151,26 @@ void cuFreeCNNMemory(
 	std::vector<cuFll>&HiddenLayers, 
 	cuSMR &smr);
 
+
+/*
+*	get one network's vote result
+*/
+
+int voteTestDate(std::vector<cuCvl> &CLayers,
+	std::vector<cuFll> &FullConnectLayers,
+	cuSMR &smr,
+	cuMatrixVector<double>&testX,
+	cuMatrix<int>* testY,
+	cuMatrix<int>*& vote,
+	int batch,
+	int ImgSize,
+	int nclasses,
+	cublasHandle_t handle);
+
+int cuVoteAdd(cuMatrix<int>*& voteSum, 
+	cuMatrix<int>*& predict,
+	cuMatrix<int>*& testY, 
+	cuMatrix<int>*& correct,
+	int nclasses);
+
 #endif

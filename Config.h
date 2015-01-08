@@ -209,6 +209,25 @@ public:
 		return config;
 	}
 
+	void clear(){
+		m_fc.clear();
+		m_conv.clear();
+		m_softMax.clear();
+
+		delete  m_nonLinearity;
+		delete  m_isGrandientChecking;
+		delete  m_batchSize;
+		delete  m_channels;
+
+		delete m_crop;
+		delete m_scale;
+		delete m_rotation;
+		delete m_distortion;
+		delete m_imageShow;
+		delete m_horizontal;
+		delete m_cfm;
+	}
+
 	int getNonLinearity(){
 		return m_nonLinearity->getValue();}
 
