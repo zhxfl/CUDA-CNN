@@ -4,7 +4,7 @@
 >Functions
 >--------
 >CNN accelerated by cuda.    
->Test on mnist and get 99.76%       (best 99.74%)   
+>Test on <a href="http://yann.lecun.com/exdb/mnist/" title="mnist"> mnist</a> and get 99.76%       (best 99.74%)   
 >Test on cifar-10  and get 81.38%   (best 90%)   
 >Test on cifar-100 and get 51.13%   (best 65%)   
 ***
