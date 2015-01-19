@@ -1,9 +1,14 @@
 >CUDA-CNN
 >========
 
+
+>Document
+>1.  https://github.com/zhxfl/cuda-cnn_cuda-stream/generated_pages/new
+>
 >Functions
 >--------
->CNN accelerated by cuda.    
+>CNN accelerated by cuda.   
+>The <a href="http://rodrigob.github.io/are_we_there_yet/build/classification_datasets_results.html" title="start-of-art result's"> start-of-art result's</a> of popular datasets    
 >Test on <a href="http://yann.lecun.com/exdb/mnist/" title="mnist"> mnist</a> and get 99.76%, after voting(99.82%) (best 99.79%)   
 >Test on cifar-10  and get 81.38%   (best 90%)   
 >Test on cifar-100 and get 51.13%   (best 65%)   
@@ -60,11 +65,8 @@
 ***
 
 >Config
->-----------
-###<a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Cifar10Config.txt" title="CIFAR10"> CIFAR10</a>   
->
-###<a href="https://github.com/zhxfl/CUDA-CNN/blob/master/MnistConfig.txt" title="MNIST"> MNIST</a>   
->
+>1. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Cifar10Config.txt" title="CIFAR10"> CIFAR10</a>   
+>2. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/MnistConfig.txt" title="MNIST"> MNIST</a>   
 ***
 
 >Informations
