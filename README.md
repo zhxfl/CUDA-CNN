@@ -64,7 +64,7 @@
 
 ***
 
->Config
+>Config   
 >1. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Cifar10Config.txt" title="CIFAR10"> CIFAR10</a>   
 >2. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/MnistConfig.txt" title="MNIST"> MNIST</a>   
 ***
