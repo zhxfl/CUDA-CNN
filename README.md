@@ -61,34 +61,9 @@
 
 >Config
 >-----------
-###MNIST
->`#Comment#`   
->   
->`IS_GRADIENT_CHECKING = false;   #is true when debug#`   
->`BATCH_SIZE = 200;               #test image size should be divided with no remainder#`   
->`NON_LINEARITY = NL_RELU;        #NON_LINEARITY CAN = NL_SIGMOID , NL_TANH , NL_RELU#`   
->`CHANNELS = 1;                   #1, 3, 4#`   
->`CROP = 4;                       #0<= crop <=imgSize#`   
->`SCALE = 13.0;                   #13% of ImgSize#`   
->`ROTATION = 13.0;                #angle#`   
->`DISTORTION = 3.5;               #just for mnist#`   
->`SHOWIMAGE = false;              #show the images after transformation#`   
->`HORIZONTAL = false;             #horizontal reflection#`   
->`COMBINE_FEATRUE_MAPS = false;   #According to paper "notes on Convolutional Neural NetWorks"#`
+###<a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Cifar10Config.txt" title="CIFAR10"> CIFAR10</a>   
 >
-###CIFAR-10
->
->`IS_GRADIENT_CHECKING = false;   #is true when debug#`   
->`BATCH_SIZE = 100;               #test image size should be divided with no remainder#`   
->`NON_LINEARITY = NL_RELU;        #NON_LINEARITY CAN = NL_SIGMOID , NL_TANH , NL_RELU#`   
->`CHANNELS = 3;                   #1, 3, 4#`   
->`CROP = 4;                       #0<= crop <=imgSize#`   
->`SCALE = 0.0;                    #13% of ImgSize#`   
->`ROTATION = 0.0;                 #angle#`   
->`DISTORTION = 0.0;               #just for mnist#`   
->`SHOWIMAGE = false;              #show the images after transformation#`   
->`HORIZONTAL = true;              #horizontal reflection#` 
->`COMBINE_FEATRUE_MAPS = false;   #According to paper "notes on Convolutional Neural NetWorks"#`
+###<a href="https://github.com/zhxfl/CUDA-CNN/blob/master/MnistConfig.txt" title="MNIST"> MNIST</a>   
 >
 ***
 
