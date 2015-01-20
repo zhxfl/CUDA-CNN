@@ -7,15 +7,17 @@
 #include "net.cuh"
 #include "cuMatrix.h"
 #include "util.h"
-#include "readMnistData.h"
 #include "cuTrasformation.cuh"
 #include "Config.h"
 #include "cuMatrixVector.h"
-#include "readCIFAR10Data.h"
+
 #include "Config.h"
 #include "dataPretreatment.cuh"
-#include "readChineseData.h"
-#include "readCIFAR100Data.h"
+
+#include "readData/readMnistData.h"
+#include "readData/readCIFAR10Data.h"
+#include "readData/readChineseData.h"
+#include "readData/readCIFAR100Data.h"
 
 void runMnist();
 void runCifar10();

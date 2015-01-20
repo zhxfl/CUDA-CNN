@@ -1442,57 +1442,73 @@ void getFullConnectLayerActi(std::vector<cuFll>&hLayers, cublasHandle_t handle)
 * threads: cuSoftMaxP->cols
 * shared : sizeof(double) * cuSoftMaxP->cols * 2
 */
-__global__ void g_getSoftMaxP(double* softMaxP, double* b)
+__global__ void g_getSoftMaxP(double* softMaxP, double* b, int cols)
 {
 	int bid = blockIdx.x;
-	int tid = threadIdx.x;
 	extern __shared__ double _share[];
 	double * _max = _share;
 	double * _sum = _share + blockDim.x;
-	double* sp = softMaxP + bid * blockDim.x;
-	sp[tid] += b[tid];
-	_max[tid] = sp[tid];
+	double* sp = softMaxP + bid * cols;
+	_sum[threadIdx.x] = 0.0;
+	_max[threadIdx.x] = -100000000.0;
+	for(int tid = 0; tid < cols; tid += blockDim.x){
+		int id = tid + threadIdx.x;
+		if(id < cols){
+			sp[id] += b[id];
+			_max[threadIdx.x] = max(_max[threadIdx.x], sp[id]);
+		}
+	}
+	__syncthreads();
 	int len = blockDim.x;
 	while(len != 1)
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(tid < (len >> 1))
+		if(threadIdx.x < (len >> 1))
 		{
-			if(_max[tid] < _max[tid + skip])
+			if(_max[threadIdx.x] < _max[threadIdx.x + skip])
 			{
-				_max[tid] = _max[tid + skip];
+				_max[threadIdx.x] = _max[threadIdx.x + skip];
 			}
 		}
 		len = (len + 1) >> 1;
 	}
 	__syncthreads();
-	sp[tid] -= _max[0];
-	sp[tid] = exp(sp[tid]);
-	_sum[tid] = sp[tid];
+	for(int tid = 0; tid < cols; tid += blockDim.x){
+		int id = tid + threadIdx.x;
+		if(id < cols){
+			sp[id] -= _max[0];
+			sp[id] = exp(sp[id]);
+			_sum[threadIdx.x] += sp[id];
+		}
+	}
+	__syncthreads();
 	len = blockDim.x;
 	while(len != 1)
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(tid < (len >> 1))
+		if(threadIdx.x < (len >> 1))
 		{
-			_sum[tid] += _sum[tid + skip];
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
 		}
 		len = (len + 1) >> 1;
 	}
 	__syncthreads();
-	sp[tid] /= _sum[0];
+	for(int tid = 0; tid < cols; tid += blockDim.x){
+		int id = tid + threadIdx.x;
+		if(id < cols){
+			sp[id] /= _sum[0];
+		}
+	}
 }
 void getSoftMaxP(cuSMR& smr, cublasHandle_t handle)
 {
 	matrixMulTB(cuFullConnectActi[Config::instance()->getFC().size() - 1],
 		smr.Weight, cuSoftMaxP, handle);
-	if(cuSoftMaxP->cols > MAX_THREADS){
-		printf("g_getSoftMaxP > MAX_THREADS\n");
-		exit(0);
-	}
-	g_getSoftMaxP<<<cuSoftMaxP->rows, cuSoftMaxP->cols, sizeof(double) * cuSoftMaxP->cols * 2>>>(cuSoftMaxP->devData, smr.b->devData);
+	
+	int threads = min(512, cuSoftMaxP->cols);
+	g_getSoftMaxP<<<cuSoftMaxP->rows, threads, sizeof(double) * threads * 2>>>(cuSoftMaxP->devData, smr.b->devData, cuSoftMaxP->cols);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getSoftMaxP");
 }
