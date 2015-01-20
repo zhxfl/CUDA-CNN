@@ -9,7 +9,6 @@
 #include "cuMatrixVector.h"
 #include <helper_functions.h>
 #include <helper_cuda.h>
-
 cuMatrixVector<double>* cu_distortion_vector;
 
 std::vector<int> cuPoolOutputSize;
@@ -53,6 +52,12 @@ std::vector<std::vector<cuMatrix<double>*> >cu_v_cvl_b;
 int cuCurCorrect;
 cuMatrix<int>*cuCorrect = NULL;
 cuMatrix<int>*cuVote = NULL;
+
+/*batch size images*/
+cuMatrixVector<double>batchImg[2];
+
+void getBatchImageWithStreams(cuMatrixVector<double>&x, cuMatrixVector<double>&batchImg, int start, cudaStream_t stream1);
+
 
 void outputMatrix(cuMatrix<double>* m);
 
@@ -357,14 +362,13 @@ void saveWeight(cuSMR &smr, FILE* pOut){
 			}
 		}
 	}
-
 }
 
 void cuSaveConvNet(std::vector<cuCvl> &ConvLayers,
 	std::vector<cuFll> &FullConnectLayers,
 	cuSMR &smr)
 {	
-	FILE *pOut = fopen("checkPoint.txt", "w");
+	FILE *pOut = fopen("Result/checkPoint.txt", "w");
 	/* Init Conv layers*/
 	for(int i=0; i < Config::instance()->getConv().size(); i++){
 		cuCvl tpcvl = ConvLayers[i];
@@ -707,6 +711,15 @@ void cuInitCNNMemory(
 		cu_distortion_vector->push_back(new cuMatrix<double>(ImgSize, ImgSize, Config::instance()->getChannels()));
 	}
 	cu_distortion_vector->toGpu();
+
+	/*double buffer for batch images*/
+	int crop = Config::instance()->getCrop();
+	for(int i = 0; i < 2; i ++){
+		for(int j = 0; j < batch; j++){
+			batchImg[i].push_back(new cuMatrix<double>(ImgSize + crop, ImgSize + crop, Config::instance()->getChannels()));
+		}
+		batchImg[i].toGpu();
+	}
 }
 
 void cuFreeCNNMemory(
@@ -1200,6 +1213,36 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 		);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_convAndPooling_1");
+
+/*	int size = cuConvOutputSize[0];
+	cuMatrix<double>* m = new cuMatrix<double>(size, size * 5, 1);
+	cuConv[0]->toCpu();
+	for(int i = 0; i < 5; i++){
+		for(int r = 0; r < size; r++){
+			for(int c = 0; c < size; c++){
+				m->set(r, c + i * size, 0, cuConv[0]->get(0, i * size * size + r * size + c,0));
+			}
+		}
+	}
+	m->toGpu();
+	showImg(m, 5);
+	cv::waitKey(0);
+
+
+	size = cuPoolOutputSize[0];
+	m = new cuMatrix<double>(size, size * 5, 1);
+	cuPool[0]->toCpu();
+	for(int i = 0; i < 5; i++){
+		for(int r = 0; r < size; r++){
+			for(int c = 0; c < size; c++){
+				m->set(r, c + i * size, 0, cuPool[0]->get(0, i * size * size + r * size + c,0));
+			}
+		}
+	}
+	m->toGpu();
+	showImg(m, 5);
+	cv::waitKey(0);
+*/
 	for (int i = 1; i < Config::instance()->getConv().size(); i++) {
 		int threadidx = min(cuConvOutputSize[i] * cuConvOutputSize[i], 512);
 		int kernelAmount1 = Config::instance()->getConv()[i - 1]->m_amount;
@@ -1259,6 +1302,40 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 			getLastCudaError("g_convAndPooling_2");
 		}
 	}
+
+/*	size = cuConvOutputSize[1];
+	m = new cuMatrix<double>(size , size * 5, 1);
+	cuConv[1]->toCpu();
+	for(int i = 0; i < 1; i++){
+		for(int j = 0; j < 5; j++){
+			for(int r = 0; r < size; r++){
+				for(int c = 0; c < size; c++){
+					m->set(r + i * size, c + j * size, 0, cuConv[1]->get(0, i * size * size + r * size + c,0));
+				}
+			}
+		}
+	}
+	m->toGpu();
+	showImg(m, 5);
+	cv::waitKey(0);
+
+
+	size = cuPoolOutputSize[1];
+	m = new cuMatrix<double>(size , size * 5, 1);
+	cuPool[1]->toCpu();
+	for(int i = 0; i < 1; i++){
+		for(int j =0; j < 5; j++){
+			for(int r = 0; r < size; r++){
+				for(int c = 0; c < size; c++){
+					m->set(r + i * size, c + j * size, 0, cuPool[1]->get(0, i * size * size + r * size + c,0));
+				}
+			}
+		}
+	}
+	m->toGpu();
+	showImg(m, 5);
+	cv::waitKey(0);
+*/
 }
 /*
 * blocks  : cuFullConnectActi[hl]->rows;
@@ -3210,6 +3287,8 @@ void predictTestDate(cuMatrixVector<double>&x,
 	int ImgSize,
 	int nclasses,
 	cublasHandle_t handle) {
+		
+
 		for (int hl = 0; hl < FullConnectLayers.size(); hl++) {
 			dropDelta(FullConnectLayers[hl].dropW, 0.0);
 		}
@@ -3220,14 +3299,22 @@ void predictTestDate(cuMatrixVector<double>&x,
 			Config::instance()->getCrop(), 0, Config::instance()->getCrop() };
 		//	double scale[] = {0.0, -Config::instance()->getScale(), Config::instance()->getScale()};
 		//	double rotation[] = {0.0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
-		for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 2 : 1);
-			h++) {
+	
+		cudaStream_t stream1;
+		checkCudaErrors(cudaStreamCreate(&stream1));
+		for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 2 : 1); h++) {
 				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 5); c++) {
+					int batchImgId = 1;
+					getBatchImageWithStreams(testX, batchImg[0], 0, stream1);
 					for (int p = 0; p < testX.size() / batch; p++) {
-						printf("test  %2d%%",
-							100 * p / ((testX.size() + batch - 1) / batch));
+						cudaStreamSynchronize(stream1);
+						printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
 						int tstart = p * batch;
-						cuApplyCrop(testX.m_devPoint + tstart,
+						if(tstart + batch <= testX.size() - batch)
+							getBatchImageWithStreams(testX, batchImg[batchImgId], tstart + batch, stream1);
+						
+						batchImgId = 1 - batchImgId;
+						cuApplyCrop(batchImg[batchImgId].m_devPoint,
 							cu_distortion_vector->m_devPoint, batch, ImgSize,
 							cropr[c], cropc[c]);
 						if (h == 1)
@@ -3250,6 +3337,7 @@ void predictTestDate(cuMatrixVector<double>&x,
 					}
 				}
 		}
+		checkCudaErrors(cudaStreamDestroy(stream1));
 		cuCorrect->gpuClear();
 		g_getVotingResult<<<dim3((testX.size() + batch - 1) / batch), dim3(batch)>>>(
 			cuVote->devData,
@@ -3320,6 +3408,15 @@ int voteTestDate(std::vector<cuCvl> &CLayers,
 		return cuCorrect->get(0,0,0);
 }
 
+
+void getBatchImageWithStreams(cuMatrixVector<double>&x, cuMatrixVector<double>&batchImg, int start, cudaStream_t stream1){
+	 for(int i = 0; i < batchImg.size(); i++){
+		 memcpy(batchImg[i]->hostData, x[i + start]->hostData, sizeof(double) * batchImg[i]->getLen());
+		 batchImg[i]->toGpu(stream1);
+	 }
+}
+
+
 void cuTrainNetwork(cuMatrixVector<double>&x,
 	cuMatrix<int>*y ,
 	std::vector<cuCvl> &CLayers,
@@ -3343,6 +3440,8 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 	if(Config::instance()->getIsGradientChecking())
 		gradientChecking(CLayers, FullConnectLayers, smr, x.m_devPoint, y->devData, batch, ImgSize, nclasses, handle);
+
+
 	predictTestDate(x, y, CLayers, FullConnectLayers, smr, testX, testY, batch, ImgSize, nclasses, handle);
 	printf("correct is %d\n", cuCorrect->get(0,0,0));
 
@@ -3367,10 +3466,22 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 		x.shuffle(500, y);
 
-		for (int k = 0; k < x.size() - batch; k += batch) {
+		cudaStream_t stream1;
+		checkCudaErrors(cudaStreamCreate(&stream1));
+
+		getBatchImageWithStreams(x, batchImg[0], 0, stream1);
+		int batchImgId = 1;
+		for (int k = 0; k <= x.size() - batch; k += batch) {
+			cudaStreamSynchronize(stream1);
 			int start = k;
 			printf("train %2d%%", 100 * k / ((x.size() + batch - 1)));
-			cuApplyCropRandom(x.m_devPoint + start,
+			if(start + batch <= x.size() - batch)
+				getBatchImageWithStreams(x, batchImg[batchImgId], start + batch, stream1);
+			batchImgId = 1 - batchImgId;
+			//showImg(batchImg[batchImgId][batchImgId], 10);
+			//cv::waitKey(0);
+			
+			cuApplyCropRandom(batchImg[batchImgId].m_devPoint,
 				cu_distortion_vector->m_devPoint, batch, ImgSize);
 			if(fabs(Config::instance()->getDistortion()) >= 0.1)
 				cuApplyDistortion(cu_distortion_vector->m_devPoint,
@@ -3381,7 +3492,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			}
 			if (Config::instance()->getImageShow()) {
 				for (int ff = batch - 1; ff >= 0; ff--) {
-					showImg(x[start + ff], 10);
+					showImg(batchImg[batchImgId][ff], 10);
 					showImg(cu_distortion_vector->m_vec[ff], 10);
 					cv::waitKey(0);
 				}
@@ -3393,6 +3504,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			updataWB(CLayers, FullConnectLayers, smr, lrate, Momentum, batch);
 			printf("\b\b\b\b\b\b\b\b\b");
 		}
+		checkCudaErrors(cudaStreamDestroy(stream1));
 
 		smr.cost->toCpu();
 		char str[512];
@@ -3420,7 +3532,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			smr.cost->get(0, 0, 0), cuCorrect->get(0, 0, 0), cuCurCorrect,
 			Momentum, lrate);
 		printf("%s\n", str);
-		LOG(str, "log.txt");
+		LOG(str, "Result/log.txt");
 	}
 }
 

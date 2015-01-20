@@ -56,7 +56,7 @@ void runChinese() {
 	cuMatrix<int>* trainY, *testY;
 	readChineseData(trainX, testX, trainY, testY);
 
-	Config::instance()->initPath("ChineseConfig.txt");
+	Config::instance()->initPath("Config/ChineseConfig.txt");
 
 	/*build CNN net*/
 	int ImgSize = trainX[0]->rows;
@@ -79,7 +79,7 @@ void runChinese() {
 				nclasses);
 	else if (cmd == 2)
 		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop,
-				"checkPoint.txt", nclasses);
+				"Result/checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr,
 			ImgSize - crop, nclasses);
@@ -122,7 +122,7 @@ void runCifar100(){
 	cuMatrixVector<double>testX;
 	cuMatrix<int>* trainY, *testY;
 
-	Config::instance()->initPath("Cifar100Config.txt");
+	Config::instance()->initPath("Config/Cifar100Config.txt");
 	read_CIFAR100_Data(trainX, testX, trainY, testY);
 	preProcessing(trainX, testX);
 
@@ -146,7 +146,7 @@ void runCifar100(){
 	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "checkPoint.txt", nclasses);
+		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 
@@ -182,9 +182,9 @@ void runCifar10()
 	cuMatrixVector<double>testX;
 	cuMatrix<int>* trainY, *testY;
 
-	Config::instance()->initPath("Cifar10Config.txt");
+	Config::instance()->initPath("Config/Cifar10Config.txt");
 	read_CIFAR10_Data(trainX, testX, trainY, testY);
-	preProcessing(trainX, testX);
+	//preProcessing(trainX, testX);
 
 	const int nclasses = Config::instance()->getSoftMax()[0]->m_numClasses;
 
@@ -206,7 +206,7 @@ void runCifar10()
 	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "checkPoint.txt", nclasses);
+		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	
@@ -254,7 +254,7 @@ void runMnist(){
 	cuMatrixVector<double>trainX;
 	cuMatrixVector<double>testX;
  	cuMatrix<int>* trainY, *testY;
-	Config::instance()->initPath("MnistConfig.txt");
+	Config::instance()->initPath("Config/MnistConfig.txt");
  	readMnistData(trainX, trainY, "mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", 60000, 1);
  	readMnistData(testX , testY,  "mnist/t10k-images.idx3-ubyte",  "mnist/t10k-labels.idx1-ubyte",  10000, 1);
 
@@ -276,7 +276,7 @@ void runMnist(){
  	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "checkPoint.txt", nclasses);
+		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
 	cuInitCNNMemory(batch, trainX, testX, ConvLayers,HiddenLayers, smr, ImgSize - crop, nclasses);
 

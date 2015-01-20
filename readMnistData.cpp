@@ -64,6 +64,7 @@ int read_Mnist(std::string filename,
 			n_cols = ReverseInt(n_cols);
 			for(int i = 0; i < number_of_images; ++i){
 				cuMatrix<double>* tpmat = new cuMatrix<double>(n_rows, n_cols, 1);
+				tpmat->freeCudaMem();
 				for(int r = 0; r < n_rows; ++r){
 					for(int c = 0; c < n_cols; ++c){
 						unsigned char temp = 0;
@@ -71,7 +72,7 @@ int read_Mnist(std::string filename,
 						tpmat->set(r, c, 0, (double)temp * 2.0 / 255.0 - 1.0);
 					}
 				}
-				tpmat->toGpu();
+				//tpmat->toGpu();
 				if(!flag){
 					if(!checkError(id)){
 						vec.push_back(tpmat);

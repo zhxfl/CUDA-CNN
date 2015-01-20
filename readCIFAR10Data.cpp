@@ -24,6 +24,7 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*
 			unsigned char tplabel = 0;
 			file.read((char*)& tplabel, sizeof(tplabel));
 			cuMatrix<double>* channels = new cuMatrix<double>(n_rows, n_cols, 3);
+			channels->freeCudaMem();
 			int idx = vec.size();
 			label->set(idx, 0, 0, tplabel);
 
@@ -36,7 +37,7 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*
 					}
 				}
 			}
-			channels->toGpu();
+
 			vec.push_back(channels);
 		}
 	}

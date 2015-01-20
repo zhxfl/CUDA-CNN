@@ -26,6 +26,7 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*
 			file.read((char*)& type2, sizeof(type2));
 			//printf("type1 = %d type2 = %d\n", type1, type2);
 			cuMatrix<double>* channels = new cuMatrix<double>(n_rows, n_cols, 3);
+			channels->freeCudaMem();
 			int idx = vec.size();
 			label->set(idx, 0, 0, type2);
 
@@ -38,7 +39,7 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*
 					}
 				}
 			}
-			channels->toGpu();
+
 			vec.push_back(channels);
 		}
 	}

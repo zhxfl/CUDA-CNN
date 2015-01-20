@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "helper_cuda.h"
 
 /*rows-major*/
 template <class T>
@@ -59,6 +60,12 @@ public:
 		}
 	}
 
+	/*free cuda memery*/
+	void freeCudaMem(){
+		cudaFree(devData);
+		devData = 0;
+	}
+
 	/*destruction function*/
 	~cuMatrix(){
 		free(hostData);
@@ -89,6 +96,11 @@ public:
 			cudaFree (devData);
 			return;
 		}
+	}
+
+	/*copy the host data to device data with cuda-streams*/
+	void toGpu(cudaStream_t stream1){
+		checkCudaErrors(cudaMemcpyAsync(devData, hostData, sizeof(*devData) * cols * rows * channels, cudaMemcpyHostToDevice, stream1));
 	}
 	
 	/*set all device memory to be zeros*/
