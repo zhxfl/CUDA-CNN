@@ -17,9 +17,9 @@
 >Feature
 >--------
 >1. Use ***DropConnnect*** to train the NetWork
->2. Support checkpoint, the program will save the best test result and save the network weight in the file "checkPoint.txt", If the program exit accidentally, you can continue the program form this checkpoint.
+>2. Support checkpoint, the program will save the best test result and save the network weight in the file "Result/checkPoint.txt", If the program exit accidentally, you can continue the program form this checkpoint.
 >3. Translate the data set of mnist, including scale, rotate, ***distortion***.
->4. The log will be saved in the file "log.txt".  
+>4. The log will be saved in the file "Result/log.txt".  
 >5. In the convolutional layers, you can chose ***combine feature maps***, according to "notes on Convolutional Neural NetWorks"
 >
 
@@ -65,8 +65,9 @@
 ***
 
 >Config   
->1. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Cifar10Config.txt"> CIFAR10</a>   
->2. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/MnistConfig.txt"> MNIST</a>   
+>1. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Config/Cifar10Config.txt">CIFAR10</a>   
+>2. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Config/MnistConfig.txt">MNIST</a>   
+>3. <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Config/Cifar100Config.txt">CIFAR100</a>
 ***
 
 >Informations
