@@ -3,7 +3,6 @@
 
 #include "cuMatrixVector.h"
 
-
 void preProcessing(
 	cuMatrixVector<double>&trainX,
 	cuMatrixVector<double>&testX);

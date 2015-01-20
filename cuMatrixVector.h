@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "MemoryMonitor.h"
+
 using namespace std;
 
 template <class T>
@@ -16,8 +18,8 @@ class cuMatrixVector
 public:
 	cuMatrixVector(): m_hstPoint(0), m_devPoint(0){}
 	~cuMatrixVector(){
-		free(m_hstPoint);
-		cudaFree(m_devPoint);
+		MemoryMonitor::instance()->freeCpuMemory(m_hstPoint);
+		MemoryMonitor::instance()->freeGpuMemory(m_devPoint);
 		m_vec.clear();
 	}
 	cuMatrix<T>* operator[](size_t index){
@@ -36,13 +38,13 @@ public:
 	{
 		cudaError_t cudaStat;
 
-		m_hstPoint = (T**)malloc(m_vec.size() * sizeof(T*));
+		m_hstPoint = (T**)MemoryMonitor::instance()->cpuMalloc(m_vec.size() * sizeof(T*));
 		if(!m_hstPoint){
 			printf("cuMatrixVector<T> malloc m_hstPoint fail\n");
 			exit(0);
 		}
 
-		cudaStat = cudaMalloc((void**)&m_devPoint, sizeof(T*) * m_vec.size());
+		cudaStat = MemoryMonitor::instance()->gpuMalloc((void**)&m_devPoint, sizeof(T*) * m_vec.size());
 		if(cudaStat != cudaSuccess){
 			printf("cuMatrixVector<T> cudaMalloc m_devPoint fail\n");
 			exit(0);

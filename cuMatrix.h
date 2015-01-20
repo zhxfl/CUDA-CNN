@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "helper_cuda.h"
+#include "MemoryMonitor.h"
 
 /*rows-major*/
 template <class T>
@@ -17,7 +18,7 @@ public:
 	cuMatrix(T *_data, int _n,int _m, int _c):rows(_n), cols(_m), channels(_c){
 		cudaError_t cudaStat;
 		/*malloc host data*/
-		hostData = (T*)malloc (cols * rows * channels * sizeof(*hostData));
+		hostData = (T*)MemoryMonitor::instance()->cpuMalloc(cols * rows * channels * sizeof(*hostData));
 		if(!hostData) {
 			printf("cuMatrix:cuMatrix host memory allocation failed\n");
 			exit(0);
@@ -27,7 +28,7 @@ public:
 		memcpy(hostData, _data, sizeof(*hostData) * cols * rows * channels);
 
 		/*malloc device data*/
-		cudaStat = cudaMalloc ((void**)&devData, cols * rows * channels * sizeof(*devData));
+		cudaStat = MemoryMonitor::instance()->gpuMalloc((void**)&devData, cols * rows * channels * sizeof(*devData));
 		if(cudaStat != cudaSuccess) {
 			printf ("cuMatrix::cuMatrix device memory allocation failed\n");
 			exit(0);
@@ -38,7 +39,7 @@ public:
 		cudaError_t cudaStat;
 
 		/*malloc host data*/
-		hostData = (T*)malloc (cols * rows * channels * sizeof(*hostData));
+		hostData = (T*)MemoryMonitor::instance()->cpuMalloc(cols * rows * channels * sizeof(*hostData));
 		if(!hostData) {
 			printf("cuMatrix::cuMatrix host memory allocation failed\n");
 			exit(0);
@@ -47,7 +48,7 @@ public:
 		memset(hostData, 0, cols * rows * channels * sizeof(*hostData));
 
 		//malloc device data
-		cudaStat = cudaMalloc ((void**)&devData, cols * rows * channels * sizeof(*devData));
+		cudaStat = MemoryMonitor::instance()->gpuMalloc((void**)&devData, cols * rows * channels * sizeof(*devData));
 		if(cudaStat != cudaSuccess) {
 			printf ("cuMatrix::cuMatrix device memory allocation failed\n");
 			exit(0);
@@ -62,14 +63,14 @@ public:
 
 	/*free cuda memery*/
 	void freeCudaMem(){
-		cudaFree(devData);
+		MemoryMonitor::instance()->freeGpuMemory(devData);
 		devData = 0;
 	}
 
 	/*destruction function*/
 	~cuMatrix(){
-		free(hostData);
-		cudaFree(devData);
+		MemoryMonitor::instance()->freeCpuMemory(hostData);
+		MemoryMonitor::instance()->freeGpuMemory(devData);
 	}
 
 	/*copy the device data to host data*/ 
@@ -80,7 +81,7 @@ public:
 
 		if(cudaStat != cudaSuccess) {
 			printf("cuMatrix::toCPU data download failed\n");
-			cudaFree(devData);
+			MemoryMonitor::instance()->freeGpuMemory(devData);
 			exit(0);
 		} 
 	}
@@ -93,8 +94,8 @@ public:
 
 		if(cudaStat != cudaSuccess) {
 			printf ("cuMatrix::toGPU data upload failed\n");
-			cudaFree (devData);
-			return;
+			MemoryMonitor::instance()->freeGpuMemory(devData);
+			exit(0);
 		}
 	}
 

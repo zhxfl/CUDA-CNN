@@ -9,6 +9,8 @@
 #include "cuMatrixVector.h"
 #include <helper_functions.h>
 #include <helper_cuda.h>
+#include "MemoryMonitor.h"
+
 cuMatrixVector<double>* cu_distortion_vector;
 
 std::vector<int> cuPoolOutputSize;
@@ -720,6 +722,9 @@ void cuInitCNNMemory(
 		}
 		batchImg[i].toGpu();
 	}
+
+	MemoryMonitor::instance()->printCpuMemory();
+	MemoryMonitor::instance()->printGpuMemory();
 }
 
 void cuFreeCNNMemory(
