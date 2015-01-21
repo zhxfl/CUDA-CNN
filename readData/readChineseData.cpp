@@ -1,11 +1,8 @@
-#include "cuMatrix.h"
 #include "readCIFAR10Data.h"
 #include <string>
 #include <fstream>
 #include <vector>
-#include "util.h"
 #include <vector>
-#include "cuMatrixVector.h"
 #include <opencv2/opencv.hpp>
 #include <stdlib.h>
 using namespace std;

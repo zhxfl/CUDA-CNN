@@ -26,12 +26,20 @@ void runChinese();
 void cuVoteMnist();
 bool init(cublasHandle_t& handle);
 
+std::vector<int> g_argv;
 
-int main (void)
+int main (int argc, char** argv)
 {
+	if(argc >= 3){
+		g_argv.push_back(atoi(argv[1]));
+		g_argv.push_back(atoi(argv[2]));
+	}
 	printf("1. MNIST\n2. CIFAR-10\n3. CHINESE\n4. CIFAR-100\n5. VOTE MNIST\nChoose the dataSet to run:");
 	int cmd;
-	scanf("%d", &cmd);
+	if(g_argv.size() >= 2)
+		cmd = g_argv[0];
+	else 
+		scanf("%d", &cmd);
 	if(cmd == 1)
 		runMnist();
 	else if(cmd == 2)
@@ -75,7 +83,10 @@ void runChinese() {
 	printf(
 			"1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
 
-	scanf("%d", &cmd);
+	if(g_argv.size() >= 2)
+		cmd = g_argv[1];
+	else 
+		scanf("%d", &cmd);
 	if (cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop,
 				nclasses);
@@ -144,7 +155,10 @@ void runCifar100(){
 	cuInitDistortionMemery(batch, ImgSize - crop);
 	printf("1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
 
-	scanf("%d", &cmd);
+	if(g_argv.size() >= 2)
+		cmd = g_argv[1];
+	else 
+		scanf("%d", &cmd);
 	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)
@@ -204,7 +218,10 @@ void runCifar10()
 	cuInitDistortionMemery(batch, ImgSize - crop);
 	printf("1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
 
-	scanf("%d", &cmd);
+	if(g_argv.size() >= 2)
+		cmd = g_argv[1];
+	else 
+		scanf("%d", &cmd);
 	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)
@@ -274,7 +291,10 @@ void runMnist(){
 	cuInitDistortionMemery(batch, ImgSize - crop);
 	printf("1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
 
-	scanf("%d", &cmd);
+	if(g_argv.size() >= 2)
+		cmd = g_argv[1];
+	else 
+		scanf("%d", &cmd);
  	if(cmd == 1)
 		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
 	else if(cmd == 2)

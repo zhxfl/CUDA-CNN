@@ -1,12 +1,11 @@
-#include "cuMatrix.h"
 #include "readMnistData.h"
 #include <string>
 #include <fstream>
 #include <vector>
 #include <cuda_runtime_api.h>
-#include "util.h"
 #include <vector>
-#include "cuMatrixVector.h"
+
+
 
 
 int checkError(int x)

@@ -1,11 +1,12 @@
 #ifndef _READ_MNIST_DATA_H_
 #define _READ_MNIST_DATA_H_
 
-#include "cuMatrix.h"
+#include "../cuMatrix.h"
+#include "../cuMatrixVector.h"
+#include "../util.h"
+#include "../MemoryMonitor.h"
 #include <string>
 #include <vector>
-#include "util.h"
-#include "cuMatrixVector.h"
 
 
 /*read trainning data and lables*/
