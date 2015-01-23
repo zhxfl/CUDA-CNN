@@ -240,7 +240,7 @@ void runCifar10()
 		nlrate.push_back(r);
 		nMomentum.push_back(m);
 		epoCount.push_back(e);
-		r = r * 0.95;
+		r = r * 0.85;
 		m = m + 0.001;
 		if(m >= 1.0) break;
 	}

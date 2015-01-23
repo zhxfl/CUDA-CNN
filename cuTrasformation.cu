@@ -442,11 +442,11 @@ __global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* ran
 	int inputImgSize2 = inputImgSize * inputImgSize;
 	int outputImgSize2= outputImgSize* outputImgSize;
 
-	double* input = _inputs[blockIdx.x] + c * inputImgSize2;
+	double* input = _inputs [blockIdx.x] + c * inputImgSize2;
 	double* output= _outputs[blockIdx.x]+ c * outputImgSize2;
 
-	int sx =(int)((random[blockIdx.x]     + 1.0) / 2.0 * crop);
-	int sy =(int)((random[blockIdx.x + 1] + 1.0) / 2.0 * crop);
+	int sx =(int)((random[blockIdx.x]     + 1.0) * 0.5 * crop);
+	int sy =(int)((random[blockIdx.x + 1] + 1.0) * 0.5 * crop);
 
 	if(sx > crop) sx = crop;
 	if(sy > crop) sy = crop;
@@ -526,6 +526,11 @@ void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cr
 	getLastCudaError("g_applyCrop");
 }
 
+__device__ void swap(double& val1, double& val2){
+	double tmp = val1;
+	val1 = val2;
+	val2 = tmp;
+}
 
 /*
  * function: orizontal Reflection
@@ -539,36 +544,34 @@ __global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* ran
 {
 	int c = blockIdx.y;
 
-	int ImgSize2 = ImgSize * ImgSize;
+	int ImgSize2 = ImgSize * ImgSize ;
 
 	double* input = _inputs[blockIdx.x] + c * ImgSize2;
 	double* output= _outputs[blockIdx.x]+ c * ImgSize2;
 
-	for(int is = 0; is < ImgSize2; is += blockDim.x)
+	int half = ImgSize / 2;
+	for(int is = 0; is < half * ImgSize; is += blockDim.x)
 	{
 		int idx = is + threadIdx.x;
-		if(idx < ImgSize2)
+		if(idx < half * ImgSize)
 		{
-			int ox  = idx / ImgSize;
-			int oy  = idx % ImgSize;
-			int ix  = ox;
-			int iy;
+			int ox = idx / half;
+			int oy = idx % half;
+			int ix = ox;
+			int iy = ImgSize - oy - 1;
 			if(flag == RANDOM_HORIZONTAL)
 			{
-				if(rand[blockIdx.y] <= 0.0)
-					iy  = ImgSize - oy - 1;
-				else
-					iy = oy;
+				if(rand[blockIdx.x] <= 0.0){
+					cuAssert(ix < ImgSize && iy < ImgSize);
+					swap(output[ox * ImgSize + iy], input[ix * ImgSize + iy]);
+				}
 			}
 			else if(flag == HORIZONTAL){
-				iy  = ImgSize - oy - 1;
+				cuAssert(ix < ImgSize && iy < ImgSize);
+				swap(output[ox * ImgSize + iy], input[ix * ImgSize + iy]);
 			}
 			else if(flag == NOT_HORIZONTAL){
-				iy = oy;
 			}
-		
-			cuAssert(ix < ImgSize && iy < ImgSize);
-			output[idx] = input[ix * ImgSize + iy];
 		}
 	}
 }
@@ -580,7 +583,7 @@ __global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* ran
 */
 void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize, int flag)
 {
-	int threads = std::min(ImgSize * ImgSize, 512);
+	int threads = std::min(ImgSize * ImgSize / 2, 512);
 
 	g_applyHorizontal<<<dim3(batch, Config::instance()->getChannels()),
 		dim3(threads)>>>(inputs, outputs, cu_d_randomNum,  ImgSize, flag);

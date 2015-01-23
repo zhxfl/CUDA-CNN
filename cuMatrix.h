@@ -114,6 +114,10 @@ public:
 		}
 	}
 
+	void cpuClear(){
+		memset(hostData, 0, cols * rows * channels * sizeof(*hostData));
+	}
+
 	/*set  value*/
 	void set(int i, int j, int k, T v){
 		hostData[(i * cols + j) + cols * rows * k] = v;

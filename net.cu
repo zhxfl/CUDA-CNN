@@ -3504,9 +3504,10 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			
 			cuApplyCropRandom(batchImg[batchImgId].m_devPoint,
 				cu_distortion_vector->m_devPoint, batch, ImgSize);
+
 			if(fabs(Config::instance()->getDistortion()) >= 0.1)
-				cuApplyDistortion(cu_distortion_vector->m_devPoint,
-				cu_distortion_vector->m_devPoint, batch, ImgSize);
+				cuApplyDistortion(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
+
 			if (Config::instance()->getHorizontal()) {
 				cuApplyHorizontal(cu_distortion_vector->m_devPoint,
 					cu_distortion_vector->m_devPoint, batch, ImgSize, RANDOM_HORIZONTAL);
