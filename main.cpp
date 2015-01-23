@@ -5,19 +5,21 @@
 #include <time.h>
 #include <vector>
 #include "net.cuh"
-#include "cuMatrix.h"
-#include "util.h"
-#include "cuTrasformation.cuh"
-#include "Config.h"
-#include "cuMatrixVector.h"
+#include "common/cuMatrix.h"
+#include "common/util.h"
+#include "dataAugmentation/cuTrasformation.cuh"
+#include "common/Config.h"
+#include "common/cuMatrixVector.h"
 
-#include "Config.h"
-#include "dataPretreatment.cuh"
+#include "common/Config.h"
+#include "dataAugmentation/dataPretreatment.cuh"
 
 #include "readData/readMnistData.h"
 #include "readData/readCIFAR10Data.h"
 #include "readData/readChineseData.h"
 #include "readData/readCIFAR100Data.h"
+
+#include "layers/Pooling.h"
 
 void runMnist();
 void runCifar10();
@@ -30,6 +32,11 @@ std::vector<int> g_argv;
 
 int main (int argc, char** argv)
 {
+	LayerBase* base = new Pooling();
+	base->feedforward();
+	base->backpropagation();
+
+	return 0;
 	if(argc >= 3){
 		g_argv.push_back(atoi(argv[1]));
 		g_argv.push_back(atoi(argv[2]));
@@ -108,7 +115,7 @@ void runChinese() {
 		nlrate.push_back(r);
 		nMomentum.push_back(m);
 		epoCount.push_back(e);
-		r = r * 0.75;
+		r = r * 0.90;
 		m = m + 0.005;
 		if(m >= 1.0) m = 0.99;
 	}
@@ -177,7 +184,7 @@ void runCifar100(){
 		nlrate.push_back(r);
 		nMomentum.push_back(m);
 		epoCount.push_back(e);
-		r = r * 0.95;
+		r = r * 0.90;
 		m = m + 0.001;
 		if(m >= 1.0) break;
 	}
@@ -240,7 +247,7 @@ void runCifar10()
 		nlrate.push_back(r);
 		nMomentum.push_back(m);
 		epoCount.push_back(e);
-		r = r * 0.85;
+		r = r * 0.90;
 		m = m + 0.001;
 		if(m >= 1.0) break;
 	}

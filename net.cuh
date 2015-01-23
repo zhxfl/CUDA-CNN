@@ -1,11 +1,11 @@
 #ifndef _NET_CUH_
 #define _NET_CUH_
 
-#include "cuMatrix.h"
+#include "common/cuMatrix.h"
 #include <vector>
 #include <stdio.h>
 #include <cuda_runtime.h>
-#include "cuMatrixVector.h"
+#include "common/cuMatrixVector.h"
 
 
 /*Convolution layer kernel*/

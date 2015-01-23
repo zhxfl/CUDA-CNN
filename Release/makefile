@@ -10,6 +10,9 @@ RM := rm -rf
 -include sources.mk
 -include subdir.mk
 -include readData/subdir.mk
+-include layers/subdir.mk
+-include dataAugmentation/subdir.mk
+-include common/subdir.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)

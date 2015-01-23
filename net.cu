@@ -1,15 +1,15 @@
 #include "net.cuh"
 #include "opencv2/opencv.hpp"
-#include "cuMatrix.h"
+#include "common/cuMatrix.h"
 #include <cuda_runtime.h>
-#include "util.h"
+#include "common/util.h"
 #include <time.h>
-#include "cuTrasformation.cuh"
-#include "Config.h"
-#include "cuMatrixVector.h"
+#include "dataAugmentation/cuTrasformation.cuh"
+#include "common/Config.h"
+#include "common/cuMatrixVector.h"
 #include <helper_functions.h>
 #include <helper_cuda.h>
-#include "MemoryMonitor.h"
+#include "common/MemoryMonitor.h"
 
 cuMatrixVector<double>* cu_distortion_vector;
 
@@ -283,7 +283,7 @@ void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
 	int outDim = imgDim;
 	for(int i=0; i<Config::instance()->getConv().size(); i++){
 		outDim = outDim - Config::instance()->getConv()[i]->m_kernelSize + 1;
-		outDim = (outDim + Config::instance()->getConv()[i]->m_poolingDim - 1) / Config::instance()->getConv()[i]->m_poolingDim;
+		outDim = (outDim + Config::instance()->getPooling()[i]->m_skip - 1) / Config::instance()->getPooling()[i]->m_skip;
 	}
 	int fullfeatures = pow((double)outDim, 2.0);
 
@@ -516,7 +516,7 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 	int outDim = imgDim;
 	for(int i=0; i < Config::instance()->getConv().size(); i++){
 		outDim = outDim - Config::instance()->getConv()[i]->m_kernelSize + 1;
-		outDim = (outDim + Config::instance()->getConv()[i]->m_poolingDim - 1) / Config::instance()->getConv()[i]->m_poolingDim;
+		outDim = (outDim + Config::instance()->getPooling()[i]->m_skip - 1) / Config::instance()->getPooling()[i]->m_skip;
 	}
 
 	int fullFeatures = pow((double)outDim, (double)2);
@@ -562,8 +562,8 @@ void cuInitCNNMemory(
 		curSize = curSize - Config::instance()->getConv()[i]->m_kernelSize + 1;
 
 		cuConvOutputSize.push_back(curSize);
-		cuPoolOutputSize.push_back((curSize + Config::instance()->getConv()[i]->m_poolingDim - 1) /
-			Config::instance()->getConv()[i]->m_poolingDim);
+		cuPoolOutputSize.push_back((curSize + Config::instance()->getPooling()[i]->m_skip - 1) /
+				Config::instance()->getPooling()[i]->m_skip);
 
 		if(Config::instance()->getCFM())
 			curKernelAmount = Config::instance()->getConv()[i]->m_amount;
@@ -573,7 +573,7 @@ void cuInitCNNMemory(
 		cuKernelScan.push_back(curKernelAmount);
 
 		cuConv.push_back  (new cuMatrix<double>(batch, curKernelAmount * curSize * curSize, Config::instance()->getChannels()));
-		curSize = (curSize + Config::instance()->getConv()[i]->m_poolingDim - 1) / Config::instance()->getConv()[i]->m_poolingDim;
+		curSize = (curSize + Config::instance()->getPooling()[i]->m_skip - 1) / Config::instance()->getPooling()[i]->m_skip;
 		if(curSize <= 0){
 			printf("Convolution layer's kernel size is too large or poolDim is too large\n");
 			exit(0);
@@ -823,21 +823,15 @@ void cuFreeCNNMemory(
 *blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
 *threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
-__global__ void g_convAndPooling_1(
+__global__ void g_conv_1(
 	double** arrayS,
 	double** arrayW,
 	double** arrayB,
 	double* conv,
-	double* pool,
-	int* pointX,
-	int* pointY,
 	int inputSize,
 	int kernelSize,
 	int convSize,
-	int poolSize,
-	int poolingDim,
 	int convArea,
-	int poolArea,
 	int batch,
 	int k1Amount,
 	int NONLIN)
@@ -847,21 +841,16 @@ __global__ void g_convAndPooling_1(
 	int c  = blockIdx.z;
 
 	int convSize2  = convSize * convSize;
-	int poolSize2  = poolSize * poolSize;
 	int inputSize2 = inputSize* inputSize;
 	int kernelSize2= kernelSize * kernelSize;
 
 	int convSkip  = convArea * c + (sp * k1Amount + k) * convSize2;
-	int poolSkip  = poolArea * c + (sp * k1Amount + k) * poolSize2;
 
 	double* curInput = arrayS[sp] + c * inputSize2;
 	double* w        = arrayW[k]  + c * kernelSize2;
 	double  b        = arrayB[k][c];
 
 	double* curConv  = conv   + convSkip;
-	double* curPool  = pool   + poolSkip;
-	int* px          = pointX + poolSkip;
-	int* py          = pointY + poolSkip;
 
 	/*convolution*/
 	for(int tidx = 0; tidx < convSize2; tidx += blockDim.x)
@@ -885,8 +874,40 @@ __global__ void g_convAndPooling_1(
 			curConv[idx] = d_nonLinearity(val + b, NONLIN);
 		}
 	}
-	__syncthreads();
+}
 
+/*
+*blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
+*threads: dim3(min(convOutputSize * convOutputSize, 512));
+*/
+__global__ void g_pooling(
+	double* conv,
+	double* pool,
+	int* pointX,
+	int* pointY,
+	int convSize,
+	int poolSize,
+	int poolingDim,
+	int convArea,
+	int poolArea,
+	int batch,
+	int k1Amount,
+	int NONLIN)
+{
+	int sp = blockIdx.x;
+	int k  = blockIdx.y;
+	int c  = blockIdx.z;
+
+	int convSize2  = convSize * convSize;
+	int poolSize2  = poolSize * poolSize;
+
+	int convSkip  = convArea * c + (sp * k1Amount + k) * convSize2;
+	int poolSkip  = poolArea * c + (sp * k1Amount + k) * poolSize2;
+
+	double* curConv  = conv   + convSkip;
+	double* curPool  = pool   + poolSkip;
+	int* px          = pointX + poolSkip;
+	int* py          = pointY + poolSkip;
 
 	/*pooling*/
 	for(int tidx = 0; tidx < poolSize2; tidx += blockDim.x)
@@ -924,31 +945,26 @@ __global__ void g_convAndPooling_1(
 	}
 }
 
+
 /*
 * blocks : dim3(batch, cuKernelScan[i], Config::instance()->getChannels()),
 * threads: dim3(threadidx)
 */
 
-__global__ void g_convAndPooling_2(
+__global__ void g_conv_2(
 	double* pool1,
 	double** arrayW,
 	double** arrayB,
 	double* conv2,
-	double* pool2,
-	int* pointX,
-	int* pointY,
 	int pool1Size,
 	int kernelSize,
 	int conv2Size,
-	int pool2Size,
-	int poolingDim,
 	int k1Scan,
 	int k2Scan,
 	int k1Amount,
 	int k2Amount,
 	int pool1Area,
 	int conv2Area,
-	int pool2Area,
 	int NONLIN)
 {
 	int sp = blockIdx.x;
@@ -961,25 +977,17 @@ __global__ void g_convAndPooling_2(
 
 	int pool1Size2 = pool1Size * pool1Size;
 	int conv2Size2 = conv2Size * conv2Size;
-	int pool2Size2 = pool2Size * pool2Size;
 
 	int skip1 = sp * k1Scan + k1;
 	int skip2 = sp * k2Scan + k1 * k2Amount + k2;
 
-	int pool2skip2 = pool2Area * c 
-		+ skip2 * pool2Size2;
-
 	double* pl1 = pool1
-		+ pool1Area * c 
+		+ pool1Area * c
 		+ skip1 * pool1Size2;
 
 	double* cv2 = conv2
 		+ conv2Area * c
 		+ skip2 * conv2Size2;
-
-	double* pl2 = pool2  + pool2skip2;
-	int   * px  = pointX + pool2skip2;
-	int   * py  = pointY + pool2skip2;
 
 	for(int tidx = 0; tidx < conv2Size2; tidx += blockDim.x)
 	{
@@ -1003,40 +1011,6 @@ __global__ void g_convAndPooling_2(
 		}
 	}
 	__syncthreads();
-
-	for(int tidx = 0; tidx < pool2Size2; tidx += blockDim.x)
-	{
-		int idx = tidx + threadIdx.x;
-		if(idx < pool2Size2)
-		{
-			int x = idx / pool2Size;
-			int y = idx % pool2Size;
-
-			int curX = x * poolingDim;
-			int curY = y * poolingDim;
-
-			cuAssert(curX < conv2Size && curY < conv2Size);
-			double _max = cv2[curX * conv2Size + curY];
-			int lenx = min(conv2Size, (x + 1) * poolingDim);
-			int leny = min(conv2Size, (y + 1) * poolingDim);
-			for(int i = x * poolingDim; i < lenx; i++)
-			{
-				for(int j = y * poolingDim; j < leny; j++)
-				{
-					double val = cv2[i * conv2Size + j];
-					if(_max < val)
-					{
-						_max  = val;
-						curX = i;
-						curY = j;
-					}
-				}
-			}
-			px [idx] = curX;
-			py [idx] = curY;
-			pl2[idx] = _max;
-		}
-	}
 }
 
 
@@ -1046,24 +1020,18 @@ __global__ void g_convAndPooling_2(
 * threads : dim3(threadidx)
 */
 
-__global__ void g_cfm_convAndPooling_2(
+__global__ void g_cfm_conv_2(
 	double* pool1,
 	double** arrayW,
 	double** arrayB,
 	double* conv2,
-	double* pool2,
-	int* pointX,
-	int* pointY,
 	int pool1Size,
 	int kernelSize,
 	int conv2Size,
-	int pool2Size,
-	int poolingDim,
 	int k1Amount,
 	int k2Amount,
 	int pool1Area,
 	int conv2Area,
-	int pool2Area,
 	int numOfCFM,
 	int NONLIN)
 {
@@ -1076,20 +1044,12 @@ __global__ void g_cfm_convAndPooling_2(
 
 	int pool1Size2 = pool1Size * pool1Size;
 	int conv2Size2 = conv2Size * conv2Size;
-	int pool2Size2 = pool2Size * pool2Size;
 
 	int skip2 = sp * k2Amount + k2;
-
-	int pool2skip2 = pool2Area * c
-		+ skip2 * pool2Size2;
 
 	double* cv2 = conv2
 		+ conv2Area * c
 		+ skip2 * conv2Size2;
-
-	double* pl2 = pool2  + pool2skip2;
-	int   * px  = pointX + pool2skip2;
-	int   * py  = pointY + pool2skip2;
 
 	for(int tidx = 0; tidx < conv2Size2; tidx += blockDim.x)
 	{
@@ -1119,40 +1079,6 @@ __global__ void g_cfm_convAndPooling_2(
 		}
 	}
 	__syncthreads();
-
-	for(int tidx = 0; tidx < pool2Size2; tidx += blockDim.x)
-	{
-		int idx = tidx + threadIdx.x;
-		if(idx < pool2Size2)
-		{
-			int x = idx / pool2Size;
-			int y = idx % pool2Size;
-
-			int curX = x * poolingDim;
-			int curY = y * poolingDim;
-
-			cuAssert(curX < conv2Size && curY < conv2Size);
-			double _max = cv2[curX * conv2Size + curY];
-			int lenx = min(conv2Size, (x + 1) * poolingDim);
-			int leny = min(conv2Size, (y + 1) * poolingDim);
-			for(int i = x * poolingDim; i < lenx; i++)
-			{
-				for(int j = y * poolingDim; j < leny; j++)
-				{
-					double val = cv2[i * conv2Size + j];
-					if(_max < val)
-					{
-						_max  = val;
-						curX = i;
-						curY = j;
-					}
-				}
-			}
-			px [idx] = curX;
-			py [idx] = curY;
-			pl2[idx] = _max;
-		}
-	}
 }
 
 void outputPoints(cuMatrix<int>* p)
@@ -1191,9 +1117,9 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 	int threadidx = min(outputSize * outputSize, 512);
 	int kernelAmount = Config::instance()->getConv()[0]->m_amount;
 	int kernelSize = Config::instance()->getConv()[0]->m_kernelSize;
-	int poolingDim = Config::instance()->getConv()[0]->m_poolingDim;
+	int poolingDim = Config::instance()->getPooling()[0]->m_skip;
 
-	g_convAndPooling_1<<<
+	g_conv_1<<<
 		dim3(batch, 
 		cuKernelScan[0],
 		Config::instance()->getChannels()),
@@ -1202,22 +1128,38 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 		CLayers[0].w->m_devPoint,
 		CLayers[0].b->m_devPoint,
 		cuConv[0]->devData,
-		cuPool[0]->devData,
-		cuPointX[0]->devData,
-		cuPointY[0]->devData,
 		ImgSize,
 		kernelSize,
 		cuConvOutputSize[0],
-		cuPoolOutputSize[0],
-		poolingDim,
 		cuConv[0]->getArea(),
-		cuPool[0]->getArea(),
 		batch,
 		kernelAmount,
-		Config::instance()->getNonLinearity()
-		);
+		Config::instance()->getNonLinearity());
+
 	cudaDeviceSynchronize();
-	getLastCudaError("g_convAndPooling_1");
+	getLastCudaError("g_conv_1");
+
+	threadidx =  min(cuPoolOutputSize[0] * cuPoolOutputSize[0], 512);
+
+	g_pooling<<<dim3(batch,
+			cuKernelScan[0],
+			Config::instance()->getChannels()),
+			dim3(threadidx)>>>(cuConv[0]->devData,
+					cuPool[0]->devData,
+					cuPointX[0]->devData,
+					cuPointY[0]->devData,
+					cuConvOutputSize[0],
+					cuPoolOutputSize[0],
+					poolingDim,
+					cuConv[0]->getArea(),
+					cuPool[0]->getArea(),
+					batch,
+					kernelAmount,
+					Config::instance()->getNonLinearity());
+
+
+	cudaDeviceSynchronize();
+	getLastCudaError("g_pooling");
 
 /*	int size = cuConvOutputSize[0];
 	cuMatrix<double>* m = new cuMatrix<double>(size, size * 5, 1);
@@ -1253,58 +1195,87 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 		int kernelAmount1 = Config::instance()->getConv()[i - 1]->m_amount;
 		int kernelAmount2 = Config::instance()->getConv()[i]->m_amount;
 		int kernelSize = Config::instance()->getConv()[i]->m_kernelSize;
-		int poolingDim = Config::instance()->getConv()[i]->m_poolingDim;
+		int poolingDim = Config::instance()->getPooling()[i]->m_skip;
 		if (Config::instance()->getCFM()) {
-			g_cfm_convAndPooling_2<<<
+			g_cfm_conv_2<<<
 				dim3(batch, kernelAmount2, Config::instance()->getChannels()),
 				dim3(threadidx)>>>
 				(cuPool[i - 1]->devData,
 				CLayers[i].w->m_devPoint,
 				CLayers[i].b->m_devPoint,
 				cuConv[i]->devData,
-				cuPool[i]->devData,
-				cuPointX[i]->devData,
-				cuPointY[i]->devData,
 				cuPoolOutputSize[i - 1],
 				kernelSize,
 				cuConvOutputSize[i],
-				cuPoolOutputSize[i],
-				poolingDim,
 				kernelAmount1,
 				kernelAmount2,
 				cuPool[i - 1]->getArea(),
 				cuConv[i]->getArea(),
-				cuPool[i]->getArea(),
 				Config::instance()->getCFM(),
 				Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
-			getLastCudaError("g_cfm_convAndPooling_2");
+			getLastCudaError("g_cfm_conv_2");
+
+
+			threadidx =  min(cuPoolOutputSize[i] * cuPoolOutputSize[i], 512);
+
+			g_pooling<<<dim3(batch, kernelAmount2,
+							Config::instance()->getChannels()), dim3(threadidx)>>>(
+					cuConv[i]->devData,
+					cuPool[i]->devData,
+					cuPointX[i]->devData,
+					cuPointY[i]->devData,
+					cuConvOutputSize[i],
+					cuPoolOutputSize[i],
+					poolingDim,
+					cuConv[i]->getArea(),
+					cuPool[i]->getArea(),
+					batch,
+					kernelAmount2,
+					Config::instance()->getNonLinearity());
+
+			cudaDeviceSynchronize();
+			getLastCudaError("g_pooling");
 		} else {
-			g_convAndPooling_2<<<
+			g_conv_2<<<
 				dim3(batch, cuKernelScan[i], Config::instance()->getChannels()),
 				dim3(threadidx)>>>
 				(cuPool[i - 1]->devData,
 				CLayers[i].w->m_devPoint,
 				CLayers[i].b->m_devPoint,
 				cuConv[i]->devData,
-				cuPool[i]->devData,
-				cuPointX[i]->devData,
-				cuPointY[i]->devData,
 				cuPoolOutputSize[i - 1],
 				kernelSize,
 				cuConvOutputSize[i],
-				cuPoolOutputSize[i],
-				poolingDim,
 				cuKernelScan[i - 1],
 				cuKernelScan[i],
 				kernelAmount1,
 				kernelAmount2,
 				cuPool[i - 1]->getArea(),
 				cuConv[i]->getArea(),
-				cuPool[i]->getArea(),
 				Config::instance()->getNonLinearity());
 			cudaDeviceSynchronize();
-			getLastCudaError("g_convAndPooling_2");
+			getLastCudaError("g_conv_2");
+
+			threadidx =  min(cuPoolOutputSize[i] * cuPoolOutputSize[i], 512);
+
+			g_pooling<<<dim3(batch, cuKernelScan[i],
+							Config::instance()->getChannels()), dim3(threadidx)>>>(
+					cuConv[i]->devData,
+					cuPool[i]->devData,
+					cuPointX[i]->devData,
+					cuPointY[i]->devData,
+					cuConvOutputSize[i],
+					cuPoolOutputSize[i],
+					poolingDim,
+					cuConv[i]->getArea(),
+					cuPool[i]->getArea(),
+					batch,
+					cuKernelScan[i],
+					Config::instance()->getNonLinearity());
+
+			cudaDeviceSynchronize();
+			getLastCudaError("g_pooling");
 		}
 	}
 
@@ -2447,7 +2418,7 @@ void dConvAndUnpooling(double**x,
 			cuPoolDelta[cl]->devData,
 			cuConvDelta[cl]->devData,
 			cuPoolOutputSize[cl],
-			Config::instance()->getConv()[cl]->m_poolingDim,
+			Config::instance()->getPooling()[cl]->m_skip,
 			cuConvOutputSize[cl],
 			len);
 
@@ -2963,7 +2934,7 @@ void cfm_dConvAndUnpooling(double**x,
 			cuPoolDelta[cl]->devData,
 			cuConvDelta[cl]->devData,
 			cuPoolOutputSize[cl],
-			Config::instance()->getConv()[cl]->m_poolingDim,
+			Config::instance()->getPooling()[cl]->m_skip,
 			cuConvOutputSize[cl],
 			len);
 		cudaDeviceSynchronize();

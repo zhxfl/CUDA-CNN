@@ -1,12 +1,12 @@
 #include "cuTrasformation.cuh"
 #include <math.h>
 #include <stdio.h>
-#include "cuMatrix.h"
-#include "util.h"
+#include "../common/cuMatrix.h"
+#include "../common/util.h"
 #include "cuda_runtime.h"
 #include <curand_kernel.h>
 #include <time.h>
-#include "Config.h"
+#include "../common/Config.h"
 #include <helper_functions.h>
 #include <helper_cuda.h>
 

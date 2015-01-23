@@ -1,8 +1,8 @@
 #include "dataPretreatment.cuh"
 #include "cuda_runtime.h"
 #include "cuda_runtime_api.h"
-#include "cuMatrix.h"
-#include "cuMatrixVector.h"
+#include "../common/cuMatrix.h"
+#include "../common/cuMatrixVector.h"
 
 __global__ void g_getAver(double ** input1,
 	double** input2, 
