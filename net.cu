@@ -99,65 +99,6 @@ void cuConvLayer::init()
 	bgrad->toGpu();
 }
 
-/*void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2,
-	int rows, int cols, int channels, double epsilon)
-{
-	int iiMidr = rows >> 1;
-	int iiMidc = cols >> 1;
-
-	double _max = -1.0;
-	for(int row = 0; row < rows; row++)
-	{
-		for(int col = 0; col < cols; col++)
-		{
-			double val1 = 1.0 / (dElasticSigma1 * dElasticSigma2 * 2.0 * 3.1415926535897932384626433832795);
-			double val2 = (row-iiMidr)*(row-iiMidr) / (dElasticSigma1 * dElasticSigma1) + (col-iiMidc)*(col-iiMidc) / (dElasticSigma2 * dElasticSigma2) 
-				+ 2.0 * (row - iiMidr) * (col - iiMidc) / (dElasticSigma1 * dElasticSigma2);
-			gaussian[row * cols + col] = val1 * exp(-1.0 * val2);
-			if(_max < gaussian[row * cols + col])
-			{
-				_max = gaussian[row * cols + col];
-			}
-		}
-	}
-	for(int row = 0; row < rows; row++)
-	{
-		for(int col = 0; col < cols; col++)
-		{
-			gaussian[row * cols + col] /= _max;
-			gaussian[row * cols + col] *= epsilon;
-		}
-	}
-}*/
-
-/*__device__ double d_nonLinearity(double val, int NONLIN){
-	if(NONLIN == NL_RELU)
-	{
-		if(val < 0.0) return 0.0;
-		else return val;
-	}
-	else if(NONLIN == NL_TANH)
-	{
-		return tanh(val * 2.0 / 3.0) * 1.7159;
-	}
-	return 0.0;
-}
-
-__device__ double d_dnonLinearity(double val,int NONLIN){
-	if(NONLIN == NL_RELU)
-	{
-		if(val > 0.0) return 1.0;
-		else return 0.0;
-	}
-	else if(NONLIN == NL_TANH)
-	{
-		double res = 1.7159;
-		double temp = val * val / 1.7159;
-		res = (res - temp) * 2.0 / 3.0;
-		return res;
-	}
-}*/
-
 void dropDelta(cuMatrix<double>* M, double cuDropProb)
 {
 	for(int c = 0; c < M->channels; c++){
@@ -994,6 +935,7 @@ __global__ void g_cfm_conv_2(
 	double* conv2,
 	int pool1Size,
 	int kernelSize,
+	int padding,
 	int conv2Size,
 	int k1Amount,
 	int k2Amount,
@@ -1035,10 +977,10 @@ __global__ void g_cfm_conv_2(
 
 				for (int i = 0; i < kernelSize; i++) {
 					for (int j = 0; j < kernelSize; j++) {
-						int xx = x + i;
-						int yy = y + j;
-						cuAssert(xx < pool1Size && yy < pool1Size);
-						val += pl1[xx * pool1Size + yy] * w[i * kernelSize + j];
+						int xx = x + i - padding;
+						int yy = y + j - padding;
+						if(xx>= 0 && xx < pool1Size && yy >= 0 && yy < pool1Size)
+							val += pl1[xx * pool1Size + yy] * w[i * kernelSize + j];
 					}
 				}
 			}
@@ -1108,57 +1050,8 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 	getLastCudaError("g_conv_1");
 
 	poolings[0]->feedforward();
-	//threadidx =  min(cuPoolOutputSize[0] * cuPoolOutputSize[0], 512);
-
-	/*g_pooling<<<dim3(batch,
-			cuKernelScan[0],
-			Config::instance()->getChannels()),
-			dim3(threadidx)>>>(cuConv[0]->devData,
-					cuPool[0]->devData,
-					cuPointX[0]->devData,
-					cuPointY[0]->devData,
-					cuConvOutputSize[0],
-					cuPoolOutputSize[0],
-					poolingDim,
-					cuConv[0]->getArea(),
-					cuPool[0]->getArea(),
-					batch,
-					kernelAmount,
-					Config::instance()->getNonLinearity());*/
 
 
-	cudaDeviceSynchronize();
-	getLastCudaError("g_pooling");
-
-/*	int size = cuConvOutputSize[0];
-	cuMatrix<double>* m = new cuMatrix<double>(size, size * 5, 1);
-	cuConv[0]->toCpu();
-	for(int i = 0; i < 5; i++){
-		for(int r = 0; r < size; r++){
-			for(int c = 0; c < size; c++){
-				m->set(r, c + i * size, 0, cuConv[0]->get(0, i * size * size + r * size + c,0));
-			}
-		}
-	}
-	m->toGpu();
-	showImg(m, 5);
-	cv::waitKey(0);
-
-
-	size = cuPoolOutputSize[0];
-	m = new cuMatrix<double>(size, size * 5, 1);
-	cuPool[0]->toCpu();
-	for(int i = 0; i < 5; i++){
-		for(int r = 0; r < size; r++){
-			for(int c = 0; c < size; c++){
-				m->set(r, c + i * size, 0, cuPool[0]->get(0, i * size * size + r * size + c,0));
-			}
-		}
-	}
-	m->toGpu();
-	showImg(m, 5);
-	cv::waitKey(0);
-*/
 	for (int i = 1; i < Config::instance()->getConv().size(); i++) {
 		int threadidx = min(cuConvOutputSize[i] * cuConvOutputSize[i], 512);
 		int kernelAmount1 = Config::instance()->getConv()[i - 1]->m_amount;
@@ -1175,6 +1068,7 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 				cuConv[i]->devData,
 				cuPoolOutputSize[i - 1],
 				kernelSize,
+				Config::instance()->getConv()[i]->m_padding,
 				cuConvOutputSize[i],
 				kernelAmount1,
 				kernelAmount2,
@@ -1185,23 +1079,6 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 			cudaDeviceSynchronize();
 			getLastCudaError("g_cfm_conv_2");
 
-
-			/*threadidx =  min(cuPoolOutputSize[i] * cuPoolOutputSize[i], 512);
-
-			g_pooling<<<dim3(batch, kernelAmount2,
-							Config::instance()->getChannels()), dim3(threadidx)>>>(
-					cuConv[i]->devData,
-					cuPool[i]->devData,
-					cuPointX[i]->devData,
-					cuPointY[i]->devData,
-					cuConvOutputSize[i],
-					cuPoolOutputSize[i],
-					poolingDim,
-					cuConv[i]->getArea(),
-					cuPool[i]->getArea(),
-					batch,
-					kernelAmount2,
-					Config::instance()->getNonLinearity());*/
 			poolings[i]->feedforward();
 
 			cudaDeviceSynchronize();
@@ -1228,26 +1105,8 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 			cudaDeviceSynchronize();
 			getLastCudaError("g_conv_2");
 
-			/*threadidx =  min(cuPoolOutputSize[i] * cuPoolOutputSize[i], 512);
-
-			g_pooling<<<dim3(batch, cuKernelScan[i],
-							Config::instance()->getChannels()), dim3(threadidx)>>>(
-					cuConv[i]->devData,
-					cuPool[i]->devData,
-					cuPointX[i]->devData,
-					cuPointY[i]->devData,
-					cuConvOutputSize[i],
-					cuPoolOutputSize[i],
-					poolingDim,
-					cuConv[i]->getArea(),
-					cuPool[i]->getArea(),
-					batch,
-					cuKernelScan[i],
-					Config::instance()->getNonLinearity());*/
 			poolings[i]->feedforward();
 
-			cudaDeviceSynchronize();
-			getLastCudaError("g_pooling");
 		}
 	}
 
@@ -1920,6 +1779,7 @@ __global__ void g_cfm_dPoolToConv(
 	int     _kernelAmount1,
 	int     _kernelAmount2,
 	int     _kernelSize,
+	int     _padding,
 	int     _convDeltaArea,
 	int     _poolDeltaArea,
 	int numOfCFM)
@@ -1959,10 +1819,10 @@ __global__ void g_cfm_dPoolToConv(
 					int cy = j + y - (wSize >> 1);
 					int wx = wSize - x - 1;
 					int wy = wSize - y - 1;
-					cx -= (wSize >> 1);
-					cy -= (wSize >> 1);
+					cx -= ((wSize >> 1) - _padding);
+					cy -= ((wSize >> 1) - _padding);
 					if(cx >= 0 && cx < curSize && cy >= 0 && cy < curSize){
-						val += curDelta[cx * curAddBorderSize + cy] * w[wx * wSize + wy];
+						val += curDelta[cx * curSize + cy] * w[wx * wSize + wy];
 					}
 				}
 			}
@@ -2507,6 +2367,7 @@ __global__ void g_cfm_wgrad(double* pool,
 	int kernelAmount1,
 	int kernelAmount2,
 	int kernelSize,
+	int padding,
 	int poolArea,
 	int convDeltaArea,
 	int wgradTmpArea,
@@ -2549,10 +2410,10 @@ __global__ void g_cfm_wgrad(double* pool,
 			{
 				for(int y = 0; y < wSize; y++)
 				{
-					int cx = i + x;
-					int cy = j + y;
-					cuAssert(cx < curSize && cy < curSize);
-					val += cur[cx * curSize + cy] * w[x * wSize + y];
+					int cx = i + x - padding;
+					int cy = j + y - padding;
+					if(cx >= 0 && cy >= 0 && cx < curSize && cy < curSize)
+						val += cur[cx * curSize + cy] * w[x * wSize + y];
 				}
 			}
 			nxt[idx] = val;
@@ -2682,6 +2543,7 @@ __global__ void g_cfm_wgrad_1(double** sArray,
 	int convOutputSize,
 	int kernelAmount2,
 	int kernelSize,
+	int padding,
 	int sArrayArea,
 	int convDeltaArea,
 	int wgrapTmpArea)
@@ -2713,9 +2575,9 @@ __global__ void g_cfm_wgrad_1(double** sArray,
 			{
 				for(int y = 0; y < wSize; y++)
 				{
-					int cx = i + x;
-					int cy = j + y;
-					cuAssert(cx < curSize && cy < curSize);
+					int cx = i + x - padding;
+					int cy = j + y - padding;
+					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize);
 					val += cur[cx * curSize + cy] * w[x * wSize + y];
 				}
 			}
@@ -2875,11 +2737,13 @@ void cfm_dConvAndUnpooling(double**x,
 				kernelAmount1,
 				kernelAmount2,
 				kernelSize,
+				Config::instance()->getConv()[cl]->m_padding,
 				cuConvDelta[cl]->getArea(),
 				poolings[cl - 1]->getCurDelta()->getArea(),
 				Config::instance()->getCFM());
+
 			cudaDeviceSynchronize();
-			getLastCudaError("g_dPoolToConv");
+			getLastCudaError("g_cfm_dPoolToConv");
 			threadidx = min(kernelSize * kernelSize, 512);
 			g_cfm_wgrad<<<dim3(batch, Config::instance()->getCFM() * kernelAmount2, Config::instance()->getChannels()),
 				dim3(threadidx)>>>(
@@ -2891,6 +2755,7 @@ void cfm_dConvAndUnpooling(double**x,
 				kernelAmount1,
 				kernelAmount2,
 				kernelSize,
+				Config::instance()->getConv()[cl]->m_padding,
 				poolings[cl - 1]->getOutputs()->getArea(),
 				cuConvDelta[cl]->getArea(),
 				cuConvLayerWgradTmp[cl]->getArea(),
@@ -2943,6 +2808,7 @@ void cfm_dConvAndUnpooling(double**x,
 				cuConvOutputSize[cl],
 				kernelAmount2,
 				kernelSize,
+				Config::instance()->getConv()[cl]->m_padding,
 				ImgSize * ImgSize,
 				cuConvDelta[cl]->getArea(),
 				cuConvLayerWgradTmp[cl]->getArea());
@@ -2982,64 +2848,7 @@ void cfm_dConvAndUnpooling(double**x,
 	}
 }
 
-__global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
-	double** _v_b, double** _bgrad, double** _b, 
-	int lenw, int lenb,
-	double momentum, double lrate)
-{
-	double* v_w   = _v_w[blockIdx.x];
-	double* wgrad = _wgrad[blockIdx.x];
-	double* w     = _w[blockIdx.x];
-	double* v_b   = _v_b[blockIdx.x];
-	double* bgrad = _bgrad[blockIdx.x];
-	double* b     = _b[blockIdx.x];
 
-	int idx = threadIdx.x;
-	for(int i = 0; i < lenw; i += blockDim.x)
-	{
-		int id = i + idx;
-		if(id < lenw)
-		{
-			v_w[id] = v_w[id] * momentum + wgrad[id] * lrate;
-			w[id] -= v_w[id];
-		}
-	}
-	for(int i = 0; i < lenb; i += blockDim.x)
-	{
-		int id = i + idx;
-		if(id < lenb)
-		{
-			v_b[id] = v_b[id] * momentum + bgrad[id] * lrate;
-			b[id] -= v_b[id];
-		}
-	}
-}
-
-__global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
-	double* v_b, double* bgrad, double* b, 
-	int lenw, int lenb,
-	double momentum, double lrate)
-{
-	int idx = blockDim.x * blockIdx.x + threadIdx.x;
-	for(int i = 0; i < lenw; i += blockDim.x * gridDim.x)
-	{
-		int id = i + idx;
-		if(id < lenw)
-		{
-			v_w[id] = v_w[id] * momentum + wgrad[id] * lrate;
-			w[id] -= v_w[id];
-		}
-	}
-	for(int i = 0; i < lenb; i += blockDim.x * gridDim.x)
-	{
-		int id = i + idx;
-		if(id < lenb)
-		{
-			v_b[id] = v_b[id] * momentum + bgrad[id] * lrate;
-			b[id] -= v_b[id];
-		}
-	}
-}
 void updataWB(std::vector<cuCvl> &CLayers, 
 	std::vector<cuFll> &hLayers,
 	cuSMR &smr,

@@ -14,6 +14,16 @@ __global__ void   g_dnonLinearity(double* delta, double*acti, int len, int NONLI
 __global__ void   g_nonLinearity(double* inputs, int len, int NONLIN);
 __device__ void   swap(double& val1, double& val2);
 
+__global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
+	double** _v_b, double** _bgrad, double** _b, 
+	int lenw, int lenb,
+	double momentum, double lrate);
+
+__global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
+	double* v_b, double* bgrad, double* b, 
+	int lenw, int lenb,
+	double momentum, double lrate);
+
 #endif
 
 

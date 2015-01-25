@@ -6,7 +6,6 @@
 #include "../common/Config.h"
 #include "../common/cuBase.h"
 
-
 /*
 * function: unPooling
 */

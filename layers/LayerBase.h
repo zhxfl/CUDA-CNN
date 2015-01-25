@@ -8,6 +8,7 @@ public:
 	virtual void backpropagation() = 0;
 	virtual void getGrad() = 0;
 	virtual void updateWeight() = 0;
+	virtual void clearMomentum() = 0;
 };
 
 #endif

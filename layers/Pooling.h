@@ -17,7 +17,7 @@ public:
 	void backpropagation();
 	void getGrad(){};
 	void updateWeight(){};
-
+	void clearMomentum(){};
 	Pooling(cuMatrix<double>* _inputs, int _size, int _skip,int _inputDim, int _amount, int _batch);
 
 	~Pooling(){

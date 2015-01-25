@@ -10,7 +10,7 @@ ROTATION = 0.0;                 #angle from -13.0 to 13.0#
 DISTORTION = 0.0;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = true;              #horizontal reflection#
-COMBINE_FEATRUE_MAPS = 0;       #According to paper "notes on Convolutional Neural NetWorks"#
+COMBINE_FEATRUE_MAPS = 2;       #According to paper "notes on Convolutional Neural NetWorks"#
 
 [
 LAYER = CONV;

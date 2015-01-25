@@ -1,5 +1,5 @@
-#ifndef __CONV_NO_COMBINE_FEATURE_MAP_CU_H__
-#define __CONV_NO_COMBINE_FEATURE_MAP_CU_H__
+#ifndef __CONV_COMBINE_FEATURE_MAP_CU_H__
+#define __CONV_COMBINE_FEATURE_MAP_CU_H__
 
 #include "LayerBase.h"
 #include "../common/cuMatrix.h"
@@ -8,7 +8,7 @@
 #include "../common/cuMatrixVector.h"
 
 
-class ConvNCFM: public LayerBase
+class ConvCFM: public LayerBase
 {
 public:
 	void feedforward();
@@ -17,7 +17,7 @@ public:
 	void updateWeight();
 	void clearMomemtum();
 
-	ConvNCFM(cuMatrix<double>* _inputs, 
+	ConvCFM(cuMatrix<double>* _inputs, 
 		int _inputAmount,
 		int _amount,
 		int _kernelSize,
@@ -26,9 +26,10 @@ public:
 		int _batch, 
 		double _weight_decay,
 		double _lambda,
+		int cfm,
 		int _NON_LINEARITY);
 
-	ConvNCFM(cuMatrixVector<double>* _inputs, 
+	ConvCFM(cuMatrixVector<double>* _inputs, 
 		int _inputAmount,
 		int _amount,
 		int _kernelSize,
@@ -37,13 +38,14 @@ public:
 		int _batch, 
 		double _weight_decay,
 		double _lambda,
+		int cfm,
 		int _NON_LINEARITY);
 
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
 
-	~ConvNCFM(){
+	~ConvCFM(){
 		delete outputs;
 	}
 
@@ -82,6 +84,7 @@ private:
 	int padding;
 	int batch;
 	int NON_LINEARITY;
+	int cfm;
 	double weight_decay;
 	double lambda;
 private:

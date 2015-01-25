@@ -1,11 +1,11 @@
-#include "ConvNCFM.h"
+#include "ConvCFM.h"
 #include "../common/cuBase.h"
 #include "../common/Config.h"
 /*
 *	blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
 *	threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
-__global__ void g_ConvNCFM_feedforward_1(
+__global__ void g_ConvCFM_feedforward_1(
 	double** arrayS,
 	double** arrayW,
 	double** arrayB,
@@ -21,7 +21,7 @@ __global__ void g_ConvNCFM_feedforward_1(
 *	blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
 *	threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
-__global__ void g_ConvNCFM_feedforward_2(
+__global__ void g_ConvCFM_feedforward_2(
 	double* pool1,
 	double** arrayW,
 	double** arrayB,
@@ -37,11 +37,12 @@ __global__ void g_ConvNCFM_feedforward_2(
 	int pool1Area,
 	int conv2Area);
 
+
 /*
 * blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels())
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvNCFM_backpropagation(
+__global__ void g_ConvCFM_backpropagation(
 	double* _convDelta,
 	double**_w,
 	double* _poolDelta,
@@ -60,7 +61,7 @@ __global__ void g_ConvNCFM_backpropagation(
 * blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvNCFM_wgrad_2(double* pool,
+__global__ void g_ConvCFM_wgrad_2(double* pool,
 	double* convDelta,
 	double* WgradTmp,
 	int poolOutputSize,
@@ -80,7 +81,7 @@ __global__ void g_ConvNCFM_wgrad_2(double* pool,
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
-__global__ void g_ConvNCFM_wgradAdd_2(
+__global__ void g_ConvCFM_wgradAdd_2(
 	double* WgradTmp, 
 	double** Wgrad,
 	double** w,
@@ -100,7 +101,7 @@ __global__ void g_ConvNCFM_wgradAdd_2(
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
-__global__ void g_ConvNCFM_Bgrad_2(double* delta,
+__global__ void g_ConvCFM_Bgrad_2(double* delta,
 	double** bgrad,
 	int deltaSize,
 	int kernelScan1,
@@ -114,7 +115,7 @@ __global__ void g_ConvNCFM_Bgrad_2(double* delta,
 * blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvNCFM_wgrad_1(double** sArray,
+__global__ void g_ConvCFM_wgrad_1(double** sArray,
 	double* convDelta,
 	double* WgradTmp,
 	int imgSize,
@@ -130,7 +131,7 @@ __global__ void g_ConvNCFM_wgrad_1(double** sArray,
 /*
 * <<<dim3(k1, kernelSize*kernelSize, channels), dim3(256)>>>
 */
-__global__ void g_ConvNCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
+__global__ void g_ConvCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
 	double** w,
 	int kernelScan2,
 	int kernelAmount2,
@@ -146,7 +147,7 @@ __global__ void g_ConvNCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
 *threads : dim3(256)
 *shared  : sizeof(double) * 256
 */
-__global__ void g_ConvNCFM_Bgrad_1(double* delta,
+__global__ void g_ConvCFM_Bgrad_1(double* delta,
 	double** bgrad,
 	int deltaSize,
 	int kernelScan2,
@@ -154,17 +155,17 @@ __global__ void g_ConvNCFM_Bgrad_1(double* delta,
 	int batch,
 	int deltaArea);
 
-void ConvNCFM::feedforward()
+void ConvCFM::feedforward()
 {
 	if((inputs_1 == NULL && inputs_2 == NULL) || (inputs_1 != NULL && inputs_2 != NULL))
 	{
-		printf("ConvNCFM init error\n");
+		printf("ConvCFM init error\n");
 		exit(0);
 	}
 	if(inputs_1){
 		dim3 block = dim3(batch, amount, Config::instance()->getChannels());
 		dim3 thread= dim3(min(outputDim * outputDim, 512));
-		g_ConvNCFM_feedforward_1<<<block, thread>>>(inputs_1->m_devPoint,
+		g_ConvCFM_feedforward_1<<<block, thread>>>(inputs_1->m_devPoint,
 			w.m_devPoint, 
 			b.m_devPoint,
 			outputs->devData,
@@ -176,12 +177,12 @@ void ConvNCFM::feedforward()
 			batch,
 			amount);
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("convNCFM:g_ConvNCFM_feedforward_1");
+		getLastCudaError("convCFM:g_ConvCFM_feedforward_1");
 	}
 	else if(inputs_2){
 		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
 		dim3 thread= dim3(min(outputDim * outputDim, 512));
-		g_ConvNCFM_feedforward_2<<<block, thread>>>(inputs_2->devData,
+		g_ConvCFM_feedforward_2<<<block, thread>>>(inputs_2->devData,
 			w.m_devPoint,
 			b.m_devPoint,
 			outputs->devData,
@@ -196,10 +197,10 @@ void ConvNCFM::feedforward()
 			inputs_2->getArea(),
 			outputs->getArea());
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("convNCFM::g_ConvNCFM_feedforward_2");
+		getLastCudaError("convCFM::g_ConvCFM_feedforward_2");
 	}
 	else{
-		printf("ConvNCFM init error\n");
+		printf("ConvCFM init error\n");
 		exit(0);
 	}
 
@@ -211,15 +212,15 @@ void ConvNCFM::feedforward()
 			outputs->getLen(),
 			NON_LINEARITY);
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("convNCFM::g_nonLinearity");
+		getLastCudaError("convCFM::g_nonLinearity");
 	}
 }
 
-void ConvNCFM::backpropagation()
+void ConvCFM::backpropagation()
 {
 	if((inputs_1 == NULL && inputs_2 == NULL) || (inputs_1 != NULL && inputs_2 != NULL))
 	{
-		printf("ConvNCFM init error\n");
+		printf("ConvCFM init error\n");
 		exit(0);
 	}
 
@@ -236,14 +237,14 @@ void ConvNCFM::backpropagation()
 			outputs->devData, curDelta->getLen(), Config::instance()->getNonLinearity());
 
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("ConvNCFM::g_dnonLinearity");
+		getLastCudaError("ConvCFM::g_dnonLinearity");
 	}
 	
 	if(inputs_2){
 		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
 		dim3 thread= min(outputDim * outputDim, 512);
 
-		g_ConvNCFM_backpropagation<<<block, thread>>>(
+		g_ConvCFM_backpropagation<<<block, thread>>>(
 			curDelta->devData,
 			w.m_devPoint,
 			preDelta->devData,
@@ -258,22 +259,22 @@ void ConvNCFM::backpropagation()
 			curDelta->getArea(),
 			preDelta->getArea());
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("ConvNCFM::g_ConvNCFM_backpropagation");
+		getLastCudaError("ConvCFM::g_ConvCFM_backpropagation");
 	}
 }
 
 
-void ConvNCFM::getGrad()
+void ConvCFM::getGrad()
 {
 	if((inputs_1 == NULL && inputs_2 == NULL) || (inputs_1 != NULL && inputs_2 != NULL))
 	{
-		printf("ConvNCFM init error\n");
+		printf("ConvCFM init error\n");
 		exit(0);
 	}
 	if(inputs_1){
 		dim3 block = dim3(batch, amount, Config::instance()->getChannels());
 		dim3 thread= dim3(kernelSize * kernelSize, 512);
-		g_ConvNCFM_wgrad_1<<<block, thread>>>(
+		g_ConvCFM_wgrad_1<<<block, thread>>>(
 			inputs_1->m_devPoint,
 			curDelta->devData,
 			wgradTmp->devData,
@@ -288,11 +289,11 @@ void ConvNCFM::getGrad()
 			wgradTmp->getArea());
 
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("ConvNCFM::getGrad::g_wgrad_1");
+		getLastCudaError("ConvCFM::getGrad::g_wgrad_1");
 
 		block = dim3(outputAmount, kernelSize * kernelSize, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvNCFM_wgradAdd_1<<<block, thread,
+		g_ConvCFM_wgradAdd_1<<<block, thread,
 			sizeof(double) * 256>>>(
 			wgradTmp->devData,
 			wgrad.m_devPoint,
@@ -307,11 +308,11 @@ void ConvNCFM::getGrad()
 			w[0]->getArea());
 
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("ConvNCFM::getGrad::g_wgradAdd_1");
+		getLastCudaError("ConvCFM::getGrad::g_wgradAdd_1");
 
 		block = dim3(amount, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvNCFM_Bgrad_1<<<block,thread,sizeof(double) * 256>>>
+		g_ConvCFM_Bgrad_1<<<block,thread,sizeof(double) * 256>>>
 			(curDelta->devData,
 			bgrad.m_devPoint,
 			outputDim,
@@ -321,13 +322,13 @@ void ConvNCFM::getGrad()
 			curDelta->getArea());
 
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("ConvNCFM::getGrad::g_ConvNCFM_Bgrad_1");
+		getLastCudaError("ConvCFM::getGrad::g_ConvCFM_Bgrad_1");
 	}
 	else if(inputs_2){
 		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
 		dim3 thread= dim3(kernelSize * kernelSize, 512);
 
-		g_ConvNCFM_wgrad_2<<<block, thread>>>(inputs_2->devData,
+		g_ConvCFM_wgrad_2<<<block, thread>>>(inputs_2->devData,
 			curDelta->devData,
 			wgradTmp->devData,
 			inputDim,
@@ -343,11 +344,11 @@ void ConvNCFM::getGrad()
 			wgradTmp->getArea()
 			);
 		cudaDeviceSynchronize();
-		getLastCudaError("g_ConvNCFM_wgrad_2");
+		getLastCudaError("g_ConvCFM_wgrad_2");
 
 		block = dim3(amount, kernelSize * kernelSize, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvNCFM_wgradAdd_2<<<block, thread, sizeof(double) * 256>>>(wgradTmp->devData,
+		g_ConvCFM_wgradAdd_2<<<block, thread, sizeof(double) * 256>>>(wgradTmp->devData,
 			wgrad.m_devPoint,
 			w.m_devPoint,
 			inputAmount,
@@ -361,12 +362,12 @@ void ConvNCFM::getGrad()
 			w[0]->getArea(),
 			lambda);
 		cudaDeviceSynchronize();
-		getLastCudaError("g_ConvNCFM_wgradAdd_2");
+		getLastCudaError("g_ConvCFM_wgradAdd_2");
 
 
 		block = dim3(amount, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvNCFM_Bgrad_2<<<block, thread, sizeof(double) * 256>>>(curDelta->devData,
+		g_ConvCFM_Bgrad_2<<<block, thread, sizeof(double) * 256>>>(curDelta->devData,
 			bgrad.m_devPoint,
 			outputDim,
 			inputAmount,
@@ -376,16 +377,16 @@ void ConvNCFM::getGrad()
 			batch,
 			curDelta->getArea());
 		cudaDeviceSynchronize();
-		getLastCudaError("g_ConvNCFM_wgradAdd_2");
+		getLastCudaError("g_ConvCFM_wgradAdd_2");
 	}
 	else 
 	{
-		printf("ConvNCFM init error\n");
+		printf("ConvCFM init error\n");
 		exit(0);
 	}
 }
 
-void ConvNCFM::updateWeight()
+void ConvCFM::updateWeight()
 {
 	dim3 thread = min(256, w[0]->getLen());
 	dim3 block  = amount;
@@ -396,7 +397,7 @@ void ConvNCFM::updateWeight()
 		Config::instance()->getLrate());
 }
 
-ConvNCFM::ConvNCFM(cuMatrix<double>* _inputs, 
+ConvCFM::ConvCFM(cuMatrix<double>* _inputs, 
 	int _inputAmount,
 	int _amount,
 	int _kernelSize,
@@ -405,13 +406,14 @@ ConvNCFM::ConvNCFM(cuMatrix<double>* _inputs,
 	int _batch, 
 	double _weight_decay,
 	double _lambda,
+	int _cfm, 
 	int _NON_LINEARITY)
 {
 	inputs_1 = NULL;
 	inputs_2 = _inputs;
 	inputAmount = _inputAmount;
 	amount = _amount;
-	outputAmount = inputAmount * amount;
+	outputAmount = amount;
 	kernelSize = _kernelSize;
 	padding = _padding;
 
@@ -420,13 +422,14 @@ ConvNCFM::ConvNCFM(cuMatrix<double>* _inputs,
 	batch     = _batch;
 	weight_decay = _weight_decay,
 	lambda = _lambda;
+	cfm = _cfm;
 	NON_LINEARITY = _NON_LINEARITY;
 
 	outputs = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
 
 	preDelta = NULL;
 	curDelta = new cuMatrix<double>(batch, outputAmount * outputDim  * outputDim,  Config::instance()->getChannels());
-	wgradTmp = new cuMatrix<double>(batch, outputAmount * kernelSize * kernelSize, Config::instance()->getChannels());
+	wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount  * kernelSize * kernelSize, Config::instance()->getChannels());
 
 	for(int i = 0; i < amount; i++){
 		w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
@@ -448,7 +451,7 @@ ConvNCFM::ConvNCFM(cuMatrix<double>* _inputs,
 	momentum_b.toGpu();
 }
 
-ConvNCFM::ConvNCFM(cuMatrixVector<double>* _inputs, 
+ConvCFM::ConvCFM(cuMatrixVector<double>* _inputs, 
 	int _inputAmount,
 	int _amount,
 	int _kernelSize,
@@ -457,9 +460,12 @@ ConvNCFM::ConvNCFM(cuMatrixVector<double>* _inputs,
 	int _batch, 
 	double _weight_decay,
 	double _lambda,
+	int _cfm, 
 	int _NON_LINEARITY)
 {
 	Assert(_inputAmount == 1);
+	Assert(_amount == 1);
+
 	inputs_1 = _inputs;
 	inputs_2 = NULL;
 	inputAmount = _inputAmount;
@@ -473,11 +479,12 @@ ConvNCFM::ConvNCFM(cuMatrixVector<double>* _inputs,
 	batch     = _batch;
 	weight_decay = _weight_decay;
 	lambda = _lambda;
+	cfm = _cfm;
 	NON_LINEARITY = _NON_LINEARITY;
 
 	outputs  = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
 	curDelta = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
-	wgradTmp = new cuMatrix<double>(batch, outputAmount * kernelSize * kernelSize, Config::instance()->getChannels());
+	wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount * kernelSize * kernelSize, Config::instance()->getChannels());
 	preDelta = NULL;
 
 	for(int i = 0; i < amount; i++){
@@ -499,7 +506,7 @@ ConvNCFM::ConvNCFM(cuMatrixVector<double>* _inputs,
 	momentum_b.toGpu();
 }
 
-void ConvNCFM::save(FILE* file)
+void ConvCFM::save(FILE* file)
 {
 	for(int a = 0; a < amount; a++){
 		for(int c = 0; c < w[a]->channels; c++){
@@ -516,7 +523,7 @@ void ConvNCFM::save(FILE* file)
 	}
 }
 
-void ConvNCFM::clearMomemtum()
+void ConvCFM::clearMomemtum()
 {
 	for(int i = 0; i < amount; i++){
 		momentum_b[i]->gpuClear();
@@ -524,7 +531,7 @@ void ConvNCFM::clearMomemtum()
 	}
 }
 
-void ConvNCFM::initRandom()
+void ConvCFM::initRandom()
 {
 	for(int i = 0; i < amount; i++){
 		double epsilon = 0.1;
@@ -541,7 +548,7 @@ void ConvNCFM::initRandom()
 	}
 }
 
-void ConvNCFM::initFromCheckpoint(FILE* file)
+void ConvCFM::initFromCheckpoint(FILE* file)
 {
 	double val = 0;
 	for(int a = 0; a < amount; a++){
@@ -563,7 +570,7 @@ void ConvNCFM::initFromCheckpoint(FILE* file)
 	}
 }
 
-__global__ void g_ConvNCFM_feedforward_1(
+__global__ void g_ConvCFM_feedforward_1(
 	double** arrayS,
 	double** arrayW,
 	double** arrayB,
@@ -622,7 +629,7 @@ __global__ void g_ConvNCFM_feedforward_1(
 *	threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
 
-__global__ void g_ConvNCFM_feedforward_2(
+__global__ void g_ConvCFM_feedforward_2(
 	double* pool1,
 	double** arrayW,
 	double** arrayB,
@@ -689,7 +696,7 @@ __global__ void g_ConvNCFM_feedforward_2(
 * blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels())
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvNCFM_backpropagation(
+__global__ void g_ConvCFM_backpropagation(
 	double* _convDelta,
 	double**_w,
 	double* _poolDelta,
@@ -755,7 +762,7 @@ __global__ void g_ConvNCFM_backpropagation(
 * blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvNCFM_wgrad_2(double* pool,
+__global__ void g_ConvCFM_wgrad_2(double* pool,
 	double* convDelta,
 	double* WgradTmp,
 	int poolOutputSize,
@@ -816,7 +823,7 @@ __global__ void g_ConvNCFM_wgrad_2(double* pool,
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
-__global__ void g_ConvNCFM_wgradAdd_2(
+__global__ void g_ConvCFM_wgradAdd_2(
 	double* WgradTmp, 
 	double** Wgrad,
 	double** w,
@@ -874,7 +881,7 @@ __global__ void g_ConvNCFM_wgradAdd_2(
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
-__global__ void g_ConvNCFM_Bgrad_2(double* delta,
+__global__ void g_ConvCFM_Bgrad_2(double* delta,
 	double** bgrad,
 	int deltaSize,
 	int kernelScan1,
@@ -930,7 +937,7 @@ __global__ void g_ConvNCFM_Bgrad_2(double* delta,
 * blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvNCFM_wgrad_1(double** sArray,
+__global__ void g_ConvCFM_wgrad_1(double** sArray,
 	double* convDelta,
 	double* WgradTmp,
 	int imgSize,
@@ -983,7 +990,7 @@ __global__ void g_ConvNCFM_wgrad_1(double** sArray,
 /*
 * <<<dim3(k1, kernelSize*kernelSize, channels), dim3(256)>>>
 */
-__global__ void g_ConvNCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
+__global__ void g_ConvCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
 	double** w,
 	int kernelScan2,
 	int kernelAmount2,
@@ -1038,7 +1045,7 @@ __global__ void g_ConvNCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
 *threads : dim3(256)
 *shared  : sizeof(double) * 256
 */
-__global__ void g_ConvNCFM_Bgrad_1(double* delta,
+__global__ void g_ConvCFM_Bgrad_1(double* delta,
 	double** bgrad,
 	int deltaSize,
 	int kernelScan2,

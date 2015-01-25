@@ -212,6 +212,18 @@ private:
 class Config
 {
 public:
+	void setMomentum(double _momentum){
+		momentum = _momentum;
+	}
+	double getMomentum(){
+		return momentum;
+	}
+	void setLrate(double _lrate){
+		lrate = _lrate;
+	}
+	double getLrate(){
+		return lrate;
+	}
 	void initPath(std::string path){
 		m_path = path;
 		init(m_path);
@@ -325,6 +337,10 @@ private:
 	ConfigImageShow          *m_imageShow;
 	ConfigHorizontal         *m_horizontal;
 	ConfigCombineFeatureMaps *m_cfm;
+
+
+	double momentum;
+	double lrate;
 };
 
 #endif
