@@ -15,8 +15,9 @@ void DebugPrintf(cuMatrix<double>*x);
 void DebugPrintf(double* data, int len, int dim);
 void LOG(char* str, char* file);
 int  getCV_64();
+void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2,
+	int rows, int cols, int channels, double epsilon);
 
-
-#define  cuAssert( X ) if ( !(X) ) {printf("tid %d: %s, %d\n", threadIdx.x, __FILE__, __LINE__); return; }
-
+#define  cuAssert( X ) if ( !(X) ) {printf("tid %d: FILE=%s, LINE=%d\n", threadIdx.x, __FILE__, __LINE__); return; }
+#define  Assert( X ) if ( !(X) ) {printf("FILE=%s, LINE=%d\n", __FILE__, __LINE__); return; }
 #endif

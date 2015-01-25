@@ -9,6 +9,7 @@
 #include "../common/Config.h"
 #include <helper_functions.h>
 #include <helper_cuda.h>
+#include "../common/cuBase.h"
 
 
 #define GAUSSIAN_FIELD_SIZE (21) /* strictly odd number */
@@ -524,12 +525,6 @@ void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cr
 		dim3(threads)>>>(inputs, outputs,cu_d_randomNum, Config::instance()->getCrop(), ImgSize, cropr, cropc);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_applyCrop");
-}
-
-__device__ void swap(double& val1, double& val2){
-	double tmp = val1;
-	val1 = val2;
-	val2 = tmp;
 }
 
 /*

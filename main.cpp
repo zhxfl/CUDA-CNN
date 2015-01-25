@@ -202,7 +202,7 @@ void runCifar10()
 
 	Config::instance()->initPath("Config/Cifar10Config.txt");
 	read_CIFAR10_Data(trainX, testX, trainY, testY);
-	//preProcessing(trainX, testX);
+	preProcessing(trainX, testX);
 
 	const int nclasses = Config::instance()->getSoftMax()[0]->m_numClasses;
 

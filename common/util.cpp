@@ -113,3 +113,35 @@ void LOG(char* str, char* file)
 	fprintf(f,"%s\n",str);
 	fclose(f);
 }
+
+
+void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2,
+	int rows, int cols, int channels, double epsilon)
+{
+	int iiMidr = rows >> 1;
+	int iiMidc = cols >> 1;
+
+	double _max = -1.0;
+	for(int row = 0; row < rows; row++)
+	{
+		for(int col = 0; col < cols; col++)
+		{
+			double val1 = 1.0 / (dElasticSigma1 * dElasticSigma2 * 2.0 * 3.1415926535897932384626433832795);
+			double val2 = (row-iiMidr)*(row-iiMidr) / (dElasticSigma1 * dElasticSigma1) + (col-iiMidc)*(col-iiMidc) / (dElasticSigma2 * dElasticSigma2) 
+				+ 2.0 * (row - iiMidr) * (col - iiMidc) / (dElasticSigma1 * dElasticSigma2);
+			gaussian[row * cols + col] = val1 * exp(-1.0 * val2);
+			if(_max < gaussian[row * cols + col])
+			{
+				_max = gaussian[row * cols + col];
+			}
+		}
+	}
+	for(int row = 0; row < rows; row++)
+	{
+		for(int col = 0; col < cols; col++)
+		{
+			gaussian[row * cols + col] /= _max;
+			gaussian[row * cols + col] *= epsilon;
+		}
+	}
+}

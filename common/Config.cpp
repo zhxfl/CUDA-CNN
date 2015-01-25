@@ -110,11 +110,14 @@ void Config:: get_layers_config(string &str){
 			if(type == string("CONV")) {
 				int ks = get_word_int(layers[i], "KERNEL_SIZE");
 				int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
+				int pd = get_word_int(layers[i], "PADDING");
+
 				double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-				m_conv.push_back(new ConfigConv(ks, ka, wd));
+				m_conv.push_back(new ConfigConv(ks, pd, ka, wd));
 				printf("\n\n********conv layer********\n");
 				printf("KERNEL_SIZE   : %d\n", ks);
 				printf("KERNEL_AMOUNT : %d\n", ka);
+				printf("PADDING       : %d\n", pd);
 				printf("WEIGHT_DECAY  : %lf\n", wd);
 			}
 			else if(type == string("POOLING"))

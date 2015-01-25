@@ -143,12 +143,15 @@ public:
 class ConfigConv
 {
 public:
-	ConfigConv(int kernelSize, int amount, double weightDecay){
+	ConfigConv(int kernelSize, int padding, int amount, double weightDecay){
+
 		m_kernelSize = kernelSize;
+		m_padding = padding;
 		m_amount = amount;
 		m_weightDecay = weightDecay;
 	}
 	int m_kernelSize;
+	int m_padding;
 	int m_amount;
 	double m_weightDecay;
 };
