@@ -38,16 +38,20 @@
 >* windows: X：/Program Files/opencv/vs2010/install/x86/cv10/lib (Depend on situation)    
 >
 ###libraries(-l)      
+>* View -> Property Pages -> Configuration Properties -> Linker -> Input -> Additional Dependencies ->     
 >* opencv_core   
 >* opencv_highgui   
 >* opencv_imgproc   
 >* opencv_imgcodecs (need for opencv3.0)   
 >* ***cublas***   
 >* ***curand***   
+>* ***cudadevrt***   
 >
 ###GPU compute 
 >* capability 2.0   
->
+>* View -> Property Pages -> Configuration Properties -> CUDA C/C++ -> Device -> Code Generation -> compute_20,sm_20   
+>* View -> Property Pages -> Configuration Properties -> CUDA C/C++ -> Common -> Generate Relocatable Device Code -> Yes (-rdc=true)   
+
 ###Windows
 >1. Install vs2010.
 >2. Download and install <a href="http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/"> opencv-2.4</a> or other higher versions
