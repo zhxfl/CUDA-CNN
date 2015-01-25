@@ -15,6 +15,7 @@ class Pooling: public LayerBase{
 public:
 	void feedforward();
 	void backpropagation();
+	Pooling(std::vector<cuMatrix<double>*>&_inputs);
 private:
 	std::vector<cuMatrix<double>* >inputs;
 	std::vector<cuMatrix<double>* >outputs;
