@@ -298,7 +298,7 @@ void ConvNCFM::getGrad()
 			wgrad.m_devPoint,
 			w.m_devPoint,
 			outputAmount,
-			outputAmount,
+			amount,
 			kernelSize,
 			batch,
 			weight_decay,
