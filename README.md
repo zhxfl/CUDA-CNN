@@ -38,7 +38,6 @@
 >* windows: X：/Program Files/opencv/vs2010/install/x86/cv10/lib (Depend on situation)    
 >
 ###libraries(-l)      
->* View -> Property Pages -> Configuration Properties -> Linker -> Input -> Additional Dependencies ->     
 >* opencv_core   
 >* opencv_highgui   
 >* opencv_imgproc   
@@ -57,13 +56,18 @@
 >2. Download and install <a href="http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/"> opencv-2.4</a> or other higher versions
 >3. Download and install <a href="https://developer.nvidia.com/cuda-downloads"> cuda-5.0</a> or other higher versions
 >4. When you create a new project using VS2010, You can find NVIDIA-CUDA project template, create a cuda-project.
->5. Add the "include path" and "lib path" to the project
->
+>5. View->Property Pages -> Configuration Properties -> Linker -> Input -> Additional Dependencies -> libraries(-l)   
+>6. View->Property Pages -> VC++ Directories->General->Include Directories-> Library search path(-L)   
+
 ###Linux
 >1. Install opencv and cuda
 >2. Start the ***nsight*** from cuda
->3. Create an 'empty cuda' project and import the clone code   
->4. Add the "include path" and "lib path" to the project
+>3. Create an 'empty cuda' project and import the clone code  
+>4. Project->Proerties->Settings->CUDA->Device linker mode: separate compilation   
+>5. Project->Proerties->Settings->CUDA->Generate PTX code 3.5
+>6. Project->Proerties->Settings->CUDA->Generate GPU code 3.5
+>7. Project->Proerties->Settings->Tool Settings->NVCC Compiler->includes: +/usr/local/cuda/samples/common/inc/; +/usr/local/lib/ ;   
+>8. Project->Proerties->Settings->Tool Settings->NVCC Linkers->Libraries: libraries(-l)    
 >
 
 ***

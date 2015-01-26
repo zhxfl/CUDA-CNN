@@ -1721,6 +1721,7 @@ __global__ void g_dPoolToConv(
 	int curSize          = _convOutputSize;
 	int wSize            = _kernelSize;
 	int nxtSize          = _poolOutputSize;
+	int curAddBorderSize = _poolOutputSize;
 	int k1 = blockIdx.y / _kernelAmount2;
 	int k2 = blockIdx.y % _kernelAmount2;
 	int s  = blockIdx.x;
@@ -1753,11 +1754,11 @@ __global__ void g_dPoolToConv(
 					int wx = wSize - x - 1;
 					int wy = wSize - y - 1;
 					//if(cx >= 0 && cx < curAddBorderSize && cy >= 0 && cy < curAddBorderSize){
-						cx -= ((wSize >> 1) - _padding);
-						cy -= ((wSize >> 1) - _padding);
-						if(cx >= 0 && cx < curSize && cy >= 0 && cy < curSize){
-							val += curDelta[cx * curSize + cy] * w[wx * wSize + wy];
-						}
+					cx -= ((wSize >> 1) - _padding);
+					cy -= ((wSize >> 1) - _padding);
+					if (cx >= 0 && cx < curSize && cy >= 0 && cy < curSize) {
+						val += curDelta[cx * curSize + cy] * w[wx * wSize + wy];
+					}
 						//val += addBorder[cx * curAddBorderSize + cy] * w[wx * wSize + wy];
 					//}
 				}

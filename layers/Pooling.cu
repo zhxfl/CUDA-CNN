@@ -30,8 +30,7 @@ __global__ void g_feedforward(
 	int convArea,
 	int poolArea,
 	int batch,
-	int kAmount,
-	int NONLIN);
+	int kAmount);
 
 void Pooling::feedforward()
 {
@@ -50,9 +49,8 @@ void Pooling::feedforward()
 		inputs->getArea(),
 		outputs->getArea(),
 		batch,
-		amount,
-		NON_LINEARITY);
-	checkCudaErrors(cudaThreadSynchronize());
+		amount);
+	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("pooling feedforward");
 }
 
@@ -71,7 +69,7 @@ void Pooling::backpropagation()
 		outputDim,
 		inputDim,
 		curDeltalen);
-	checkCudaErrors(cudaThreadSynchronize());
+	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("pooling backpropagation");
 }
 
@@ -111,8 +109,7 @@ __global__ void g_feedforward(
 	int convArea,
 	int poolArea,
 	int batch,
-	int kAmount,
-	int NONLIN)
+	int kAmount)
 {
 	int sp = blockIdx.x;
 	int k  = blockIdx.y;
@@ -144,8 +141,8 @@ __global__ void g_feedforward(
 			cuAssert(curX < convSize && curY < convSize);
 
 			double _max = curConv[curX * convSize + curY];
-			int lenx = min(convSize, (x + 1) * poolingSize);
-			int leny = min(convSize, (y + 1) * poolingSize);
+			int lenx = min(convSize, curX + poolingSize);
+			int leny = min(convSize, curY + poolingSize);
 
 			for(int i = curX; i < lenx; i++)
 			{

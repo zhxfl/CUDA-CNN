@@ -1,7 +1,7 @@
 #ifndef _CU_MATRIX_H_
 #define _CU_MATRIX_H_
 
-#include "cublas_v2.h"
+#include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
