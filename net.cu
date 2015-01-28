@@ -225,7 +225,7 @@ void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
 
 	/*Init full connect layers*/
 	int outDim = imgDim;
-	for(int i=0; i<Config::instance()->getConv().size(); i++){
+	for(int i = 0; i<Config::instance()->getConv().size(); i++){
 		outDim = outDim - Config::instance()->getConv()[i]->m_kernelSize + 1 + Config::instance()->getConv()[i]->m_padding * 2;
 		outDim = (outDim + Config::instance()->getPooling()[i]->m_skip - 1) / Config::instance()->getPooling()[i]->m_skip;
 	}
@@ -459,7 +459,7 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 	//Init full connect layers
 	int outDim = imgDim;
 	for(int i=0; i < Config::instance()->getConv().size(); i++){
-		outDim = outDim - Config::instance()->getConv()[i]->m_kernelSize + 1 + Config::instance()->getConv()[i]->m_padding;
+		outDim = outDim - Config::instance()->getConv()[i]->m_kernelSize + 1 + Config::instance()->getConv()[i]->m_padding * 2;
 		outDim = (outDim + Config::instance()->getPooling()[i]->m_skip - 1) / Config::instance()->getPooling()[i]->m_skip;
 	}
 
@@ -918,7 +918,6 @@ __global__ void g_conv_2(
 			cv2[idx] = d_nonLinearity(val + b, NONLIN);
 		}
 	}
-	__syncthreads();
 }
 
 
@@ -987,7 +986,6 @@ __global__ void g_cfm_conv_2(
 			cv2[idx] = d_nonLinearity(val + b, NONLIN);
 		}
 	}
-	__syncthreads();
 }
 
 void outputPoints(cuMatrix<int>* p)
@@ -1020,13 +1018,9 @@ void outputMatrix(cuMatrix<double>* m)
 
 void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgSize)
 {
-	int curSize = ImgSize - Config::instance()->getConv()[0]->m_kernelSize + 1;//24
-	int outputSize = curSize;
-
-	int threadidx = min(outputSize * outputSize, 512);
+	int threadidx = min(cuConvOutputSize[0] * cuConvOutputSize[0], 512);
 	int kernelAmount = Config::instance()->getConv()[0]->m_amount;
 	int kernelSize = Config::instance()->getConv()[0]->m_kernelSize;
-	int poolingDim = Config::instance()->getPooling()[0]->m_skip;
 
 	g_conv_1<<<
 		dim3(batch, 
@@ -1109,40 +1103,6 @@ void convAndPooling(double** x, std::vector<cuCvl> &CLayers, int batch, int ImgS
 
 		}
 	}
-
-/*	size = cuConvOutputSize[1];
-	m = new cuMatrix<double>(size , size * 5, 1);
-	cuConv[1]->toCpu();
-	for(int i = 0; i < 1; i++){
-		for(int j = 0; j < 5; j++){
-			for(int r = 0; r < size; r++){
-				for(int c = 0; c < size; c++){
-					m->set(r + i * size, c + j * size, 0, cuConv[1]->get(0, i * size * size + r * size + c,0));
-				}
-			}
-		}
-	}
-	m->toGpu();
-	showImg(m, 5);
-	cv::waitKey(0);
-
-
-	size = cuPoolOutputSize[1];
-	m = new cuMatrix<double>(size , size * 5, 1);
-	cuPool[1]->toCpu();
-	for(int i = 0; i < 1; i++){
-		for(int j =0; j < 5; j++){
-			for(int r = 0; r < size; r++){
-				for(int c = 0; c < size; c++){
-					m->set(r + i * size, c + j * size, 0, cuPool[1]->get(0, i * size * size + r * size + c,0));
-				}
-			}
-		}
-	}
-	m->toGpu();
-	showImg(m, 5);
-	cv::waitKey(0);
-*/
 }
 /*
 * blocks  : cuFullConnectActi[hl]->rows;
@@ -1754,8 +1714,8 @@ __global__ void g_dPoolToConv(
 					int wx = wSize - x - 1;
 					int wy = wSize - y - 1;
 					//if(cx >= 0 && cx < curAddBorderSize && cy >= 0 && cy < curAddBorderSize){
-					cx -= ((wSize >> 1) - _padding);
-					cy -= ((wSize >> 1) - _padding);
+					cx = cx - ((wSize >> 1) - _padding);
+					cy = cy - ((wSize >> 1) - _padding);
 					if (cx >= 0 && cx < curSize && cy >= 0 && cy < curSize) {
 						val += curDelta[cx * curSize + cy] * w[wx * wSize + wy];
 					}
@@ -1820,8 +1780,8 @@ __global__ void g_cfm_dPoolToConv(
 					int cy = j + y - (wSize >> 1);
 					int wx = wSize - x - 1;
 					int wy = wSize - y - 1;
-					cx -= ((wSize >> 1) - _padding);
-					cy -= ((wSize >> 1) - _padding);
+					cx = cx - ((wSize >> 1) - _padding);
+					cy = cy - ((wSize >> 1) - _padding);
 					if(cx >= 0 && cx < curSize && cy >= 0 && cy < curSize){
 						val += curDelta[cx * curSize + cy] * w[wx * wSize + wy];
 					}
@@ -1883,8 +1843,8 @@ __global__ void g_wgrad(double* pool,
 				{
 					int cx = i + x - padding;
 					int cy = j + y - padding;
-					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize);
-					val += cur[cx * curSize + cy] * w[x * wSize + y];
+					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize)
+						val += cur[cx * curSize + cy] * w[x * wSize + y];
 				}
 			}
 			nxt[idx] = val;
@@ -2578,8 +2538,8 @@ __global__ void g_cfm_wgrad_1(double** sArray,
 				{
 					int cx = i + x - padding;
 					int cy = j + y - padding;
-					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize);
-					val += cur[cx * curSize + cy] * w[x * wSize + y];
+					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize)
+						val += cur[cx * curSize + cy] * w[x * wSize + y];
 				}
 			}
 			nxt[idx] = val;
