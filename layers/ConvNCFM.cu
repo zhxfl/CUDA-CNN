@@ -154,6 +154,18 @@ __global__ void g_ConvNCFM_Bgrad_1(double* delta,
 	int batch,
 	int deltaArea);
 
+
+void ConvNCFM::getCost(cuMatrix<double>*cost)
+{
+	g_getCost_3<<<dim3(amount), dim3(32), sizeof(double) * 32>>>(cost->devData, 
+		w.m_devPoint, 
+		lambda,
+		kernelSize, 
+		kernelSize);
+	cudaDeviceSynchronize();
+	getLastCudaError("ConvNCFM:getCost");
+}
+
 void ConvNCFM::feedforward()
 {
 	if((inputs_1 == NULL && inputs_2 == NULL) || (inputs_1 != NULL && inputs_2 != NULL))
@@ -223,11 +235,6 @@ void ConvNCFM::backpropagation()
 		exit(0);
 	}
 
-	if(inputs_1){
-		printf("the prelayer is dataset, can't backpropagation\n");
-		exit(0);
-	}
-
 	if(NON_LINEARITY >= 0){
 		dim3 thread = dim3(min(256, outputs->getLen()));
 		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
@@ -242,6 +249,8 @@ void ConvNCFM::backpropagation()
 	if(inputs_2){
 		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
 		dim3 thread= min(outputDim * outputDim, 512);
+		
+		preDelta->gpuClear();
 
 		g_ConvNCFM_backpropagation<<<block, thread>>>(
 			curDelta->devData,
@@ -271,8 +280,8 @@ void ConvNCFM::getGrad()
 		exit(0);
 	}
 	if(inputs_1){
-		dim3 block = dim3(batch, amount, Config::instance()->getChannels());
-		dim3 thread= dim3(kernelSize * kernelSize, 512);
+		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
+		dim3 thread= min(kernelSize * kernelSize, 512);
 		g_ConvNCFM_wgrad_1<<<block, thread>>>(
 			inputs_1->m_devPoint,
 			curDelta->devData,
@@ -301,7 +310,7 @@ void ConvNCFM::getGrad()
 			amount,
 			kernelSize,
 			batch,
-			weight_decay,
+			lambda,
 			wgradTmp->getArea(),
 			wgrad[0]->getArea(),
 			w[0]->getArea());
@@ -325,7 +334,7 @@ void ConvNCFM::getGrad()
 	}
 	else if(inputs_2){
 		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
-		dim3 thread= dim3(kernelSize * kernelSize, 512);
+		dim3 thread= min(kernelSize * kernelSize, 512);
 
 		g_ConvNCFM_wgrad_2<<<block, thread>>>(inputs_2->devData,
 			curDelta->devData,
@@ -389,6 +398,7 @@ void ConvNCFM::updateWeight()
 {
 	dim3 thread = min(256, w[0]->getLen());
 	dim3 block  = amount;
+
 	g_vecAdd<<<block, thread>>>(momentum_w.m_devPoint, wgrad.m_devPoint, w.m_devPoint,
 		momentum_b.m_devPoint, bgrad.m_devPoint, b.m_devPoint,
 		w[0]->getLen(), b[0]->getLen(), 
@@ -403,7 +413,6 @@ ConvNCFM::ConvNCFM(cuMatrix<double>* _inputs,
 	int _padding,
 	int _inputDim,
 	int _batch, 
-	double _weight_decay,
 	double _lambda,
 	int _NON_LINEARITY)
 {
@@ -418,7 +427,6 @@ ConvNCFM::ConvNCFM(cuMatrix<double>* _inputs,
 	inputDim  = _inputDim;
 	outputDim = (_inputDim + 1 - kernelSize) + padding * 2;
 	batch     = _batch;
-	weight_decay = _weight_decay,
 	lambda = _lambda;
 	NON_LINEARITY = _NON_LINEARITY;
 
@@ -455,7 +463,6 @@ ConvNCFM::ConvNCFM(cuMatrixVector<double>* _inputs,
 	int _padding,
 	int _inputDim,
 	int _batch, 
-	double _weight_decay,
 	double _lambda,
 	int _NON_LINEARITY)
 {
@@ -471,7 +478,6 @@ ConvNCFM::ConvNCFM(cuMatrixVector<double>* _inputs,
 	inputDim  = _inputDim;
 	outputDim = (_inputDim - kernelSize + 1) + padding * 2;
 	batch     = _batch;
-	weight_decay = _weight_decay;
 	lambda = _lambda;
 	NON_LINEARITY = _NON_LINEARITY;
 
@@ -499,6 +505,16 @@ ConvNCFM::ConvNCFM(cuMatrixVector<double>* _inputs,
 	momentum_b.toGpu();
 }
 
+void ConvNCFM::clearMomentum()
+{
+	for(int i = 0; i < momentum_b.size(); i++){
+		momentum_b[i]->gpuClear();
+	}
+	for(int i = 0; i < momentum_w.size(); i++){
+		momentum_w[i]->gpuClear();
+	}
+}
+
 void ConvNCFM::save(FILE* file)
 {
 	for(int a = 0; a < amount; a++){
@@ -516,17 +532,9 @@ void ConvNCFM::save(FILE* file)
 	}
 }
 
-void ConvNCFM::clearMomemtum()
-{
-	for(int i = 0; i < amount; i++){
-		momentum_b[i]->gpuClear();
-		momentum_w[i]->gpuClear();
-	}
-}
-
 void ConvNCFM::initRandom()
 {
-	for(int i = 0; i < amount; i++){
+	for(int i = 0; i < w.size(); i++){
 		double epsilon = 0.1;
 		for(int c = 0; c < Config::instance()->getChannels(); c++)
 		{
@@ -803,8 +811,8 @@ __global__ void g_ConvNCFM_wgrad_2(double* pool,
 				{
 					int cx = i + x - padding;
 					int cy = j + y - padding;
-					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize);
-					val += cur[cx * curSize + cy] * w[x * wSize + y];
+					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize)
+						val += cur[cx * curSize + cy] * w[x * wSize + y];
 				}
 			}
 			nxt[idx] = val;

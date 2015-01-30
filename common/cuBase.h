@@ -24,6 +24,9 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 	int lenw, int lenb,
 	double momentum, double lrate);
 
+__global__ void g_getCost_3(double* cost,
+	double** weight,
+	double lambda, int rows, int cols);
 #endif
 
 

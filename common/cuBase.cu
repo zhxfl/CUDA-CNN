@@ -10,7 +10,11 @@ __device__ double d_nonLinearity(double val, int NONLIN){
 	{
 		return tanh(val * 2.0 / 3.0) * 1.7159;
 	}
-	return 0.0;
+	else
+	{
+		return val;
+	}
+
 }
 
 __device__ double d_dnonLinearity(double val,int NONLIN){
@@ -25,6 +29,9 @@ __device__ double d_dnonLinearity(double val,int NONLIN){
 		double temp = val * val / 1.7159;
 		res = (res - temp) * 2.0 / 3.0;
 		return res;
+	}else 
+	{
+		return val;
 	}
 }
 
@@ -47,7 +54,7 @@ __global__ void g_nonLinearity(double* inputs, int len, int NONLIN)
 		int id = blockDim.x * blockIdx.x + threadIdx.x + i;
 		if(id < len)
 		{	
-			inputs[id] *= d_nonLinearity(inputs[id], NONLIN);
+			inputs[id] = d_nonLinearity(inputs[id], NONLIN);
 		}
 	}
 }
@@ -129,5 +136,42 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 			v_b[id] = v_b[id] * momentum + bgrad[id] * lrate;
 			b[id] -= v_b[id];
 		}
+	}
+}
+
+
+__global__ void g_getCost_3(double* cost,
+	double** weight,
+	double lambda, int rows, int cols)
+{
+	extern __shared__ double _sum[];
+	_sum[threadIdx.x] = 0;
+	__syncthreads();
+	double* w = weight[blockIdx.x];
+
+	for(int i = 0; i < rows * cols; i += blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < rows * cols)
+		{
+			_sum[threadIdx.x] += w[id] * w[id];
+		}
+	}
+
+	int len = blockDim.x;
+	while(len != 1)
+	{
+		__syncthreads();
+		int skip = (len + 1) >> 1;
+		if(threadIdx.x < (len >> 1))
+		{
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		}
+		len = (len + 1) >> 1;
+	}
+
+	if(threadIdx.x == 0)
+	{
+		atomicAdd(cost, _sum[0] * lambda * 0.5);
 	}
 }

@@ -6,7 +6,7 @@
 #include <vector>
 #include "../common/util.h"
 
-// non-linearity
+//non-linearity
 //#define NL_SIGMOID 0
 //#define NL_TANH 1
 //#define NL_RELU 2
@@ -41,6 +41,15 @@ public:
 	void setPreDelta(cuMatrix<double>* _preDelta){
 		preDelta = _preDelta;
 	}
+
+	int getOutputAmount(){
+		return amount;
+	}
+
+	int getOutputDim(){
+		return outputDim;
+	}
+
 
 private:
 	cuMatrix<double>* inputs;

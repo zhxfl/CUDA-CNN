@@ -15,7 +15,9 @@ public:
 	void backpropagation();
 	void getGrad();
 	void updateWeight();
-	void clearMomemtum();
+	void clearMomentum();
+	void getCost(cuMatrix<double>*cost);
+
 
 	ConvNCFM(cuMatrix<double>* _inputs, 
 		int _inputAmount,
@@ -24,7 +26,6 @@ public:
 		int _padding,
 		int _inputDim,
 		int _batch, 
-		double _weight_decay,
 		double _lambda,
 		int _NON_LINEARITY);
 
@@ -35,7 +36,6 @@ public:
 		int _padding,
 		int _inputDim,
 		int _batch, 
-		double _weight_decay,
 		double _lambda,
 		int _NON_LINEARITY);
 
@@ -67,6 +67,15 @@ public:
 		return outputAmount;
 	}
 
+	int getInputDim(){
+		return inputDim;
+	}
+	
+	int getOutputDim(){
+		return outputDim;
+	}
+
+
 private:
 	cuMatrixVector<double>* inputs_1;
 	cuMatrix<double>* inputs_2;
@@ -82,7 +91,6 @@ private:
 	int padding;
 	int batch;
 	int NON_LINEARITY;
-	double weight_decay;
 	double lambda;
 private:
 	cuMatrixVector<double> w;

@@ -19,5 +19,5 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 	int rows, int cols, int channels, double epsilon);
 
 #define  cuAssert( X ) if ( !(X) ) {printf("tid %d: FILE=%s, LINE=%d\n", threadIdx.x, __FILE__, __LINE__); return; }
-#define  Assert( X ) if ( !(X) ) {printf("FILE=%s, LINE=%d\n", __FILE__, __LINE__); return; }
+#define  Assert( X )   if ( !(X) ) {printf("FILE=%s, LINE=%d\n", __FILE__, __LINE__); return; }
 #endif
