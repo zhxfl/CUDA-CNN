@@ -10,12 +10,12 @@ ROTATION = 12.0;                #angle#
 DISTORTION = 3.4;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = false;             #horizontal reflection#
-COMBINE_FEATRUE_MAPS = 2;		#According to paper "notes on Convolutional Neural NetWorks"#
+COMBINE_FEATRUE_MAPS = 0;		#According to paper "notes on Convolutional Neural NetWorks"#
 
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
-PADDING = 2;
+PADDING = 0;
 KERNEL_AMOUNT = 10;
 WEIGHT_DECAY = 1e-4;
 ]
@@ -29,7 +29,7 @@ SKIP = 2;
 [  
 LAYER = CONV;
 KERNEL_SIZE = 5;
-PADDING = 2;
+PADDING = 0;
 KERNEL_AMOUNT = 20;
 WEIGHT_DECAY = 1e-4;
 ]

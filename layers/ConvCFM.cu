@@ -496,6 +496,10 @@ ConvCFM::ConvCFM(cuMatrixVector<double>* _inputs,
 void ConvCFM::save(FILE* file)
 {
 	for(int a = 0; a < amount; a++){
+		
+		w[a]->toCpu();
+		b[a]->toCpu();
+
 		for(int c = 0; c < w[a]->channels; c++){
 			for(int i = 0; i < w[a]->rows; i++){
 				for(int j = 0; j < w[a]->cols; j++){
@@ -505,7 +509,11 @@ void ConvCFM::save(FILE* file)
 		}
 
 		for(int c = 0; c < b[a]->channels; c++){
-			fprintf(file, "%lf", b[a]->get(0, 0, c));
+			for(int i = 0; i < b[a]->rows; i++){
+				for(int j = 0; j < b[a]->cols; j++){
+					fprintf(file, "%lf ", b[a]->get(i, j, c));
+				}
+			}
 		}
 	}
 }
@@ -522,6 +530,7 @@ void ConvCFM::clearMomentum()
 
 void ConvCFM::initRandom()
 {
+	srand(clock());
 	for(int i = 0; i < w.size(); i++){
 		double epsilon = 0.1;
 		for(int c = 0; c < Config::instance()->getChannels(); c++)

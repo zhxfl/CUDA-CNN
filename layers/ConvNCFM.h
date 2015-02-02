@@ -18,7 +18,6 @@ public:
 	void clearMomentum();
 	void getCost(cuMatrix<double>*cost);
 
-
 	ConvNCFM(cuMatrix<double>* _inputs, 
 		int _inputAmount,
 		int _amount,
@@ -74,7 +73,6 @@ public:
 	int getOutputDim(){
 		return outputDim;
 	}
-
 
 private:
 	cuMatrixVector<double>* inputs_1;

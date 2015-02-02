@@ -148,8 +148,6 @@ void runCifar100(){
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
-	std::vector<cuCvl> ConvLayers;
-	std::vector<cuFll> HiddenLayers;
 	cuSMR smr;
 	int batch = Config::instance()->getBatchSize();
 	double start,end;
@@ -161,12 +159,15 @@ void runCifar100(){
 		cmd = g_argv[1];
 	else 
 		scanf("%d", &cmd);
-	if(cmd == 1)
-		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
-	else if(cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
-	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
+	cuInitCNNMemory(batch, trainX, testX, smr, ImgSize - crop, nclasses);
+
+	if(cmd == 1)
+		cuConvNetInitPrarms(smr, ImgSize - crop, nclasses);
+	else if(cmd == 2)
+		cuReadConvNet(smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
+
+
 
 	/*learning rate*/
 	std::vector<double>nlrate;
@@ -184,7 +185,7 @@ void runCifar100(){
 		if(m >= 1.0) break;
 	}
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
+	cuTrainNetwork(trainX, trainY, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
@@ -211,8 +212,6 @@ void runCifar10()
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
-	std::vector<cuCvl> ConvLayers;
-	std::vector<cuFll> HiddenLayers;
 	cuSMR smr;
 	int batch = Config::instance()->getBatchSize();
 	double start,end;
@@ -224,12 +223,15 @@ void runCifar10()
 		cmd = g_argv[1];
 	else 
 		scanf("%d", &cmd);
-	if(cmd == 1)
-		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
-	else if(cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
-	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
+	cuInitCNNMemory(batch, trainX, testX, smr, ImgSize - crop, nclasses);
+
+	if(cmd == 1)
+		cuConvNetInitPrarms(smr, ImgSize - crop, nclasses);
+	else if(cmd == 2)
+		cuReadConvNet(smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
+
+	
 	
 	/*learning rate*/
 	std::vector<double>nlrate;
@@ -247,7 +249,7 @@ void runCifar10()
 		if(m >= 1.0) break;
 	}
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
+	cuTrainNetwork(trainX, trainY, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }
@@ -297,12 +299,13 @@ void runMnist(){
 		cmd = g_argv[1];
 	else 
 		scanf("%d", &cmd);
- 	if(cmd == 1)
-		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop, nclasses);
-	else if(cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
-	cuInitCNNMemory(batch, trainX, testX, ConvLayers,HiddenLayers, smr, ImgSize - crop, nclasses);
+	cuInitCNNMemory(batch, trainX, testX, smr, ImgSize - crop, nclasses);
+
+	if(cmd == 1)
+		cuConvNetInitPrarms(smr, ImgSize - crop, nclasses);
+	else if(cmd == 2)
+		cuReadConvNet(smr, ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
 	/*learning rate*/
 	std::vector<double>nlrate;
@@ -322,7 +325,7 @@ void runMnist(){
 	nlrate.push_back(0.0006); nMomentum.push_back(0.90);  epoCount.push_back(50);
 
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
+	cuTrainNetwork(trainX, trainY, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
 }
@@ -440,11 +443,10 @@ void cuVoteMnist()
 		int batch = Config::instance()->getBatchSize();
 
 		vPredict.push_back(new cuMatrix<int>(testY->getLen(), nclasses, 1));
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop, path[i], nclasses);
-		cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr, ImgSize, nclasses);
+		
+		cuInitCNNMemory(batch, trainX, testX, smr, ImgSize, nclasses);
+		cuReadConvNet(smr, ImgSize - crop, path[i], nclasses);
 		int cur = voteTestDate(
-			ConvLayers,
-			HiddenLayers,
 			smr,
 			testX,
 			testY,
@@ -453,8 +455,8 @@ void cuVoteMnist()
 			ImgSize,
 			nclasses,
 			handle);
-		cuFreeCNNMemory(batch, trainX, testX, ConvLayers,HiddenLayers, smr);
-		cuFreeConvNet(ConvLayers, HiddenLayers, smr);
+		cuFreeCNNMemory(batch, trainX, testX, smr);
+		cuFreeConvNet(smr);
 		vCorrect.push_back(cur);
 		Config::instance()->clear();
 		printf("%d %s\n", cur, path[i]);

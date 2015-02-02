@@ -518,6 +518,8 @@ void ConvNCFM::clearMomentum()
 void ConvNCFM::save(FILE* file)
 {
 	for(int a = 0; a < amount; a++){
+		w[a]->toCpu();
+		b[a]->toCpu();
 		for(int c = 0; c < w[a]->channels; c++){
 			for(int i = 0; i < w[a]->rows; i++){
 				for(int j = 0; j < w[a]->cols; j++){
@@ -527,13 +529,14 @@ void ConvNCFM::save(FILE* file)
 		}
 
 		for(int c = 0; c < b[a]->channels; c++){
-			fprintf(file, "%lf", b[a]->get(0, 0, c));
+			fprintf(file, "%lf ", b[a]->get(0, 0, c));
 		}
 	}
 }
 
 void ConvNCFM::initRandom()
 {
+	srand(clock());
 	for(int i = 0; i < w.size(); i++){
 		double epsilon = 0.1;
 		for(int c = 0; c < Config::instance()->getChannels(); c++)

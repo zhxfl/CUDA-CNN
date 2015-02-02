@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "util.h"
+#include <time.h>
 
 class ConfigGradient
 {

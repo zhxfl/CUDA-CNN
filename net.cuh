@@ -88,8 +88,7 @@ typedef struct cuSoftmaxRegession{
  * SMR &smr			      :	softmax
  * int imgDim			  :	Image Size
 */
-void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuFll> &FullLayers,
+void cuConvNetInitPrarms(
 	cuSMR &smr,
 	int imgDim,
 	int nclasses);
@@ -103,8 +102,7 @@ void cuConvNetInitPrarms(std::vector<cuCvl> &ConvLayers,
  * int imgDim			  :	Image Size
  * int nsamples		      : number of samples
  */
-void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuFll> &FullLayers,
+void cuReadConvNet(
 	cuSMR &smr, 
 	int imgDim, 
 	char* path,
@@ -115,9 +113,7 @@ void cuReadConvNet(std::vector<cuCvl> &ConvLayers,
 */
 
 void cuTrainNetwork(cuMatrixVector<double>&x, 
-	cuMatrix<int>*y , 
-	std::vector<cuCvl> &CLayers,
-	std::vector<cuFll> &FULLLayers,
+	cuMatrix<int>*y ,
 	cuSMR &smr,
 	cuMatrixVector<double>& testX,
 	cuMatrix<int>* testY,
@@ -133,22 +129,17 @@ void cuInitCNNMemory(
 	int batch,
 	cuMatrixVector<double>& trainX, 
 	cuMatrixVector<double>& testX,
-	std::vector<cuCvl>& ConvLayers,
-	std::vector<cuFll>& HiddenLayers,
 	cuSMR& smr,
 	int ImgSize,
 	int nclasses);
 
-void cuFreeConvNet(std::vector<cuCvl> &ConvLayers,
-	std::vector<cuFll> &HiddenLayers,
+void cuFreeConvNet(
 	cuSMR &smr);
 
 void cuFreeCNNMemory(
 	int batch,
 	cuMatrixVector<double>&trainX, 
 	cuMatrixVector<double>&testX,
-	std::vector<cuCvl>&ConvLayers,
-	std::vector<cuFll>&HiddenLayers, 
 	cuSMR &smr);
 
 
@@ -156,8 +147,7 @@ void cuFreeCNNMemory(
 *	get one network's vote result
 */
 
-int voteTestDate(std::vector<cuCvl> &CLayers,
-	std::vector<cuFll> &FullConnectLayers,
+int voteTestDate(
 	cuSMR &smr,
 	cuMatrixVector<double>&testX,
 	cuMatrix<int>* testY,

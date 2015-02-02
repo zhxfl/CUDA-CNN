@@ -27,6 +27,14 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 __global__ void g_getCost_3(double* cost,
 	double** weight,
 	double lambda, int rows, int cols);
+
+__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, int batch);
+__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch);
+
+__global__ void g_getCost_2(double* cost,
+	double* weight,
+	double lambda, int len);
+
 #endif
 
 

@@ -1,6 +1,7 @@
 #include "util.h"
 #include <opencv2/opencv.hpp>
 #include "Config.h"
+#include <time.h>
 
 using namespace cv;
 
@@ -144,4 +145,24 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 			gaussian[row * cols + col] *= epsilon;
 		}
 	}
+}
+
+
+void dropDelta(cuMatrix<double>* M, double cuDropProb)
+{
+	for(int c = 0; c < M->channels; c++){
+		cv::Mat ran = cv::Mat::zeros(M->rows, M->cols, CV_64FC1);
+		cv::theRNG().state = clock();
+		randu(ran, cv::Scalar(0), cv::Scalar(1.0));
+		for(int i = 0; i < M->rows; i++){
+			for(int j = 0; j < M->cols; j++){
+				double r = ran.at<double>(i, j);
+				if(r < cuDropProb)
+					M->set(i, j, c, 0.0);
+				else 
+					M->set(i, j, c, 1.0);
+			}
+		}
+	}
+	M->toGpu();
 }

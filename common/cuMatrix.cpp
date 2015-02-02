@@ -5,15 +5,28 @@
 #include "cublas_v2.h"
 
 
+cublasHandle_t& getHandle()
+{
+	static cublasHandle_t handle = NULL;
+	if(handle == NULL){
+		cublasStatus_t stat;
+		stat = cublasCreate(&handle);
+		if(stat != CUBLAS_STATUS_SUCCESS) {
+			printf ("init: CUBLAS initialization failed\n");
+			exit(0);
+		}
+	}
+	return handle;
+}
 /*matrix multiply*/
 /*z = x * y*/
-void matrixMul(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z, cublasHandle_t handle)
+void matrixMul(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z)
 {
-	cublasStatus_t stat;
 	double alpha = 1.0;
 	double beta = 0.0;
+	cublasStatus_t stat;
 	stat = cublasDgemm(
-		handle, 
+		getHandle(), 
 		CUBLAS_OP_N,
 		CUBLAS_OP_N,
 		y->cols,
@@ -38,13 +51,13 @@ void matrixMul(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<dou
 }
 
 /*z = T(x) * y*/
-void matrixMulTA(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z, cublasHandle_t handle)
+void matrixMulTA(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z)
 {
 	cublasStatus_t stat;
 	double alpha = 1.0;
 	double beta = 0.0;
 	stat = cublasDgemm(
-		handle, 
+		getHandle(), 
 		CUBLAS_OP_N,
 		CUBLAS_OP_T,
 		y->cols,
@@ -69,13 +82,13 @@ void matrixMulTA(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<d
 }
 
 /*z = x * T(y)*/
-void matrixMulTB(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z, cublasHandle_t handle)
+void matrixMulTB(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z)
 {
 	cublasStatus_t stat;
 	double alpha = 1.0;
 	double beta = 0.0;
 	stat = cublasDgemm(
-		handle, 
+		getHandle(), 
 		CUBLAS_OP_T,
 		CUBLAS_OP_N,
 		y->rows,

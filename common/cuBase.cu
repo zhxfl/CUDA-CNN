@@ -14,7 +14,6 @@ __device__ double d_nonLinearity(double val, int NONLIN){
 	{
 		return val;
 	}
-
 }
 
 __device__ double d_dnonLinearity(double val,int NONLIN){
@@ -173,5 +172,94 @@ __global__ void g_getCost_3(double* cost,
 	if(threadIdx.x == 0)
 	{
 		atomicAdd(cost, _sum[0] * lambda * 0.5);
+	}
+}
+
+
+/*
+*/
+__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, int batch)
+{
+	extern __shared__ double _sum[];
+	_sum[threadIdx.x] = softMaxDelta[threadIdx.x * gridDim.x + blockIdx.x];
+
+	int len = blockDim.x;
+	while(len != 1)
+	{
+		__syncthreads();
+		int skip = (len + 1) >> 1;
+		if(threadIdx.x < (len >> 1))
+		{
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		}
+		len = (len + 1) >> 1;
+	}
+	if(threadIdx.x == 0)
+	{
+		bgrad[blockIdx.x] = _sum[0] / batch;
+		bgrad[blockIdx.x] *= dropb[blockIdx.x];
+	}
+}
+
+
+/*
+*/
+__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
+{
+	extern __shared__ double _sum[];
+	_sum[threadIdx.x] = softMaxDelta[threadIdx.x * gridDim.x + blockIdx.x];
+
+	int len = blockDim.x;
+	while(len != 1)
+	{
+		__syncthreads();
+		int skip = (len + 1) >> 1;
+		if(threadIdx.x < (len >> 1))
+		{
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		}
+		len = (len + 1) >> 1;
+	}
+	if(threadIdx.x == 0)
+	{
+		bgrad[blockIdx.x] = _sum[0] / batch;
+	}
+}
+
+/*
+*
+*/
+__global__ void g_getCost_2(double* cost,
+	double* weight,
+	double lambda, int len)
+{
+	extern __shared__ double _sum[];
+	_sum[threadIdx.x] = 0;
+	__syncthreads();
+
+	for(int i = 0; i < len; i += blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < len)
+		{
+			_sum[threadIdx.x] += weight[id] * weight[id];
+		}
+	}
+
+	len = blockDim.x;
+	while(len != 1)
+	{
+		__syncthreads();
+		int skip = (len + 1) >> 1;
+		if(threadIdx.x < (len >> 1))
+		{
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		}
+		len = (len + 1) >> 1;
+	}
+
+	if(threadIdx.x == 0)
+	{
+		cost[0] += _sum[0] * lambda * 0.5;
 	}
 }
