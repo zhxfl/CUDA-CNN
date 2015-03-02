@@ -30,10 +30,8 @@
 >Depend on opencv and cuda    
 >You can compile the code on windows or linux.   
 ###SDK include path(-I)   
->* linux: /usr/local/cuda/samples/common/inc/ (For include file "helper_cuda") 
->*        /usr/local/include/opencv/ (Depend on situation)        
->* windows: X:/Program Files (x86) /NVIDIA Corporation/CUDA Samples/v6.5/common/inc (For include file "helper_cuda")   
->*          X:/Program Files/opencv/vs2010/install/include (Depend on situation)
+>* linux: /usr/local/cuda/samples/common/inc/ (For include file "helper_cuda"); /usr/local/include/opencv/ (Depend on situation)        
+>* windows: X:/Program Files (x86) /NVIDIA Corporation/CUDA Samples/v6.5/common/inc (For include file "helper_cuda"); X:/Program Files/opencv/vs2010/install/include (Depend on situation)
 >
 ###Library search path(-L)   
 >* linux: /usr/local/lib/   
