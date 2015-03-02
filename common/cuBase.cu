@@ -227,25 +227,41 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
 }
 
 /*
-*
+* function: getcost
 */
-__global__ void g_getCost_2(double* cost,
-	double* weight,
-	double lambda, int len)
+__global__ void g_getCost_1(double* softMaxP,
+	double* groundTruth, double* cost, int*y, int rows, int cols, int batch)
 {
 	extern __shared__ double _sum[];
-	_sum[threadIdx.x] = 0;
-	__syncthreads();
-
+	int len = rows * cols;
 	for(int i = 0; i < len; i += blockDim.x)
 	{
 		int id = i + threadIdx.x;
 		if(id < len)
 		{
-			_sum[threadIdx.x] += weight[id] * weight[id];
+			groundTruth[id] = 0;
 		}
 	}
-
+	__syncthreads();
+	for(int i = 0; i < rows; i += blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < rows)
+		{
+			int yy = y[id];
+			groundTruth[id * cols + yy] = 1;
+		}
+	}
+	_sum[threadIdx.x] = 0;
+	__syncthreads();
+	for(int i = 0; i < len; i += blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < len)
+		{
+			_sum[threadIdx.x] += log(softMaxP[id]) * groundTruth[id];
+		}
+	}
 	len = blockDim.x;
 	while(len != 1)
 	{
@@ -257,7 +273,40 @@ __global__ void g_getCost_2(double* cost,
 		}
 		len = (len + 1) >> 1;
 	}
+	__syncthreads();
+	if(threadIdx.x == 0)
+	{
+		cost[0] = -_sum[0] / batch;
+	}
+}
 
+
+__global__ void g_getCost_2(double* cost,
+	double* weight,
+	double lambda, int len)
+{
+	extern __shared__ double _sum[];
+	_sum[threadIdx.x] = 0;
+	__syncthreads();
+	for(int i = 0; i < len; i += blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < len)
+		{
+			_sum[threadIdx.x] += weight[id] * weight[id];
+		}
+	}
+	len = blockDim.x;
+	while(len != 1)
+	{
+		__syncthreads();
+		int skip = (len + 1) >> 1;
+		if(threadIdx.x < (len >> 1))
+		{
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		}
+		len = (len + 1) >> 1;
+	}
 	if(threadIdx.x == 0)
 	{
 		cost[0] += _sum[0] * lambda * 0.5;

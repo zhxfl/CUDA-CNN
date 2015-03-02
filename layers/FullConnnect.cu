@@ -211,7 +211,7 @@ FullConnect::FullConnect(cuMatrix<double>* _inputs,
 	bgrad = new cuMatrix<double>(outputsize, 1, 1);
 
 	momentum_w = new cuMatrix<double>(outputsize, inputsize, 1);
-	momentum_b = new cuMatrix<double>(outputsize, inputsize, 1);
+	momentum_b = new cuMatrix<double>(outputsize, 1, 1);
 
 	dropDelta(dropW, dropRate);
 }
@@ -371,7 +371,7 @@ void FullConnect::initRandom()
 void FullConnect::initFromCheckpoint(FILE* file)
 {
 	double val = 0.0;
-	for(int c = 0; c < Config::instance()->getChannels(); c++){
+	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i < w->rows; i++){
 			for(int j = 0; j < w->cols; j++){
 				fscanf(file, "%lf", &val);

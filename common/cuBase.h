@@ -24,16 +24,19 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 	int lenw, int lenb,
 	double momentum, double lrate);
 
+__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, int batch);
+__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch);
+
 __global__ void g_getCost_3(double* cost,
 	double** weight,
 	double lambda, int rows, int cols);
 
-__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, int batch);
-__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch);
-
 __global__ void g_getCost_2(double* cost,
 	double* weight,
 	double lambda, int len);
+
+__global__ void g_getCost_1(double* softMaxP,
+	double* groundTruth, double* cost, int*y, int rows, int cols, int batch);
 
 #endif
 
