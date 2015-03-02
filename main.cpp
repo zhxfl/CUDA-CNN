@@ -75,9 +75,6 @@ void runChinese() {
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
-	std::vector<cuCvl> ConvLayers;
-	std::vector<cuFll> HiddenLayers;
-	cuSMR smr;
 	int batch = Config::instance()->getBatchSize();
 	double start, end;
 	int cmd;
@@ -89,14 +86,12 @@ void runChinese() {
 		cmd = g_argv[1];
 	else 
 		scanf("%d", &cmd);
-	if (cmd == 1)
-		cuConvNetInitPrarms(ConvLayers, HiddenLayers, smr, ImgSize - crop,
-				nclasses);
-	else if (cmd == 2)
-		cuReadConvNet(ConvLayers, HiddenLayers, smr, ImgSize - crop,
+
+	if (cmd == 2)
+		cuReadConvNet(ImgSize - crop,
 				"Result/checkPoint.txt", nclasses);
 
-	cuInitCNNMemory(batch, trainX, testX, ConvLayers, HiddenLayers, smr,
+	cuInitCNNMemory(batch, trainX, testX,
 			ImgSize - crop, nclasses);
 
 	/*learning rate*/
@@ -115,7 +110,7 @@ void runChinese() {
 		if(m >= 1.0) m = 0.99;
 	}
 	start = clock();
-	cuTrainNetwork(trainX, trainY, ConvLayers, HiddenLayers, smr, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
+	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 
 	printf("trainning time %lf\n", (end - start) / CLOCKS_PER_SEC);
