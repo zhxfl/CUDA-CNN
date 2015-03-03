@@ -1,7 +1,7 @@
 #ifndef _CU_MATRIX_H_
 #define _CU_MATRIX_H_
 
-#include "cublas_v2.h"
+#include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -157,9 +157,9 @@ public:
 
 /*matrix multiply*/
 /*z = x * y*/
-void matrixMul   (const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z, cublasHandle_t handle);
+void matrixMul   (const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z);
 /*z = T(x) * y*/
-void matrixMulTA (const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z, cublasHandle_t handle);
+void matrixMulTA (const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z);
 /*z = x * T(y)*/
-void matrixMulTB (const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z, cublasHandle_t handle);
+void matrixMulTB (const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z);
 #endif

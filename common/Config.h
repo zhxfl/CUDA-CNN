@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include "util.h"
+#include <time.h>
 
 class ConfigGradient
 {
@@ -143,16 +144,28 @@ public:
 class ConfigConv
 {
 public:
-	ConfigConv(int kernelSize, int amount, double weightDecay, int poolingDim){
+	ConfigConv(int kernelSize, int padding, int amount, double weightDecay){
+
 		m_kernelSize = kernelSize;
+		m_padding = padding;
 		m_amount = amount;
 		m_weightDecay = weightDecay;
-		m_poolingDim = poolingDim;
 	}
 	int m_kernelSize;
+	int m_padding;
 	int m_amount;
 	double m_weightDecay;
-	int m_poolingDim;
+};
+
+class ConfigPooling
+{
+public:
+	ConfigPooling(int size, int skip){
+		m_size = size;
+		m_skip = skip;
+	}
+	int m_size;
+	int m_skip;
 };
 
 class ConfigFC
@@ -200,6 +213,18 @@ private:
 class Config
 {
 public:
+	void setMomentum(double _momentum){
+		momentum = _momentum;
+	}
+	double getMomentum(){
+		return momentum;
+	}
+	void setLrate(double _lrate){
+		lrate = _lrate;
+	}
+	double getLrate(){
+		return lrate;
+	}
 	void initPath(std::string path){
 		m_path = path;
 		init(m_path);
@@ -272,6 +297,10 @@ public:
 		return m_conv;
 	}
 
+	const std::vector<ConfigPooling*>& getPooling(){
+		return m_pooling;
+	}
+
 	const std::vector<ConfigFC*>& getFC(){
 		return m_fc;
 	}
@@ -294,6 +323,7 @@ private:
 	std::string m_path;
 	std::vector<ConfigFC*>m_fc;
 	std::vector<ConfigConv*>m_conv;
+	std::vector<ConfigPooling*>m_pooling;
 	std::vector<ConfigSoftMax*>m_softMax;
 
 	ConfigNonLinearity       *m_nonLinearity;
@@ -308,6 +338,10 @@ private:
 	ConfigImageShow          *m_imageShow;
 	ConfigHorizontal         *m_horizontal;
 	ConfigCombineFeatureMaps *m_cfm;
+
+
+	double momentum;
+	double lrate;
 };
 
 #endif

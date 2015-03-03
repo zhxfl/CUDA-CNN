@@ -15,17 +15,29 @@ COMBINE_FEATRUE_MAPS = 0;		#According to paper "notes on Convolutional Neural Ne
 [
 LAYER = CONV;
 KERNEL_SIZE = 5;
+PADDING = 0;
 KERNEL_AMOUNT = 10;
 WEIGHT_DECAY = 1e-4;
-POOLING_DIM = 2;
+]
+
+[
+LAYER = POOLING;
+SIZE = 2;
+SKIP = 2;
 ]
 
 [  
 LAYER = CONV;
 KERNEL_SIZE = 5;
+PADDING = 0;
 KERNEL_AMOUNT = 20;
 WEIGHT_DECAY = 1e-4;
-POOLING_DIM = 2;
+]
+
+[
+LAYER = POOLING;
+SIZE = 2;
+SKIP = 2;
 ]
 
 [
