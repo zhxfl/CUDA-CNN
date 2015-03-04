@@ -3,7 +3,8 @@
 
 
 >Document   
->1.  <a href="http://zhxfl.github.io/cuda-cnn_cuda-stream"> Overlap Data Transfers in CUDA </a>
+>1.  The c version from Eric <a href="http://eric-yuan.me/cnn/"> Eric </a>   
+>2.  <a href="http://zhxfl.github.io/cuda-cnn_cuda-stream"> Overlap Data Transfers in CUDA </a>   
 >
 >Functions
 >--------
@@ -84,5 +85,7 @@
 >------------
 >* Author :zhxfl  
 >* Mail   :zhxfl@mail.ustc.edu.cn  
+>* 单位   ：中国科学技术大学苏州研究院多核系统实验室   
 >* Welcome for any suggest!!   
+>* 
 
