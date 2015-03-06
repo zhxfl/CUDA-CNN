@@ -28,11 +28,7 @@ public:
 	void save(FILE* file);
 
 
-	SoftMax(cuMatrix<double>* _inputs,
-		int _batch,
-		double _lambda,
-		int _neurons,
-		int _NON_LINEARITY);
+	SoftMax(std::string name);
 
 private:
 	cuMatrix<double>* inputs;

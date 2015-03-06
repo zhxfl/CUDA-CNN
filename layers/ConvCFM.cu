@@ -148,7 +148,7 @@ __global__ void g_ConvCFM_Bgrad_1(double* delta,
 	int bgradArea);
 
 
-void ConvCFM::getCost(cuMatrix<double>*cost)
+void ConvCFM::getCost(cuMatrix<double>*cost, int* y)
 {
 	g_getCost_3<<<dim3(amount), dim3(32), sizeof(double) * 32>>>(cost->devData, 
 		w.m_devPoint, 
@@ -388,109 +388,95 @@ void ConvCFM::updateWeight()
 		Config::instance()->getLrate());
 }
 
-ConvCFM::ConvCFM(cuMatrix<double>* _inputs, 
-	int _inputAmount,
-	int _amount,
-	int _kernelSize,
-	int _padding,
-	int _inputDim,
-	int _batch, 
-	double _lambda,
-	int _cfm, 
-	int _NON_LINEARITY)
+ConvCFM::ConvCFM(std::string name)
 {
-	inputs_1 = NULL;
-	inputs_2 = _inputs;
-	inputAmount = _inputAmount;
-	amount = _amount;
-	outputAmount = amount;
-	kernelSize = _kernelSize;
-	padding = _padding;
+	m_name = name;
+	ConfigConv* config = (ConfigConv*)Config::instance()->getLayerByName(m_name);
+	if(config->m_input == std::string("data"))
+	{
+		inputs_1 = Layers::instance()->getInputs();
+		inputs_2 = NULL;
+		inputAmount = 1;
+		amount = config->m_amount;
+		outputAmount = amount;
+		kernelSize = config->m_kernelSize;
+		padding = config->m_padding;
 
-	inputDim  = _inputDim;
-	outputDim = (_inputDim + 1 - kernelSize) + padding * 2;
-	batch     = _batch;
-	lambda    = _lambda;
-	cfm = _cfm;
-	NON_LINEARITY = _NON_LINEARITY;
+		inputDim  = Config::instance()->getImageSize();
+		outputDim = (inputDim - kernelSize + 1) + padding * 2;
+		batch     = Config::instance()->getBatchSize();
+		lambda = config->m_weightDecay;
+		cfm = 1;
+		NON_LINEARITY = Config::instance()->getNonLinearity();
 
-	outputs = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
+		outputs  = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
+		curDelta = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
+		wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount * kernelSize * kernelSize, Config::instance()->getChannels());
+		preDelta = NULL;
 
-	preDelta = NULL;
-	curDelta = new cuMatrix<double>(batch, outputAmount * outputDim  * outputDim,  Config::instance()->getChannels());
-	wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount  * kernelSize * kernelSize, Config::instance()->getChannels());
+		for(int i = 0; i < amount; i++){
+			w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
+			b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+			wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
+			bgrad.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+		}
+		w.toGpu();
+		b.toGpu();
+		wgrad.toGpu();
+		bgrad.toGpu();
 
-	for(int i = 0; i < amount; i++){
-		w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-		b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
-		wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-		bgrad.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+		for(int i = 0; i < amount; i++){
+			momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
+			momentum_b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+		}
+		momentum_w.toGpu();
+		momentum_b.toGpu();
 	}
+	else {
+		ConfigConv* config = (ConfigConv*)Config::instance()->getLayerByName(m_name);
+		ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
 
-	w.toGpu();
-	b.toGpu();
-	wgrad.toGpu();
-	bgrad.toGpu();
+		inputs_1 = NULL;
+		inputs_2 = preLayer->getOutputs();
+		inputAmount = preLayer->outputAmount;
+		amount = config->m_amount;
+		outputAmount = amount;
+		kernelSize = config->m_kernelSize;
+		padding = config->m_kernelSize;
 
-	for(int i = 0; i < amount; i++){
-		momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-		momentum_b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+		inputDim  = preLayer->outputDim;
+		outputDim = (inputDim + 1 - kernelSize) + padding * 2;
+		batch     = Config::instance()->getBatchSize();
+		lambda    = config->m_weightDecay;
+		cfm = config->m_cfm;
+		NON_LINEARITY = Config::instance()->getNonLinearity();
+		
+		outputs = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
+		curDelta = new cuMatrix<double>(batch, outputAmount * outputDim  * outputDim,  Config::instance()->getChannels());
+		wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount  * kernelSize * kernelSize, Config::instance()->getChannels());
+		preDelta = preLayer->getCurDelta();
+
+		for(int i = 0; i < amount; i++){
+			w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
+			b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+			wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
+			bgrad.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+		}
+
+		w.toGpu();
+		b.toGpu();
+		wgrad.toGpu();
+		bgrad.toGpu();
+
+		for(int i = 0; i < amount; i++){
+			momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
+			momentum_b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+		}
+		momentum_w.toGpu();
+		momentum_b.toGpu();
 	}
-	momentum_w.toGpu();
-	momentum_b.toGpu();
-}
-
-ConvCFM::ConvCFM(cuMatrixVector<double>* _inputs, 
-	int _inputAmount,
-	int _amount,
-	int _kernelSize,
-	int _padding,
-	int _inputDim,
-	int _batch, 
-	double _lambda,
-	int _cfm, 
-	int _NON_LINEARITY)
-{
-	Assert(_inputAmount == 1);
-	Assert(_cfm <= _inputAmount);
-
-	inputs_1 = _inputs;
-	inputs_2 = NULL;
-	inputAmount = _inputAmount;
-	amount = _amount;
-	outputAmount = amount;
-	kernelSize = _kernelSize;
-	padding = _padding;
-
-	inputDim  = _inputDim;
-	outputDim = (_inputDim - kernelSize + 1) + padding * 2;
-	batch     = _batch;
-	lambda = _lambda;
-	cfm = _cfm;
-	NON_LINEARITY = _NON_LINEARITY;
-
-	outputs  = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
-	curDelta = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
-	wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount * kernelSize * kernelSize, Config::instance()->getChannels());
-	preDelta = NULL;
-
-	for(int i = 0; i < amount; i++){
-		w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-		b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
-		wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-		bgrad.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
-	}
-	w.toGpu();
-	b.toGpu();
-	wgrad.toGpu();
-	bgrad.toGpu();
-
-	for(int i = 0; i < amount; i++){
-		momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-		momentum_b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
-	}
-	momentum_w.toGpu();
-	momentum_b.toGpu();
+	this->initRandom();
+	Layers::instance()->set(m_name, this);
 }
 
 void ConvCFM::save(FILE* file)
@@ -709,7 +695,6 @@ __global__ void g_ConvCFM_backpropagation(
 	int numOfCFM)
 {
 	int curSize = _convOutputSize;
-	int curAddBorderSize = _poolOutputSize;
 	int wSize = _kernelSize;
 	int nxtSize = _poolOutputSize;
 	int k2 = blockIdx.y % _kernelAmount2;

@@ -8,7 +8,7 @@
 #include "../common/cuMatrixVector.h"
 
 
-class ConvNCFM: public LayerBase
+class ConvNCFM: public ConvLayerBase
 {
 public:
 	void feedforward();
@@ -16,27 +16,11 @@ public:
 	void getGrad();
 	void updateWeight();
 	void clearMomentum();
-	void getCost(cuMatrix<double>*cost);
+	void getCost(cuMatrix<double>*cost, int* y = NULL);
 
-	ConvNCFM(cuMatrix<double>* _inputs, 
-		int _inputAmount,
-		int _amount,
-		int _kernelSize,
-		int _padding,
-		int _inputDim,
-		int _batch, 
-		double _lambda,
-		int _NON_LINEARITY);
 
-	ConvNCFM(cuMatrixVector<double>* _inputs, 
-		int _inputAmount,
-		int _amount,
-		int _kernelSize,
-		int _padding,
-		int _inputDim,
-		int _batch, 
-		double _lambda,
-		int _NON_LINEARITY);
+	
+	ConvNCFM(std::string name);
 
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
@@ -80,11 +64,7 @@ private:
 	cuMatrix<double>* preDelta;
 	cuMatrix<double>* outputs;
 	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
-	int inputDim ;
-	int outputDim;
-	int inputAmount;
-	int amount;
-	int outputAmount; // outputAmount = inputAmount * amount
+	//int outputAmount = inputAmount * amount
 	int kernelSize;
 	int padding;
 	int batch;

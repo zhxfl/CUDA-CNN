@@ -83,75 +83,101 @@ string Config::get_word_type(string &str, string name){
 }
 
 void Config:: get_layers_config(string &str){
-		vector<string> layers;
-		if(str.empty()) return;
-		int head = 0;
-		int tail = 0;
-		while(1){
-			if(head == str.length()) break;
-			if(str[head] == '['){
-				tail = head + 1;
-				while(1){
-					if(tail == str.length()) break;
-					if(str[tail] == ']') break;
-					++ tail;
-				}
-				string sub = str.substr(head, tail - head + 1);
-				if(sub[sub.length() - 1] == ']'){
-					sub.erase(sub.begin() + sub.length() - 1);
-					sub.erase(sub.begin());
-					layers.push_back(sub);
-				}
-				str.erase(head, tail - head + 1);
-			}else ++ head;
+	vector<string> layers;
+	if(str.empty()) return;
+	int head = 0;
+	int tail = 0;
+	while(1){
+		if(head == str.length()) break;
+		if(str[head] == '['){
+			tail = head + 1;
+			while(1){
+				if(tail == str.length()) break;
+				if(str[tail] == ']') break;
+				++ tail;
+			}
+			string sub = str.substr(head, tail - head + 1);
+			if(sub[sub.length() - 1] == ']'){
+				sub.erase(sub.begin() + sub.length() - 1);
+				sub.erase(sub.begin());
+				layers.push_back(sub);
+			}
+			str.erase(head, tail - head + 1);
+		}else ++ head;
+	}
+	for(int i = 0; i < layers.size(); i++){
+		string type = get_word_type(layers[i], "LAYER");
+		std::string name = get_word_type(layers[i], "NAME");
+		std::string input = get_word_type(layers[i], "INPUT");
+		ConfigBase* layer;
+		if(type == string("CONV")) {
+			int ks = get_word_int(layers[i], "KERNEL_SIZE");
+			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
+			int pd = get_word_int(layers[i], "PADDING");
+			int cfm= get_word_int(layers[i], "COMBINE_FEATRUE_MAPS");
+
+			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
+			layer = new ConfigConv(name, input, type, ks, pd, ka, wd, cfm);
+			m_conv.push_back((ConfigConv*)layer);
+			printf("\n\n********conv layer********\n");
+			printf("NAME          : %s\n", name.c_str());
+			printf("INPUT         : %s\n", input.c_str());
+			printf("KERNEL_SIZE   : %d\n", ks);
+			printf("KERNEL_AMOUNT : %d\n", ka);
+			printf("PADDING       : %d\n", pd);
+			printf("WEIGHT_DECAY  : %lf\n", wd);
 		}
-		for(int i = 0; i < layers.size(); i++){
-			string type = get_word_type(layers[i], "LAYER");
-			if(type == string("CONV")) {
-				int ks = get_word_int(layers[i], "KERNEL_SIZE");
-				int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
-				int pd = get_word_int(layers[i], "PADDING");
+		else if(type == string("POOLING"))
+		{
+			int size = get_word_int(layers[i], "SIZE");
+			int skip = get_word_int(layers[i], "SKIP");
+			layer = new ConfigPooling(name, input, type, size, skip);
 
-				double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-				m_conv.push_back(new ConfigConv(ks, pd, ka, wd));
-				printf("\n\n********conv layer********\n");
-				printf("KERNEL_SIZE   : %d\n", ks);
-				printf("KERNEL_AMOUNT : %d\n", ka);
-				printf("PADDING       : %d\n", pd);
-				printf("WEIGHT_DECAY  : %lf\n", wd);
-			}
-			else if(type == string("POOLING"))
-			{
-				int size = get_word_int(layers[i], "SIZE");
-				int skip = get_word_int(layers[i], "SKIP");
-				m_pooling.push_back(new ConfigPooling(size, skip));
-				printf("\n\n********pooling layer********\n");
-				printf("size : %d\n",  size);
-				printf("skip : %d\n", skip);
-			}
-			else if(type == string("FC"))
-			{
-				int hn = get_word_int(layers[i], "NUM_FULLCONNECT_NEURONS");
-				double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-				double drop = get_word_double(layers[i], "DROPCONNECT_RATE");
-				m_fc.push_back(new ConfigFC(hn, wd, drop));
-
-				printf("\n\n********Full Connect Layer********\n");
-				printf("NUM_FULLCONNECT_NEURONS : %d\n", hn);
-				printf("WEIGHT_DECAY            : %lf\n", wd);
-				printf("DROPCONNECT_RATE        : %lf\n", drop);
-			}
-			else if(type == string("SOFTMAX"))
-			{
-				int numClasses = get_word_int(layers[i], "NUM_CLASSES");
-				double weightDecay = get_word_double(layers[i], "WEIGHT_DECAY");
-				m_softMax.push_back(new ConfigSoftMax(numClasses, weightDecay));
-
-				printf("\n\n********SoftMax Layer********\n");
-				printf("NUM_CLASSES  : %d\n", numClasses);
-				printf("WEIGHT_DECAY : %lf\n", weightDecay);
-			}
+			m_pooling.push_back((ConfigPooling*)layer);
+			printf("\n\n********pooling layer********\n");
+			printf("NAME          : %s\n", name.c_str());
+			printf("INPUT         : %s\n", input.c_str());
+			printf("size          : %d\n",  size);
+			printf("skip          : %d\n", skip);
 		}
+		else if(type == string("FC"))
+		{
+			int hn = get_word_int(layers[i], "NUM_FULLCONNECT_NEURONS");
+			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
+			double drop = get_word_double(layers[i], "DROPCONNECT_RATE");
+			layer = new ConfigFC(name, input, type, hn, wd, drop);
+			m_fc.push_back((ConfigFC*) layer);
+
+			printf("\n\n********Full Connect Layer********\n");
+			printf("NAME                    : %s\n", name.c_str());
+			printf("INPUT                   : %s\n", input.c_str());
+			printf("NUM_FULLCONNECT_NEURONS : %d\n", hn);
+			printf("WEIGHT_DECAY            : %lf\n", wd);
+			printf("DROPCONNECT_RATE        : %lf\n", drop);
+		}
+		else if(type == string("SOFTMAX"))
+		{
+			int numClasses = get_word_int(layers[i], "NUM_CLASSES");
+			double weightDecay = get_word_double(layers[i], "WEIGHT_DECAY");
+			layer = new ConfigSoftMax(name, input, type, numClasses, weightDecay);
+			m_softMax.push_back((ConfigSoftMax*)layer);
+
+			printf("\n\n********SoftMax Layer********\n");
+			printf("NAME         : %s\n", name.c_str());
+			printf("INPUT        : %s\n", input.c_str());
+			printf("NUM_CLASSES  : %d\n", numClasses);
+			printf("WEIGHT_DECAY : %lf\n", weightDecay);
+		}
+
+		insertLayerByName(name, layer);
+		if(input == std::string("data")){
+			m_firstLayers.push_back(layer);
+		}
+		else{
+			ConfigBase* preLayer = getLayerByName(layer->m_input);
+			preLayer->m_next.push_back(layer);
+		}
+	}
 }
 
 void Config::init(std::string path)
@@ -212,11 +238,6 @@ void Config::init(std::string path)
 	bool horizontal = get_word_bool(m_configStr, "HORIZONTAL");
 	m_horizontal = new ConfigHorizontal(horizontal);
 	printf("HORIZONTAL            : %d\n", horizontal);
-
-	/*Combine Feature Maps*/
-	int cfm = get_word_int(m_configStr, "COMBINE_FEATRUE_MAPS");
-	m_cfm = new ConfigCombineFeatureMaps(cfm);
-	printf("combine feature maps  : %d\n", cfm);
 
 	/*Layers*/
 	get_layers_config(m_configStr);

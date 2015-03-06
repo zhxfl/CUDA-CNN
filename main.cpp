@@ -72,6 +72,7 @@ void runChinese() {
 
 	/*build CNN net*/
 	int ImgSize = trainX[0]->rows;
+	
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
@@ -140,6 +141,7 @@ void runCifar100(){
 
 	/*build CNN net*/
 	int ImgSize = trainX[0]->rows;
+	Config::instance()->setImageSize(ImgSize);
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
@@ -203,6 +205,7 @@ void runCifar10()
 
 	/*build CNN net*/
 	int ImgSize = trainX[0]->rows;
+	Config::instance()->setImageSize(ImgSize);
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
@@ -274,6 +277,7 @@ void runMnist(){
 
  	/*build CNN net*/
  	int ImgSize = trainX[0]->rows;
+	Config::instance()->setImageSize(ImgSize);
 	int crop    = Config::instance()->getCrop();
 
  	int nsamples = trainX.size();
@@ -337,6 +341,7 @@ void cuVoteMnist()
  	readMnistData(testX , testY,  "mnist/t10k-images.idx3-ubyte",  "mnist/t10k-labels.idx1-ubyte",  10000, 1);
 
 	int ImgSize = trainX[0]->rows;
+	Config::instance()->setImageSize(ImgSize);
 
 	char* path[] = {"mnist_result_cfm_5/1/checkPoint.txt",
 		"mnist_result_cfm_5/2/checkPoint.txt",

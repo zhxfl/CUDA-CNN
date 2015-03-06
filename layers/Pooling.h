@@ -11,14 +11,18 @@
 //#define NL_TANH 1
 //#define NL_RELU 2
 
-class Pooling: public LayerBase{
+class Pooling: public ConvLayerBase{
 public:
 	void feedforward();
 	void backpropagation();
 	void getGrad(){};
 	void updateWeight(){};
 	void clearMomentum(){};
-	Pooling(cuMatrix<double>* _inputs, int _size, int _skip,int _inputDim, int _amount, int _batch);
+	Pooling(std::string name);
+	void getCost(cuMatrix<double>*cost, int* y = NULL);
+
+	void initFromCheckpoint(FILE* file){};
+	void save(FILE* file){};
 
 	~Pooling(){
 		delete pointX;
@@ -50,7 +54,6 @@ public:
 		return outputDim;
 	}
 
-
 private:
 	cuMatrix<double>* inputs;
 	cuMatrix<int>   * pointX;
@@ -60,9 +63,6 @@ private:
 	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
 	int size;
 	int skip;
-	int inputDim ;
-	int outputDim;
-	int amount;
 	int batch;
 	int NON_LINEARITY;
 };

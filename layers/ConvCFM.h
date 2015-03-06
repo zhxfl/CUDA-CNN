@@ -8,7 +8,7 @@
 #include "../common/cuMatrixVector.h"
 
 
-class ConvCFM: public LayerBase
+class ConvCFM: public ConvLayerBase
 {
 public:
 	void feedforward();
@@ -16,29 +16,10 @@ public:
 	void getGrad();
 	void updateWeight();
 	void clearMomentum();
-	void getCost(cuMatrix<double>*cost);
+	void getCost(cuMatrix<double>*cost, int* y = NULL);
+	
+	ConvCFM(std::string name);
 
-	ConvCFM(cuMatrix<double>* _inputs, 
-		int _inputAmount,
-		int _amount,
-		int _kernelSize,
-		int _padding,
-		int _inputDim,
-		int _batch, 
-		double _lambda,
-		int cfm,
-		int _NON_LINEARITY);
-
-	ConvCFM(cuMatrixVector<double>* _inputs, 
-		int _inputAmount,
-		int _amount,
-		int _kernelSize,
-		int _padding,
-		int _inputDim,
-		int _batch, 
-		double _lambda,
-		int cfm,
-		int _NON_LINEARITY);
 
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
@@ -59,10 +40,6 @@ public:
 		return curDelta;
 	}
 
-	void setPreDelta(cuMatrix<double>* _preDelta){
-		preDelta = _preDelta;
-	}
-
 	int getOutputAmount(){
 		return outputAmount;
 	}
@@ -81,11 +58,7 @@ private:
 	cuMatrix<double>* preDelta;
 	cuMatrix<double>* outputs;
 	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
-	int inputDim ;
-	int outputDim;
-	int inputAmount;
-	int amount;
-	int outputAmount; // outputAmount = inputAmount * amount
+	//int outputAmount;  outputAmount = inputAmount * amount
 	int kernelSize;
 	int padding;
 	int batch;

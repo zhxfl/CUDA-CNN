@@ -168,7 +168,7 @@ void FullConnect::feedforward()
 }
 
 
-void FullConnect::getCost(cuMatrix<double>*cost)
+void FullConnect::getCost(cuMatrix<double>*cost, int* y)
 {
 	if(fabs(lambda) >= 1e-10)
 	{
@@ -181,26 +181,25 @@ void FullConnect::getCost(cuMatrix<double>*cost)
 	}
 }
 
-FullConnect::FullConnect(cuMatrix<double>* _inputs,
-	int _batch,
-	double _lambda,	
-	int _neurons,
-	double _dropRate,
-	int _NON_LINEARITY)
+FullConnect::FullConnect(std::string name)
 {
-	inputs = _inputs;
-	batch = _batch;
-	lambda = _lambda;
-	inputsize = inputs->cols * inputs->channels;
-	outputsize = _neurons;
-	dropRate = _dropRate;
+	m_name = name;
+	ConfigFC* config = (ConfigFC*)Config::instance()->getLayerByName(m_name);
+	LayerBase * preLayer = (LayerBase*)Layers::instance()->get(config->m_input);
 
-	NON_LINEARITY = _NON_LINEARITY;
+	inputs = preLayer->getOutputs();
+	batch = Config::instance()->getBatchSize();
+	lambda = config->m_weightDecay;
+	inputsize = inputs->cols * inputs->channels;
+	outputsize = config->m_numFullConnectNeurons;
+	dropRate = config->m_dropoutRate;
+
+	NON_LINEARITY = Config::instance()->getNonLinearity();
 
 	inputs_format = new cuMatrix<double>(inputs->rows, inputs->cols * inputs->channels, 1);
 	outputs       = new cuMatrix<double>(batch, outputsize, 1);
 	curDelta      = new cuMatrix<double>(batch, outputsize, 1);
-
+	this->setPreDelta(preLayer->getCurDelta());
 
 	w          = new cuMatrix<double>(outputsize, inputsize, 1);
 	wgrad      = new cuMatrix<double>(outputsize, inputsize, 1);
@@ -214,6 +213,9 @@ FullConnect::FullConnect(cuMatrix<double>* _inputs,
 	momentum_b = new cuMatrix<double>(outputsize, 1, 1);
 
 	dropDelta(dropW, dropRate);
+
+	this->initRandom();
+	Layers::instance()->set(m_name, this);
 }
 
 void FullConnect::drop()

@@ -31,17 +31,6 @@ private:
 	bool m_imageShow;
 };
 
-class ConfigCombineFeatureMaps
-{
-public:
-	ConfigCombineFeatureMaps(int combine){
-		m_cfm = combine;
-	}
-	int getValue(){return m_cfm;}
-private:
-	int m_cfm;
-};
-
 class ConfigCrop
 {
 public:
@@ -141,57 +130,79 @@ public:
 	int getValue(){return m_channels;};
 };
 
-class ConfigConv
+class ConfigBase
 {
 public:
-	ConfigConv(int kernelSize, int padding, int amount, double weightDecay){
+	std::string m_name;
+	std::string m_input;
+	std::vector<ConfigBase*> m_next;
+	std::string m_type;
+};
 
+class ConfigConv : public ConfigBase
+{
+public:
+	ConfigConv(std::string name, std::string input, std::string type, int kernelSize, int padding, int amount, double weightDecay, int cfm){
 		m_kernelSize = kernelSize;
 		m_padding = padding;
 		m_amount = amount;
 		m_weightDecay = weightDecay;
+		m_name = name;
+		m_input = input;
+		m_cfm = cfm;
+		m_type = type;
 	}
+	int m_cfm;
 	int m_kernelSize;
 	int m_padding;
 	int m_amount;
 	double m_weightDecay;
 };
 
-class ConfigPooling
+class ConfigPooling : public ConfigBase
 {
 public:
-	ConfigPooling(int size, int skip){
+	ConfigPooling(std::string name, std::string input, std::string type, int size, int skip){
 		m_size = size;
 		m_skip = skip;
+		m_name = name;
+		m_input = input;
+		m_type = type;
 	}
 	int m_size;
 	int m_skip;
 };
 
-class ConfigFC
+class ConfigFC : public ConfigBase
 {
 public:
-	ConfigFC(int numFullConnectNeurons, double weightDecay,
+	ConfigFC(std::string name, std::string input, std::string type, int numFullConnectNeurons, double weightDecay,
 		double dropoutRate)
 	{
 		m_numFullConnectNeurons = numFullConnectNeurons;
 		m_weightDecay = weightDecay;
 		m_dropoutRate = dropoutRate;
+		m_name = name;
+		m_input = input;
+		m_type = type;
 	}
 	int m_numFullConnectNeurons;
 	double m_weightDecay;
 	double m_dropoutRate;
 };
 
-class ConfigSoftMax
+class ConfigSoftMax : public ConfigBase
 {
 public:
 	int m_numClasses;
 	double m_weightDecay;
-	ConfigSoftMax(int numClasses, double weightDecay)
+	ConfigSoftMax(std::string name, std::string input, std::string type, int numClasses, double weightDecay)
 	{
 		m_numClasses = numClasses;
 		m_weightDecay = weightDecay;
+		m_name = name;
+		m_input = input;
+		m_type = type;
 	}
 };
 
@@ -250,7 +261,6 @@ public:
 		delete m_distortion;
 		delete m_imageShow;
 		delete m_horizontal;
-		delete m_cfm;
 	}
 
 	int getNonLinearity(){
@@ -267,10 +277,6 @@ public:
 
 	int getChannels(){
 		return m_channels->getValue();
-	}
-
-	bool getCFM(){
-		return m_cfm->getValue();
 	}
 
 	int getCrop(){
@@ -308,6 +314,40 @@ public:
 	const std::vector<ConfigSoftMax*>& getSoftMax(){
 		return m_softMax;
 	}
+
+	const std::vector<ConfigBase*> getFirstLayers(){
+		return m_firstLayers;
+	}
+
+	ConfigBase* getLayerByName(std::string name){
+		if(m_layerMaps.find(name) != m_layerMaps.end()){
+					return m_layerMaps[name];
+		}
+		else 
+		{
+			printf("layer %s does not exit\n", name.c_str());
+			exit(0);
+		}
+	}
+
+	void insertLayerByName(std::string name, ConfigBase* layer){
+		if(m_layerMaps.find(name) == m_layerMaps.end()){
+			m_layerMaps[name] = layer;
+		}
+		else {
+			printf("layer %s exit\n", name.c_str());
+			exit(0);
+		}
+	}
+
+	void setImageSize(int imageSize){
+		m_imageSize = imageSize;
+	}
+
+	int getImageSize(){
+		return m_imageSize;
+	}
+
 private:
 	void deleteComment();
 	void deleteSpace();
@@ -326,6 +366,9 @@ private:
 	std::vector<ConfigPooling*>m_pooling;
 	std::vector<ConfigSoftMax*>m_softMax;
 
+	std::map<std::string, ConfigBase*>m_layerMaps;
+	std::vector<ConfigBase*>m_firstLayers;
+
 	ConfigNonLinearity       *m_nonLinearity;
 	ConfigGradient           *m_isGrandientChecking;
 	ConfigBatchSize          *m_batchSize;
@@ -337,11 +380,10 @@ private:
 	ConfigDistortion         *m_distortion;
 	ConfigImageShow          *m_imageShow;
 	ConfigHorizontal         *m_horizontal;
-	ConfigCombineFeatureMaps *m_cfm;
-
 
 	double momentum;
 	double lrate;
+	int m_imageSize;
 };
 
 #endif

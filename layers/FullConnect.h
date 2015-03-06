@@ -15,7 +15,7 @@ public:
 	void getGrad();
 	void updateWeight() ;
 	void clearMomentum();
-	void getCost(cuMatrix<double>*cost);
+	void getCost(cuMatrix<double>*cost, int* y = NULL);
 	void drop();
 	void drop(double rate);
 
@@ -30,12 +30,7 @@ public:
 	void save(FILE* file);
 
 
-	FullConnect(cuMatrix<double>* _inputs,
-		int _batch,
-		double _lambda,
-		int _neurons,
-		double dropRate,
-		int _NON_LINEARITY);
+	FullConnect(std::string name);
 
 private:
 	cuMatrix<double>* inputs;

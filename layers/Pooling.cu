@@ -73,23 +73,38 @@ void Pooling::backpropagation()
 	getLastCudaError("pooling backpropagation");
 }
 
-Pooling::Pooling(cuMatrix<double>* _inputs, int _size, int _skip,int _inputDim, int _amount, int _batch) : inputs(_inputs),
-	size(_size),
-	skip(_skip),
-	inputDim(_inputDim),
-	amount(_amount),
-	batch(_batch),
-	preDelta(NULL)
+
+void Pooling::getCost(cuMatrix<double>*cost, int* y)
+{
+
+}
+
+Pooling::Pooling(std::string name)
 {	
+	m_name = name;
+	ConfigPooling* config = (ConfigPooling*)Config::instance()->getLayerByName(m_name);
+	ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
+	size = config->m_size;
+	skip = config->m_skip;
+
+	inputs = preLayer->getOutputs();
+	inputDim = preLayer->outputDim;
 	outputDim = (inputDim + skip - 1) / skip;
-	int channels   = inputs->channels;
+	amount = preLayer->outputAmount;
+	inputAmount = amount;
+	outputAmount = amount;
+	
+	batch= Config::instance()->getBatchSize();
+	
+	int channels = inputs->channels;
 
 	outputs  = new cuMatrix<double>(batch, amount * outputDim * outputDim, channels);
 	pointX   = new cuMatrix<int>   (batch, amount * outputDim * outputDim, channels);
 	pointY   = new cuMatrix<int>   (batch, amount * outputDim * outputDim, channels);
-
 	curDelta = new cuMatrix<double>(batch, amount * outputDim * outputDim, channels);
+	preDelta = preLayer->getCurDelta();
 
+	Layers::instance()->set(m_name, this);
 }
 
 /*

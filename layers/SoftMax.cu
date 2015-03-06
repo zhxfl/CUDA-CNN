@@ -254,23 +254,23 @@ void SoftMax::save(FILE* file)
 	}
 }
 
-SoftMax::SoftMax(cuMatrix<double>* _inputs,
-	int _batch,
-	double _lambda,
-	int _neurons,
-	int _NON_LINEARITY)
+SoftMax::SoftMax(std::string name)
 {
-	inputs = _inputs;
-	batch = _batch;
-	lambda = _lambda;
+	m_name = name;
+	ConfigFC* config = (ConfigFC*)Config::instance()->getLayerByName(m_name);
+	LayerBase * preLayer = (LayerBase*)Layers::instance()->get(config->m_input);
+	inputs = preLayer->getOutputs();
+	batch = Config::instance()->getBatchSize();
+	lambda = config->m_weightDecay;
 
 	inputsize = inputs->cols * inputs->channels;
-	outputsize = _neurons;
+	outputsize = config->m_numFullConnectNeurons;
 
-	NON_LINEARITY = _NON_LINEARITY;
+	NON_LINEARITY = Config::instance()->getNonLinearity();
 
 	outputs = new cuMatrix<double>(batch, outputsize, 1);
 	curDelta= new cuMatrix<double>(batch, outputsize, 1);
+	preDelta= preLayer->getCurDelta();
 
 	w     = new cuMatrix<double>(outputsize, inputsize, 1);
 	wgrad = new cuMatrix<double>(outputsize, inputsize, 1);
@@ -282,4 +282,7 @@ SoftMax::SoftMax(cuMatrix<double>* _inputs,
 	momentum_b = new cuMatrix<double>(outputsize, 1, 1);
 
 	groudTruth = new cuMatrix<double>(batch, outputsize, 1);
+
+	this->initRandom();
+	Layers::instance()->set(m_name, this);
 }

@@ -16,7 +16,8 @@
 #include "layers/ConvNCFM.h"
 #include "layers/FullConnect.h"
 #include "layers/SoftMax.h"
-
+#include "layers/LayerBase.h"
+#include <queue>
 
 cuMatrixVector<double>* cu_distortion_vector;
 
@@ -24,13 +25,7 @@ int cuCurCorrect;
 cuMatrix<int>*cuCorrect = NULL;
 cuMatrix<int>*cuVote = NULL;
 cuMatrix<double>*cost = NULL;
-
-std::vector<Pooling*>poolings;
-std::vector<ConvCFM*>convCFM;
-std::vector<ConvNCFM*>convNCFM;
-std::vector<FullConnect*>fullConnect;
-std::vector<SoftMax*>softMax;
-
+std::vector<ConfigBase*>que;
 
 /*batch size images*/
 cuMatrixVector<double>batchImg[2];
@@ -42,26 +37,9 @@ void outputMatrix(cuMatrix<double>* m);
 void cuSaveConvNet()
 {	
 	FILE *pOut = fopen("Result/checkPoint.txt", "w");
-	/* Init Conv layers*/
-	for(int i=0; i < Config::instance()->getConv().size(); i++){
-		if(Config::instance()->getCFM() == 0){
-			convNCFM[i]->save(pOut);
-		}
-		else {
-			convCFM[i]->save(pOut);
-		}
-
-	}
-
-	/* Init FullConnect layers */
-	for(int fl = 0; fl < fullConnect.size(); fl++){
-		fullConnect[fl]->save(pOut);
-	}
-
-	/* Init Softmax layer */
-
-	for(int s = 0; s < softMax.size(); s++){
-		softMax[s]->save(pOut);
+	for(int i = 0; i < que.size(); i++){
+		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+		layer->save(pOut);
 	}
 	fclose(pOut);
 };
@@ -76,23 +54,9 @@ void cuReadConvNet(
 {	
 	FILE *pIn = fopen(path, "r");
 
-	/*combine feature maps*/
-	if (Config::instance()->getCFM() == 0) {
-		for(int cl = 0; cl < convNCFM.size(); cl++){
-			convNCFM[cl]->initFromCheckpoint(pIn);
-		}
-	} else {
-		for(int cl = 0; cl < convCFM.size(); cl++){
-			convCFM[cl]->initFromCheckpoint(pIn);
-		}
-	}
-
-	for(int fl = 0; fl < fullConnect.size(); fl++){
-		fullConnect[fl]->initFromCheckpoint(pIn);
-	}
-
-	for(int s = 0; s < softMax.size(); s++){
-		softMax[s]->initFromCheckpoint(pIn);
+	for(int i = 0; i < que.size(); i++){
+		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+		layer->initFromCheckpoint(pIn);
 	}
 
 	fclose(pIn);
@@ -111,159 +75,38 @@ void cuInitCNNMemory(
 		cu_distortion_vector->push_back(new cuMatrix<double>(ImgSize, ImgSize, Config::instance()->getChannels()));
 	}
 	cu_distortion_vector->toGpu();
+	Layers::instance()->setInputs(cu_distortion_vector);
 
-	FILE *pIn = fopen("Result/checkPoint.txt", "r");
 
-	/* convolution layer and pooling*/
-	if(Config::instance()->getCFM()){
-		for(int i = 0; i < Config::instance()->getConv().size(); i++){
-				if(i == 0){
-					convCFM.push_back(new ConvCFM(cu_distortion_vector,
-						1,
-						Config::instance()->getConv()[i]->m_amount,
-						Config::instance()->getConv()[i]->m_kernelSize,
-						Config::instance()->getConv()[i]->m_padding,
-						ImgSize,
-						batch,
-						Config::instance()->getConv()[0]->m_weightDecay,
-						1,
-						Config::instance()->getNonLinearity()));
-
-				
-					convCFM[i]->initRandom();
-
-					poolings.push_back(new Pooling(convCFM[i]->getOutputs(),
-						Config::instance()->getPooling()[i]->m_size,
-						Config::instance()->getPooling()[i]->m_skip,
-						convCFM[i]->getOutputDim(), 
-						convCFM[i]->getOutputAmount(),
-						batch));
-
-					poolings[i]->setPreDelta(convCFM[i]->getCurDelta());
-				}
-				else {
-					convCFM.push_back(new ConvCFM(poolings[i - 1]->getOutputs(),
-						poolings[i - 1]->getOutputAmount(),
-						Config::instance()->getConv()[i]->m_amount,
-						Config::instance()->getConv()[i]->m_kernelSize,
-						Config::instance()->getConv()[i]->m_padding,
-						poolings[i - 1]->getOutputDim(),
-						batch,
-						Config::instance()->getConv()[i]->m_weightDecay,
-						Config::instance()->getCFM(),
-						Config::instance()->getNonLinearity()));
-
-					
-						convCFM[i]->initRandom();
-					
-
-					convCFM[i]->setPreDelta(poolings[i - 1]->getCurDelta());
-
-					poolings.push_back(new Pooling(convCFM[i]->getOutputs(),
-						Config::instance()->getPooling()[i]->m_size,
-						Config::instance()->getPooling()[i]->m_skip,
-						convCFM[i]->getOutputDim(), 
-						convCFM[i]->getOutputAmount(),
-						batch));
-
-					poolings[i]->setPreDelta(convCFM[i]->getCurDelta());
-				}
-		}
+	/*BFS*/
+	std::queue<ConfigBase*>qqq;
+	for(int i = 0; i < Config::instance()->getFirstLayers().size(); i++){
+		qqq.push(Config::instance()->getFirstLayers()[i]);
 	}
-	else{
-		for(int i = 0; i < Config::instance()->getConv().size(); i++){
-			if(i == 0){
-				convNCFM.push_back(new ConvNCFM(cu_distortion_vector,
-					1,
-					Config::instance()->getConv()[i]->m_amount,
-					Config::instance()->getConv()[i]->m_kernelSize,
-					Config::instance()->getConv()[i]->m_padding,
-					ImgSize,
-					batch,
-					Config::instance()->getConv()[0]->m_weightDecay,
-					Config::instance()->getNonLinearity()));
 
-				
-					convNCFM[i]->initRandom();
-				
+	while(!qqq.empty()){
+		ConfigBase* top = qqq.front();
+		qqq.pop();
+		que.push_back(top);
 
-				poolings.push_back(new Pooling(convNCFM[i]->getOutputs(),
-					Config::instance()->getPooling()[i]->m_size,
-					Config::instance()->getPooling()[i]->m_skip,
-					convNCFM[i]->getOutputDim(), 
-					convNCFM[i]->getOutputAmount(),
-					batch));
-
-				poolings[i]->setPreDelta(convNCFM[i]->getCurDelta());
+		if(top->m_type == std::string("CONV")){
+			ConfigConv * conv = (ConfigConv*) top;
+			if(conv->m_cfm == 0){
+				new ConvNCFM(conv->m_name);
 			}
 			else {
-				convNCFM.push_back(new ConvNCFM(poolings[i - 1]->getOutputs(),
-					poolings[i - 1]->getOutputAmount(),
-					Config::instance()->getConv()[i]->m_amount,
-					Config::instance()->getConv()[i]->m_kernelSize,
-					Config::instance()->getConv()[i]->m_padding,
-					poolings[i - 1]->getOutputDim(),
-					batch,
-					Config::instance()->getConv()[i]->m_weightDecay,
-					Config::instance()->getNonLinearity()));
-
-				
-					convNCFM[i]->initRandom();
-	
-
-				convNCFM[i]->setPreDelta(poolings[i - 1]->getCurDelta());
-
-				poolings.push_back(new Pooling(convNCFM[i]->getOutputs(),
-					Config::instance()->getPooling()[i]->m_size,
-					Config::instance()->getPooling()[i]->m_skip,
-					convNCFM[i]->getOutputDim(), 
-					convNCFM[i]->getOutputAmount(),
-					batch));
-
-				poolings[i]->setPreDelta(convNCFM[i]->getCurDelta());
+				new ConvCFM(conv->m_name);
 			}
+		}else if(top->m_type == std::string("POOLING")){
+			new Pooling(top->m_name);
+		}else if(top->m_type == std::string("FC")){
+			new FullConnect(top->m_name);
+		}else if(top->m_type == std::string("SOFTMAX")){
+			new SoftMax(top->m_name);
 		}
-	}
-
-
-	for(int i = 0; i < Config::instance()->getFC().size(); i++){
-		if(i == 0){
-			fullConnect.push_back(new FullConnect(poolings[poolings.size() - 1]->getOutputs(),
-				batch,
-				Config::instance()->getFC()[i]->m_weightDecay,
-				Config::instance()->getFC()[i]->m_numFullConnectNeurons,
-				Config::instance()->getFC()[i]->m_dropoutRate,
-				Config::instance()->getNonLinearity()));
-
-			
-				fullConnect[i]->initRandom();
-
-
-			fullConnect[i]->setPreDelta(poolings[poolings.size() - 1]->getCurDelta());
-		}else{
-			fullConnect.push_back(new FullConnect(fullConnect[i - 1]->getOutputs(),
-				batch,
-				Config::instance()->getFC()[i]->m_weightDecay,
-				Config::instance()->getFC()[i]->m_numFullConnectNeurons,
-				Config::instance()->getFC()[i]->m_dropoutRate,
-				Config::instance()->getNonLinearity()));
-			
-				fullConnect[i]->initRandom();
-
-			fullConnect[i]->setPreDelta(fullConnect[i - 1]->getCurDelta());
+		for(int n = 0; n < top->m_next.size(); n++){
+			qqq.push(top->m_next[n]);
 		}
-	}
-
-	for(int i = 0; i < Config::instance()->getSoftMax().size(); i++){
-		softMax.push_back(new SoftMax(fullConnect[fullConnect.size() - 1]->getOutputs(), 
-			batch, 
-			Config::instance()->getSoftMax()[i]->m_weightDecay,
-			Config::instance()->getSoftMax()[i]->m_numClasses,
-			Config::instance()->getNonLinearity()));
-
-		softMax[i]->initRandom();
-		softMax[i]->setPreDelta(fullConnect[fullConnect.size() - 1]->getCurDelta());
-
 	}
 
 	/*correct and cuVote*/
@@ -323,143 +166,20 @@ void outputMatrix(cuMatrix<double>* m)
 	}
 }
 
-void convAndPooling()
-{
-	if(Config::instance()->getCFM() == 0){
-		for (int i = 0; i < convNCFM.size(); i++) {
-			convNCFM[i]->feedforward();
-			poolings[i]->feedforward();
-		}
-	}else {
-		for (int i = 0; i < convCFM.size(); i++) {
-			convCFM[i]->feedforward();
-			poolings[i]->feedforward();
-		}
-	}
-}
-
-void getFullConnectLayerActi()
-{
-	for(int i = 0; i < fullConnect.size(); i++){
-		fullConnect[i]->feedforward();
-	}
-}
-
-void getSoftMaxP(cublasHandle_t handle)
-{
-	for(int s = 0; s < softMax.size(); s++){
-		softMax[s]->feedforward();
-	}
-}
-
-void getCost(
-	int*y,
-	int batch)
-{
-	for(int s = 0; s < softMax.size(); s++){
-		softMax[s]->getCost(cost, y);
-	}
-
-	/*full connnect layers*/
-	for(int h = 0; h < fullConnect.size(); h++){
-		fullConnect[h]->getCost(cost);
-	}
-
-	if(Config::instance()->getCFM() == 0){
-		for(int cl = 0; cl < convNCFM.size(); cl++)
-		{
-			convNCFM[cl]->getCost(cost);
-		}
-	}
-	else{
-		for(int cl = 0; cl < convCFM.size(); cl++){
-			convCFM[cl]->getCost(cost);
-		}
-	}
-}
-
-void getSoftMaxDelta(double lambda, int batch, cublasHandle_t handle)
-{
-	for(int s = 0; s < softMax.size(); s++){
-		softMax[s]->backpropagation();
-	}
-	for(int s = 0; s < softMax.size(); s++){
-		softMax[s]->getGrad();
-	}
-}
-
-void getFullConnectDelta(
-	int batch,
-	cublasHandle_t handle)
-{
-	for(int hl = Config::instance()->getFC().size() - 1; hl >= 0; hl--)
-	{
-		if(hl == Config::instance()->getFC().size() - 1)
-		{
-			fullConnect[hl]->backpropagation();
-		}
-		else
-		{
-			fullConnect[hl]->backpropagation();
-		}
-	}
-	for(int hl = Config::instance()->getFC().size() - 1; hl >= 0; hl--)
-	{
-		fullConnect[hl]->getGrad();
-	}
-}
-
-void dConvAndUnpooling(double**x, 
-	int batch, int ImgSize, int nclasses, cublasHandle_t handle)
-{
-	for(int cl = convNCFM.size() - 1; cl >= 0; cl--)
-	{
-		poolings[cl]->backpropagation();
-		convNCFM[cl]->backpropagation();
-		convNCFM[cl]->getGrad();
-	}
-}
-
-void cfm_dConvAndUnpooling(double**x,
-	int batch, int ImgSize, int nclasses, cublasHandle_t handle)
-{
-	for(int cl = convCFM.size() - 1; cl >= 0; cl--)
-	{
-		poolings[cl]->backpropagation();
-		convCFM[cl]->backpropagation();
-		convCFM[cl]->getGrad();
-	}
-}
-
-
 void updataWB(
 	double lrate,
 	double momentum,
 	int batch)
 {
-	for(int s = 0; s < softMax.size(); s++){
-		softMax[s]->updateWeight();
-	}
-	
-	for(int i = 0; i < fullConnect.size(); i++)
-	{
-		fullConnect[i]->updateWeight();
-	}
-
-	if(Config::instance()->getCFM() == 0){
-		for(int cl = 0; cl < convNCFM.size(); cl++)
-		{
-			convNCFM[cl]->updateWeight();
-		}
-	}else {
-		for(int cl = 0; cl < convCFM.size(); cl++)
-		{
-			convCFM[cl]->updateWeight();
-		}
+	/*updateWb*/
+	for(int i = 0; i < que.size(); i++){
+		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+		layer->updateWeight();
 	}
 	cudaDeviceSynchronize();
 	getLastCudaError("updateWB");
 }
+
 void getNetworkCost(double** x, 
 	int* y, 
 	int batch,
@@ -467,16 +187,26 @@ void getNetworkCost(double** x,
 	int nclasses,
 	cublasHandle_t handle)
 {
-	convAndPooling();
-	getFullConnectLayerActi();
-	getSoftMaxP(handle);
-	getCost(y,batch);
-	getSoftMaxDelta(Config::instance()->getSoftMax()[0]->m_weightDecay, batch, handle);
-	getFullConnectDelta(batch, handle);
-	if(Config::instance()->getCFM())
-		cfm_dConvAndUnpooling(x, batch, ImgSize, nclasses, handle);
-	else
-		dConvAndUnpooling(x, batch, ImgSize, nclasses, handle);
+	/*feedforward*/
+
+	for(int i = 0; i < que.size(); i++){
+		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+		layer->feedforward();
+	}
+
+	/*Cost*/
+	for(int i = que.size() - 1; i >= 0; i--){
+		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+		layer->getCost(cost, y);
+	}
+
+	/*backpropagation*/
+	for(int i = que.size() - 1; i >=0; i--){
+		ConfigBase* top = que[i];
+		LayerBase* layer = Layers::instance()->get(top->m_name);
+		layer->backpropagation();
+		layer->getGrad();
+	}
 }
 
 /*
@@ -505,12 +235,16 @@ void resultProdict(double** testX, int*testY,
 	int* vote,
 	 int batch, int ImgSize, int nclasses, cublasHandle_t handle)
 {
-	convAndPooling();
-	getFullConnectLayerActi();
-	getSoftMaxP(handle);
+	/*feedforward*/
+
+	for(int i = 0; i < que.size(); i++){
+		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+		layer->feedforward();
+	}
+
 	g_getCorrect<<<dim3(1), batch>>>(
-		softMax[0]->getOutputs()->devData,
-		softMax[0]->getOutputs()->cols,
+		Layers::instance()->get("softmax1")->getOutputs()->devData,
+		Layers::instance()->get("softmax1")->getOutputs()->cols,
 		vote);
 	cudaDeviceSynchronize();
 }
@@ -601,17 +335,16 @@ void predictTestDate(cuMatrixVector<double>&x,
 	int ImgSize,
 	int nclasses,
 	cublasHandle_t handle) {
-		for(int hl = 0; hl < fullConnect.size(); hl++){
-			fullConnect[hl]->drop(0.0);
+		for(int i = 0; i < que.size(); i++){
+			if(que[i]->m_type == std::string("FC")){
+				FullConnect* layer = (FullConnect*)Layers::instance()->get(que[i]->m_name);
+				layer->drop(0.0);
+			}
 		}
 
 		cuVote->gpuClear();
-		int cropr[] = { Config::instance()->getCrop() / 2, 0, 0,
-			Config::instance()->getCrop(), Config::instance()->getCrop() };
-		int cropc[] = { Config::instance()->getCrop() / 2, 0,
-			Config::instance()->getCrop(), 0, Config::instance()->getCrop() };
-		//	double scale[] = {0.0, -Config::instance()->getScale(), Config::instance()->getScale()};
-		//	double rotation[] = {0.0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
+		int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop() };
+		int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop() };
 	
 		cudaStream_t stream1;
 		checkCudaErrors(cudaStreamCreate(&stream1));
@@ -633,14 +366,6 @@ void predictTestDate(cuMatrixVector<double>&x,
 						if (h == 1)
 							cuApplyHorizontal(cu_distortion_vector->m_devPoint,
 							cu_distortion_vector->m_devPoint, batch, ImgSize, HORIZONTAL);
-						//						cuApplyScaleAndRotate(batch, ImgSize, scale[s], rotation[r]);
-						//						cuApplyDistortion(cu_distortion_vector->m_devPoint,
-						//								cu_distortion_vector->m_devPoint, batch, ImgSize);
-						//						for (int ff = batch - 1; ff >= 0; ff--) {
-						//							showImg(testX[tstart + ff], 10);
-						//							showImg(cu_distortion_vector->m_vec[ff], 10);
-						//							cv::waitKey(0);
-						//						}
 						resultProdict(cu_distortion_vector->m_devPoint,
 							testY->devData + tstart,
 							cuVote->devData + tstart * nclasses,
@@ -663,7 +388,6 @@ void predictTestDate(cuMatrixVector<double>&x,
 		cuCorrect->toCpu();
 		if (cuCorrect->get(0, 0, 0) > cuCurCorrect) {
 			cuCurCorrect = cuCorrect->get(0, 0, 0);
-			
 			cuSaveConvNet();
 		}
 }
@@ -677,9 +401,14 @@ int voteTestDate(
 	int ImgSize,
 	int nclasses,
  	cublasHandle_t handle) {
-		for (int hl = 0; hl < Config::instance()->getFC().size(); hl++) {
-			fullConnect[hl]->drop(0.0);
+
+		for(int i = 0; i < que.size(); i++){
+			if(que[i]->m_type == std::string("FC")){
+				FullConnect* layer = (FullConnect*)Layers::instance()->get(que[i]->m_name);
+				layer->drop(0.0);
+			}
 		}
+
 		vote->gpuClear();
 		int cropr[] = { Config::instance()->getCrop() / 2, 0, 0,
 			Config::instance()->getCrop(), Config::instance()->getCrop() };
@@ -770,8 +499,12 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 		double start, end;
 		start = clock();
 		cuApplyRandom(batch, clock(), ImgSize);
-		for (int hl = 0; hl < fullConnect.size(); hl++) {
-			fullConnect[hl]->drop();
+		
+		for(int i = 0; i < que.size(); i++){
+			if(que[i]->m_type == std::string("FC")){
+				FullConnect* layer = (FullConnect*)Layers::instance()->get(que[i]->m_name);
+				layer->drop();
+			}
 		}
 
 		x.shuffle(500, y);
@@ -822,26 +555,10 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 		predictTestDate(x, y, testX, testY,
 			batch, ImgSize, nclasses, handle);
 		if (epo && epo % epoCount[id] == 0) {
-
-			for(int i = 0; i < softMax.size(); i++){
-				softMax[i]->clearMomentum();
+			for(int i = 0; i < que.size(); i++){
+				LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
+				layer->clearMomentum();
 			}
-
-			for (int i = 0; i < fullConnect.size(); i++) {
-				fullConnect[i]->clearMomentum();
-			}
-			if(Config::instance()->getCFM() == 0){
-				for (int cl = 0; cl < convNCFM.size(); cl++) {
-					convNCFM[cl]->clearMomentum();
-				}
-			}
-			else 
-			{
-				for (int cl = 0; cl < convCFM.size(); cl++) {
-					convCFM[cl]->clearMomentum();
-				}
-			}
-
 			id++;
 		}
 
