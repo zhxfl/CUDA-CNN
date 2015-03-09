@@ -493,7 +493,6 @@ ConvNCFM::ConvNCFM(std::string name)
 		momentum_b.toGpu();
 	}
 
-
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
 }
@@ -530,18 +529,10 @@ void ConvNCFM::save(FILE* file)
 void ConvNCFM::initRandom()
 {
 	srand(clock());
+	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
+
 	for(int i = 0; i < w.size(); i++){
-		double epsilon = 0.1;
-		for(int c = 0; c < Config::instance()->getChannels(); c++)
-		{
-			double r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
-			double r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
-			createGaussian(w[i]->hostData + c * w[i]->getArea(), r1,r2,
-				kernelSize, kernelSize, 
-				Config::instance()->getChannels(), 
-				epsilon * 0.5 + epsilon * rand() / RAND_MAX);
-		}
-		w[i]->toGpu();
+		initMatrix(w[i], initW);
 	}
 }
 

@@ -10,6 +10,7 @@ __global__ void g_ConvCFM_feedforward_1(
 	double** arrayW,
 	double** arrayB,
 	double* conv,
+	double* a, 
 	int inputSize,
 	int kernelSize,
 	int padding,
@@ -26,6 +27,7 @@ __global__ void g_ConvCFM_feedforward_2(
 	double** arrayW,
 	double** arrayB,
 	double* conv2,
+	double* a,
 	int pool1Size,
 	int kernelSize,
 	int padding,
@@ -44,6 +46,7 @@ __global__ void g_ConvCFM_backpropagation(
 	double* _convDelta,
 	double**_w,
 	double* _poolDelta,
+	double* a,
 	int     _convOutputSize,
 	int     _poolOutputSize,
 	int     _kernelAmount1,
@@ -173,6 +176,7 @@ void ConvCFM::feedforward()
 			w.m_devPoint, 
 			b.m_devPoint,
 			outputs->devData,
+			a->devData,
 			inputDim,
 			kernelSize,
 			padding,
@@ -190,6 +194,7 @@ void ConvCFM::feedforward()
 			w.m_devPoint,
 			b.m_devPoint,
 			outputs->devData,
+			a->devData,
 			inputDim,
 			kernelSize,
 			padding,
@@ -248,6 +253,8 @@ void ConvCFM::backpropagation()
 			curDelta->devData,
 			w.m_devPoint,
 			preDelta->devData,
+			a->devData,
+
 			outputDim,
 			inputDim,
 			inputAmount,
@@ -475,6 +482,35 @@ ConvCFM::ConvCFM(std::string name)
 		momentum_w.toGpu();
 		momentum_b.toGpu();
 	}
+
+	/**/
+	a = new cuMatrix<double>(amount, cfm, Config::instance()->getChannels());
+	cuMatrix<double>* c = new cuMatrix<double>(amount, cfm, Config::instance()->getChannels());
+
+	for(int i = 0; i < c->rows; i++){
+		for(int j = 0; j < c->cols; j++){
+			for(int k = 0; k < c->channels; k++){
+				c->set(i, j, k, rand());
+			}
+		}
+	}
+
+	for(int i = 0; i < c->rows; i++){
+		for(int k = 0; k < c->channels; k++){
+			double val = 0.0;
+			for(int j = 0; j < c->cols; j++){
+				val += c->get(i, j, k);
+			}
+			for(int j = 0; j < c->cols; j++){
+				a->set(i,j,k, (double) c->get(i,j,k) / val);
+				printf("%lf ", a->get(i,j,k));
+			}
+			printf("\n");
+		}
+	}
+	a->toGpu();
+	delete c;
+
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
 }
@@ -517,16 +553,22 @@ void ConvCFM::clearMomentum()
 void ConvCFM::initRandom()
 {
 	srand(clock());
+	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
+
+// 	for(int i = 0; i < w.size(); i++){
+// 		initMatrix(w[i], initW);
+// 	}
+
 	for(int i = 0; i < w.size(); i++){
-		double epsilon = 0.1;
+		double epsilon = initW;
 		for(int c = 0; c < Config::instance()->getChannels(); c++)
 		{
-			double r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
-			double r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+			double r1 = 0.01 + initW * (rand()) / RAND_MAX;
+			double r2 = 0.01 + initW * (rand()) / RAND_MAX;
 			createGaussian(w[i]->hostData + c * w[i]->getArea(), r1,r2,
 				kernelSize, kernelSize, 
 				Config::instance()->getChannels(), 
-				epsilon * 0.5 + epsilon * rand() / RAND_MAX);
+				epsilon * 0.5 + epsilon * 0.5 * rand() / RAND_MAX);
 		}
 		w[i]->toGpu();
 	}
@@ -559,6 +601,7 @@ __global__ void g_ConvCFM_feedforward_1(
 	double** arrayW,
 	double** arrayB,
 	double* conv,
+	double* a,
 	int inputSize,
 	int kernelSize,
 	int padding,
@@ -602,7 +645,7 @@ __global__ void g_ConvCFM_feedforward_1(
 						val += curInput[xx * inputSize + yy] * w[i * kernelSize + j];
 				}
 			}
-			curConv[idx] = val + b;
+			curConv[idx] = a[k + c * k1Amount] * (val + b);
 		}
 	}
 }
@@ -620,6 +663,7 @@ __global__ void g_ConvCFM_feedforward_2(
 	double** arrayW,
 	double** arrayB,
 	double* conv2,
+	double* a,
 	int pool1Size,
 	int kernelSize,
 	int padding,
@@ -665,8 +709,9 @@ __global__ void g_ConvCFM_feedforward_2(
 					for (int j = 0; j < kernelSize; j++) {
 						int xx = x + i - padding;
 						int yy = y + j - padding;
-						if(xx>= 0 && xx < pool1Size && yy >= 0 && yy < pool1Size)
-							val += pl1[xx * pool1Size + yy] * w[i * kernelSize + j];
+						if(xx>= 0 && xx < pool1Size && yy >= 0 && yy < pool1Size){
+							val += a[k2 * numOfCFM + k1 + c * k2Amount * numOfCFM] * pl1[xx * pool1Size + yy] * w[i * kernelSize + j];
+						}
 					}
 				}
 			}
@@ -684,6 +729,7 @@ __global__ void g_ConvCFM_backpropagation(
 	double* _convDelta,
 	double**_w,
 	double* _poolDelta,
+	double* a,
 	int     _convOutputSize,
 	int     _poolOutputSize,
 	int     _kernelAmount1,
@@ -735,7 +781,7 @@ __global__ void g_ConvCFM_backpropagation(
 					}
 				}
 			}
-			atomicAdd(nxtDelta + idx, val);
+			atomicAdd(nxtDelta + idx, val * a[k2 * numOfCFM + k1 + c * _kernelAmount2 * numOfCFM]);
 		}
 	}
 }

@@ -49,29 +49,30 @@ SIZE = 2;
 SKIP = 2;
 ]
 
+[  
+LAYER = CONV;
+NAME  = conv3;
+INPUT = pooling2;
+KERNEL_SIZE = 3;
+PADDING = 1;
+KERNEL_AMOUNT = 20;
+COMBINE_FEATRUE_MAPS = 2;       #According to paper "notes on Convolutional Neural NetWorks#
+WEIGHT_DECAY = 1e-4;
+]
+
 [
 LAYER = FC;
 NAME  = fc1;
-INPUT = pooling2;
+INPUT =	conv3;
 NUM_FULLCONNECT_NEURONS = 256;
 WEIGHT_DECAY = 0.0;
 DROPCONNECT_RATE = 0.0;
 ]
-
-[
-LAYER = FC;
-NAME  = fc2;
-INPUT = fc1;
-NUM_FULLCONNECT_NEURONS = 256;
-WEIGHT_DECAY = 0.0;
-DROPCONNECT_RATE = 0.0;
-]
-
 
 [
 LAYER = SOFTMAX;
 NAME = softmax1;
-INPUT = fc2;
+INPUT = fc1;
 NUM_CLASSES = 10;
 WEIGHT_DECAY = 1e-4;
 ]

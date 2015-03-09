@@ -70,6 +70,7 @@ private:
 	int batch;
 	int NON_LINEARITY;
 	double lambda;
+	
 private:
 	cuMatrixVector<double> w;
 	cuMatrixVector<double> wgrad;

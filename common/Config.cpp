@@ -115,9 +115,10 @@ void Config:: get_layers_config(string &str){
 			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
 			int pd = get_word_int(layers[i], "PADDING");
 			int cfm= get_word_int(layers[i], "COMBINE_FEATRUE_MAPS");
+			double initW = get_word_double(layers[i], "initW");
 
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-			layer = new ConfigConv(name, input, type, ks, pd, ka, wd, cfm);
+			layer = new ConfigConv(name, input, type, ks, pd, ka, wd, cfm, initW);
 			m_conv.push_back((ConfigConv*)layer);
 			printf("\n\n********conv layer********\n");
 			printf("NAME          : %s\n", name.c_str());
@@ -126,6 +127,7 @@ void Config:: get_layers_config(string &str){
 			printf("KERNEL_AMOUNT : %d\n", ka);
 			printf("PADDING       : %d\n", pd);
 			printf("WEIGHT_DECAY  : %lf\n", wd);
+			printf("initW         : %lf\n", initW);
 		}
 		else if(type == string("POOLING"))
 		{
@@ -145,7 +147,9 @@ void Config:: get_layers_config(string &str){
 			int hn = get_word_int(layers[i], "NUM_FULLCONNECT_NEURONS");
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
 			double drop = get_word_double(layers[i], "DROPCONNECT_RATE");
-			layer = new ConfigFC(name, input, type, hn, wd, drop);
+			double initW= get_word_double(layers[i], "initW");
+
+			layer = new ConfigFC(name, input, type, hn, wd, drop, initW);
 			m_fc.push_back((ConfigFC*) layer);
 
 			printf("\n\n********Full Connect Layer********\n");
@@ -154,12 +158,14 @@ void Config:: get_layers_config(string &str){
 			printf("NUM_FULLCONNECT_NEURONS : %d\n", hn);
 			printf("WEIGHT_DECAY            : %lf\n", wd);
 			printf("DROPCONNECT_RATE        : %lf\n", drop);
+			printf("initW                   : %lf\n", initW);
 		}
 		else if(type == string("SOFTMAX"))
 		{
 			int numClasses = get_word_int(layers[i], "NUM_CLASSES");
 			double weightDecay = get_word_double(layers[i], "WEIGHT_DECAY");
-			layer = new ConfigSoftMax(name, input, type, numClasses, weightDecay);
+			double initW= get_word_double(layers[i], "initW");
+			layer = new ConfigSoftMax(name, input, type, numClasses, weightDecay, initW);
 			m_softMax.push_back((ConfigSoftMax*)layer);
 
 			printf("\n\n********SoftMax Layer********\n");
@@ -167,6 +173,7 @@ void Config:: get_layers_config(string &str){
 			printf("INPUT        : %s\n", input.c_str());
 			printf("NUM_CLASSES  : %d\n", numClasses);
 			printf("WEIGHT_DECAY : %lf\n", weightDecay);
+			printf("initW        : %lf\n", initW);
 		}
 
 		insertLayerByName(name, layer);

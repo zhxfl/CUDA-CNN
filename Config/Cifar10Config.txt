@@ -4,29 +4,30 @@ IS_GRADIENT_CHECKING = false;   #is true when debug#
 BATCH_SIZE = 125;               #test image size should be divided with no remainder#
 NON_LINEARITY = NL_RELU;        #NON_LINEARITY CAN = NL_SIGMOID , NL_TANH , NL_RELU#
 CHANNELS = 3;                   #1, 3, 4#
-CROP = 0;                       #0<= crop <=imgSize#
-SCALE = 12.0;                   #13% of ImgSize#
-ROTATION = 12.0;                #angle#
-DISTORTION = 3.4;               #just for mnist#
+CROP = 4;                       #0<= crop <=imgSize#
+SCALE = 0.0;                   #13% of ImgSize#
+ROTATION = 0.0;                #angle#
+DISTORTION = 0.0;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
-HORIZONTAL = false;             #horizontal reflection#
+HORIZONTAL = true;             #horizontal reflection#
 
 [
 LAYER = CONV;
 NAME  = conv1;
 INPUT = data;
 KERNEL_SIZE = 5;
-PADDING = 0;
+PADDING = 2;
 KERNEL_AMOUNT = 10;
 COMBINE_FEATRUE_MAPS = 2;       #According to paper "notes on Convolutional Neural NetWorks#
-WEIGHT_DECAY = 1e-4;
+WEIGHT_DECAY = 0.0001;
+initW = 5;
 ]
 
 [
 LAYER = POOLING;
 NAME  = pooling1;
 INPUT = conv1;
-SIZE = 2;
+SIZE = 3;
 SKIP = 2;
 ]
 
@@ -35,27 +36,49 @@ LAYER = CONV;
 NAME  = conv2;
 INPUT = pooling1;
 KERNEL_SIZE = 5;
-PADDING = 0;
-KERNEL_AMOUNT = 20;
+PADDING = 2;
+KERNEL_AMOUNT = 10;
 COMBINE_FEATRUE_MAPS = 2;       #According to paper "notes on Convolutional Neural NetWorks#
-WEIGHT_DECAY = 1e-4;
+WEIGHT_DECAY = 0.0001;
+initW = 5;
 ]
 
 [
 LAYER = POOLING;
 NAME  = pooling2;
 INPUT = conv2;
-SIZE = 2;
+SIZE = 3;
+SKIP = 2;
+]
+
+[  
+LAYER = CONV;
+NAME  = conv3;
+INPUT = pooling2;
+KERNEL_SIZE = 3;
+PADDING = 1;
+KERNEL_AMOUNT = 10;
+COMBINE_FEATRUE_MAPS = 2;       #According to paper "notes on Convolutional Neural NetWorks#
+WEIGHT_DECAY = 0.0001;
+initW = 2;
+]
+
+[
+LAYER = POOLING;
+NAME  = pooling3;
+INPUT = conv3;
+SIZE = 3;
 SKIP = 2;
 ]
 
 [
 LAYER = FC;
 NAME  = fc1;
-INPUT = pooling2;
+INPUT = pooling3;
 NUM_FULLCONNECT_NEURONS = 256;
 WEIGHT_DECAY = 0.0;
 DROPCONNECT_RATE = 0.0;
+initW = 0.1;
 ]
 
 [
@@ -63,5 +86,6 @@ LAYER = SOFTMAX;
 NAME = softmax1;
 INPUT = fc1;
 NUM_CLASSES = 10;
-WEIGHT_DECAY = 1e-4;
+WEIGHT_DECAY = 0.0;
+initW=0.01;
 ]

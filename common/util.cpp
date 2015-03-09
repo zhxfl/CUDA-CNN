@@ -122,7 +122,7 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 	int iiMidr = rows >> 1;
 	int iiMidc = cols >> 1;
 
-	double _max = -1.0;
+	double _sum = 0.0;
 	for(int row = 0; row < rows; row++)
 	{
 		for(int col = 0; col < cols; col++)
@@ -131,20 +131,26 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 			double val2 = (row-iiMidr)*(row-iiMidr) / (dElasticSigma1 * dElasticSigma1) + (col-iiMidc)*(col-iiMidc) / (dElasticSigma2 * dElasticSigma2) 
 				+ 2.0 * (row - iiMidr) * (col - iiMidc) / (dElasticSigma1 * dElasticSigma2);
 			gaussian[row * cols + col] = val1 * exp(-1.0 * val2);
-			if(_max < gaussian[row * cols + col])
-			{
-				_max = gaussian[row * cols + col];
-			}
+			//gaussian[row * cols + col] = exp(gaussian[row * cols + col]);
+			_sum += gaussian[row * cols + col];
+// 			if(_max < fabs(gaussian[row * cols + col]))
+// 			{
+// 				_max = fabs(gaussian[row * cols + col]);
+// 			}
 		}
 	}
 	for(int row = 0; row < rows; row++)
 	{
 		for(int col = 0; col < cols; col++)
 		{
-			gaussian[row * cols + col] /= _max;
-			gaussian[row * cols + col] *= epsilon;
-		}
+			double val = gaussian[row * cols + col] / _sum;
+			//val = val * 2.0 - 0.5;
+			//val = val * epsilon;
+			gaussian[row * cols + col] = val;
+			printf("%lf ", val);
+		}printf("\n");
 	}
+	printf("\n\n");
 }
 
 
@@ -163,6 +169,27 @@ void dropDelta(cuMatrix<double>* M, double cuDropProb)
 					M->set(i, j, c, 1.0);
 			}
 		}
+	}
+	M->toGpu();
+}
+
+
+void initMatrix(cuMatrix<double>* M, double initW)
+{
+	for(int c = 0; c < M->channels; c++){
+		cv::Mat mean = cv::Mat::zeros(1, 1, CV_64FC1);
+		cv::Mat sigma= cv::Mat::ones(1, 1, CV_64FC1);
+		sigma.at<double>(0,0) = initW;
+		cv::RNG rng(clock());
+		cv::Mat matrix2xN(M->rows, M->cols, CV_64FC1);
+		rng.fill(matrix2xN, cv::RNG::NORMAL, mean, sigma);
+		for(int i = 0; i < matrix2xN.rows; i++){
+			for(int j = 0; j < matrix2xN.cols; j++){
+				M->set(i,j,c, matrix2xN.at<double>(i, j));
+				printf("%lf ", matrix2xN.at<double>(i, j));
+			}printf("\n");
+		}
+		printf("\n\n");
 	}
 	M->toGpu();
 }

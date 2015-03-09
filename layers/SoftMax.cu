@@ -202,7 +202,7 @@ void SoftMax::setPreDelta(cuMatrix<double>* _preDelta)
 void SoftMax::initRandom()
 {
 	srand(clock());
-	double epsilon = 0.01f;
+	double epsilon = Config::instance()->getLayerByName(m_name)->m_initW;
 	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i < w->rows; i++){
 			for(int j=0; j < w->cols; j++){

@@ -21,6 +21,7 @@
 
 #include "layers/Pooling.h"
 
+
 void runMnist();
 void runCifar10();
 void runCifar100();
@@ -141,7 +142,7 @@ void runCifar100(){
 
 	/*build CNN net*/
 	int ImgSize = trainX[0]->rows;
-	Config::instance()->setImageSize(ImgSize);
+	Config::instance()->setImageSize(ImgSize - Config::instance()->getCrop());
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
@@ -205,7 +206,7 @@ void runCifar10()
 
 	/*build CNN net*/
 	int ImgSize = trainX[0]->rows;
-	Config::instance()->setImageSize(ImgSize);
+	Config::instance()->setImageSize(ImgSize - Config::instance()->getCrop());
 	int crop = Config::instance()->getCrop();
 
 	int nsamples = trainX.size();
@@ -232,7 +233,7 @@ void runCifar10()
 	std::vector<double>nMomentum;
 	std::vector<int>epoCount;
 	double r = 0.05;
-	double m = 0.90;
+	double m = 0.9;
 	int e = 10;
 	for(int i = 0; i < 100; i++){
 		nlrate.push_back(r);
@@ -277,7 +278,7 @@ void runMnist(){
 
  	/*build CNN net*/
  	int ImgSize = trainX[0]->rows;
-	Config::instance()->setImageSize(ImgSize);
+	Config::instance()->setImageSize(ImgSize - Config::instance()->getCrop());
 	int crop    = Config::instance()->getCrop();
 
  	int nsamples = trainX.size();
@@ -341,7 +342,7 @@ void cuVoteMnist()
  	readMnistData(testX , testY,  "mnist/t10k-images.idx3-ubyte",  "mnist/t10k-labels.idx1-ubyte",  10000, 1);
 
 	int ImgSize = trainX[0]->rows;
-	Config::instance()->setImageSize(ImgSize);
+	Config::instance()->setImageSize(ImgSize - Config::instance()->getCrop());
 
 	char* path[] = {"mnist_result_cfm_5/1/checkPoint.txt",
 		"mnist_result_cfm_5/2/checkPoint.txt",

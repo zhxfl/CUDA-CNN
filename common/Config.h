@@ -137,12 +137,13 @@ public:
 	std::string m_input;
 	std::vector<ConfigBase*> m_next;
 	std::string m_type;
+	double m_initW;
 };
 
 class ConfigConv : public ConfigBase
 {
 public:
-	ConfigConv(std::string name, std::string input, std::string type, int kernelSize, int padding, int amount, double weightDecay, int cfm){
+	ConfigConv(std::string name, std::string input, std::string type, int kernelSize, int padding, int amount, double weightDecay, int cfm, double initW){
 		m_kernelSize = kernelSize;
 		m_padding = padding;
 		m_amount = amount;
@@ -151,6 +152,7 @@ public:
 		m_input = input;
 		m_cfm = cfm;
 		m_type = type;
+		m_initW = initW;
 	}
 	int m_cfm;
 	int m_kernelSize;
@@ -177,7 +179,7 @@ class ConfigFC : public ConfigBase
 {
 public:
 	ConfigFC(std::string name, std::string input, std::string type, int numFullConnectNeurons, double weightDecay,
-		double dropoutRate)
+		double dropoutRate, double initW)
 	{
 		m_numFullConnectNeurons = numFullConnectNeurons;
 		m_weightDecay = weightDecay;
@@ -185,6 +187,7 @@ public:
 		m_name = name;
 		m_input = input;
 		m_type = type;
+		m_initW = initW;
 	}
 	int m_numFullConnectNeurons;
 	double m_weightDecay;
@@ -196,13 +199,14 @@ class ConfigSoftMax : public ConfigBase
 public:
 	int m_numClasses;
 	double m_weightDecay;
-	ConfigSoftMax(std::string name, std::string input, std::string type, int numClasses, double weightDecay)
+	ConfigSoftMax(std::string name, std::string input, std::string type, int numClasses, double weightDecay, double initW)
 	{
 		m_numClasses = numClasses;
 		m_weightDecay = weightDecay;
 		m_name = name;
 		m_input = input;
 		m_type = type;
+		m_initW = initW;
 	}
 };
 

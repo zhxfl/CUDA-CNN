@@ -343,13 +343,13 @@ void predictTestDate(cuMatrixVector<double>&x,
 		}
 
 		cuVote->gpuClear();
-		int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop() };
-		int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop() };
+		int cropr[] = {Config::instance()->getCrop() / 2/*, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop() */};
+		int cropc[] = {Config::instance()->getCrop() / 2/*, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop() */};
 	
 		cudaStream_t stream1;
 		checkCudaErrors(cudaStreamCreate(&stream1));
-		for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 2 : 1); h++) {
-				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 5); c++) {
+		for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 1 : 1); h++) {
+				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 1); c++) {
 					int batchImgId = 1;
 					getBatchImageWithStreams(testX, batchImg[0], 0, stream1);
 					for (int p = 0; p < testX.size() / batch; p++) {
@@ -410,13 +410,13 @@ int voteTestDate(
 		}
 
 		vote->gpuClear();
-		int cropr[] = { Config::instance()->getCrop() / 2, 0, 0,
-			Config::instance()->getCrop(), Config::instance()->getCrop() };
-		int cropc[] = { Config::instance()->getCrop() / 2, 0,
-			Config::instance()->getCrop(), 0, Config::instance()->getCrop() };
-		for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 2 : 1);
+		int cropr[] = { Config::instance()->getCrop() / 2/*, 0, 0,
+			Config::instance()->getCrop(), Config::instance()->getCrop() */};
+		int cropc[] = { Config::instance()->getCrop() / 2/*, 0,
+			Config::instance()->getCrop(), 0, Config::instance()->getCrop()*/ };
+		for (int h = 0; h < (Config::instance()->getHorizontal() == true ? 1 : 1);
 			h++) {
-				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 5); c++) {
+				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : 1); c++) {
 					for (int p = 0; p < testX.size() / batch; p++) {
 						printf("test  %2d%%",
 							100 * p / ((testX.size() + batch - 1) / batch));

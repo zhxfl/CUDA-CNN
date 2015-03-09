@@ -358,7 +358,7 @@ void FullConnect::convert()
 void FullConnect::initRandom()
 {
 	srand(clock());
- 	double epsilon = sqrt((double)6) / sqrt((double)(inputsize + outputsize + 1));
+ 	double epsilon = Config::instance()->getLayerByName(m_name)->m_initW;
 
  	for(int c=0; c < w->channels; c++){
  		for(int i=0; i < w->rows; i++){
