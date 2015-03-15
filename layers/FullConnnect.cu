@@ -4,16 +4,6 @@
 #include "../common/Config.h"
 #include <math.h>
 
-/*
-* function: cuMatrix(batch, size, channel) to cuMatrix(batch, size * channel, 1)
-* blocks  : dim3(batch)
-* threads : dim3(min(512, cuPool[poolidx]->cols))
-*/
-__global__ void g_convert(double* cuPool, 
-	double*cuPoolToFlActi,
-	int batch,
-	int size,
-	int channel);
 
 __global__ void g_FullConnectDropW(double * w, 
 	double * dropW,
@@ -36,11 +26,6 @@ __global__ void g_FullConnectWgrad(double* wgrad,
 	int len, 
 	double lambda, 
 	int batch);
-
-__global__ void g_preDeltaFormat(double* cuPoolFlDelta, 
-	double* cuPoolDelta, int batch, int size, int channels);
-
-
 
 __global__ void g_FullConnectActi(double* acti, double* b, int NumofNeurons, int NONLIN)
 {
@@ -104,29 +89,6 @@ __global__ void g_FullConnectDropW(double * w, double * dropW, double* afterDrop
 	}
 }
 
-
-/*
-function: g_preDeltaFormat
-threads : <<<dim3(batch), dim3(512)>>> 
-*/
-__global__ void g_preDeltaFormat(double* cuPoolFlDelta, 
-	double* cuPoolDelta, int batch, int size, int channels)
-{
-	int b = blockIdx.x;
-	int len = size * channels;
-	for(int i = 0; i < len; i += blockDim.x)
-	{
-		int id = i + threadIdx.x;
-		if(id < len)
-		{
-			int s = id / channels;
-			int c = id % channels;
-			cuPoolDelta[c * batch * size + b * size + s] = cuPoolFlDelta[b * size * channels + size * c + s];
-		}
-	}
-}
-
-
 void FullConnect::feedforward()
 {
 	//drop
@@ -135,8 +97,8 @@ void FullConnect::feedforward()
 
 	//convert 
 	g_convert<<<block, thread>>>(
-		inputs->devData, 
-		inputs_format->devData, 
+		inputs->getDev(), 
+		inputs_format->getDev(), 
 		inputs->rows, 
 		inputs->cols,
 		inputs->channels);
@@ -146,8 +108,8 @@ void FullConnect::feedforward()
 	//drop w
 	thread = min(512, w->getLen());
 	block  = min(512, (w->getLen() + thread.x - 1) / thread.x);
-	g_FullConnectDropW<<<block, thread>>>(w->devData,
-		dropW->devData, afterDropW->devData,
+	g_FullConnectDropW<<<block, thread>>>(w->getDev(),
+		dropW->getDev(), afterDropW->getDev(),
 		afterDropW->getLen());
 
 	checkCudaErrors(cudaDeviceSynchronize());
@@ -158,8 +120,8 @@ void FullConnect::feedforward()
 
 	thread = min(512, outputs->cols);
 	block  = outputs->rows;
-	g_FullConnectActi<<<block, thread>>>(outputs->devData,
-		b->devData,
+	g_FullConnectActi<<<block, thread>>>(outputs->getDev(),
+		b->getDev(),
 		outputs->cols,
 		NON_LINEARITY);
 
@@ -172,8 +134,8 @@ void FullConnect::getCost(cuMatrix<double>*cost, int* y)
 {
 	if(fabs(lambda) >= 1e-10)
 	{
-		g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->devData,
-			w->devData,
+		g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(),
+			w->getDev(),
 			lambda,
 			w->getLen());
 		cudaDeviceSynchronize();
@@ -194,7 +156,7 @@ FullConnect::FullConnect(std::string name)
 	outputsize = config->m_numFullConnectNeurons;
 	dropRate = config->m_dropoutRate;
 
-	NON_LINEARITY = Config::instance()->getNonLinearity();
+	NON_LINEARITY = config->m_nonLinearity;
 
 	inputs_format = new cuMatrix<double>(inputs->rows, inputs->cols * inputs->channels, 1);
 	outputs       = new cuMatrix<double>(batch, outputsize, 1);
@@ -235,8 +197,8 @@ void FullConnect::drop(double rate)
 void FullConnect::backpropagation()
 {
 	if(NON_LINEARITY >= 0){
-		g_dnonLinearity<<<dim3(256), dim3(256)>>>(curDelta->devData,
-			outputs->devData, outputs->getLen(), NON_LINEARITY);
+		g_dnonLinearity<<<dim3(256), dim3(256)>>>(curDelta->getDev(),
+			outputs->getDev(), outputs->getLen(), NON_LINEARITY);
 		cudaDeviceSynchronize();
 		getLastCudaError("g_dnonLinearity");
 	}
@@ -246,8 +208,8 @@ void FullConnect::backpropagation()
 	dim3 block = batch;
 	dim3 thread= min(512, preDelta->channels * preDelta->cols);
 	g_preDeltaFormat<<<block, thread>>>(
-		preDelta_format->devData,
-		preDelta->devData,
+		preDelta_format->getDev(),
+		preDelta->getDev(),
 		preDelta->rows,
 		preDelta->cols,
 		preDelta->channels);
@@ -258,12 +220,12 @@ void FullConnect::backpropagation()
 void FullConnect::getGrad()
 {
 	matrixMulTA(curDelta,
-		inputs,
+		inputs_format,
 		wgrad);
 
-	g_FullConnectWgrad<<<dim3(256), dim3(256)>>>(wgrad->devData,
-		w->devData,
-		dropW->devData,
+	g_FullConnectWgrad<<<dim3(256), dim3(256)>>>(wgrad->getDev(),
+		w->getDev(),
+		dropW->getDev(),
 		wgrad->getLen(),
 		lambda,
 		batch);
@@ -278,7 +240,7 @@ void FullConnect::getGrad()
 	}
 	g_getBgrad<<<dim3(curDelta->cols), dim3(curDelta->rows),
 		sizeof(double) * curDelta->rows>>>
-		(curDelta->devData, bgrad->devData, batch);
+		(curDelta->getDev(), bgrad->getDev(), batch);
 	cudaDeviceSynchronize();
 }
 
@@ -287,8 +249,8 @@ void FullConnect::updateWeight()
 	dim3 block = min((momentum_w->getLen() + 255) / 256, 5120);
 	dim3 thread= 256;
 
-	g_vecAdd<<<block, thread>>>(momentum_w->devData, wgrad->devData, w->devData,
-		momentum_b->devData, bgrad->devData, b->devData,
+	g_vecAdd<<<block, thread>>>(momentum_w->getDev(), wgrad->getDev(), w->getDev(),
+		momentum_b->getDev(), bgrad->getDev(), b->getDev(),
 		wgrad->getLen(), bgrad->getLen(), 
 		Config::instance()->getMomentum(),
 		Config::instance()->getLrate());
@@ -321,33 +283,12 @@ void FullConnect::setPreDelta(cuMatrix<double>* _preDelta)
 	preDelta_format = new cuMatrix<double>(preDelta->rows, preDelta->cols * preDelta->channels, 1);
 }
 
-/*
-* function: cuMatrix(batch, size, channel) to cuMatrix(batch, size * channel, 1)
-* blocks  : dim3(batch)
-* threads : dim3(min(512, cuPool[poolidx]->cols))
-*/
-__global__ void g_convert(double* cuPool, double*cuPoolToFlActi, int batch, int size, int channel)
-{
-	int b   = blockIdx.x;
-	int len = size * channel;
-	for(int i = 0; i < len; i+=blockDim.x)
-	{
-		int id = i + threadIdx.x;
-		if(id < len)
-		{
-			int s = id / channel;
-			int c = id % channel;
-			cuPoolToFlActi[b * size * channel + size * c + s] = cuPool[c * batch * size + b * size + s];
-		}
-	}
-}
-
 void FullConnect::convert()
 {
 	int threads = min(512, inputs->cols);
 	g_convert<<<dim3(inputs->rows), threads>>>
-		(inputs->devData, 
-		inputs_format->devData, 
+		(inputs->getDev(), 
+		inputs_format->getDev(), 
 		inputs->rows,
 		inputs->cols,
 		inputs->channels);
@@ -359,7 +300,7 @@ void FullConnect::initRandom()
 {
 	srand(clock());
  	double epsilon = Config::instance()->getLayerByName(m_name)->m_initW;
-
+	//double epsilon = sqrt((double)6) / sqrt((double)(inputsize + outputsize));
  	for(int c=0; c < w->channels; c++){
  		for(int i=0; i < w->rows; i++){
  			for(int j=0; j< w->cols; j++){

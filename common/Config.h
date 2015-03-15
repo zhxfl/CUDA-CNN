@@ -55,6 +55,19 @@ private:
 	double m_scale;
 };
 
+class ConfigTestEpoch
+{
+public:
+	ConfigTestEpoch(int testEpoch)
+	{
+		m_testEpoch = testEpoch;
+	}
+	int getValue(){return m_testEpoch;}
+private:
+	int m_testEpoch;
+};
+
+
 class ConfigRotation
 {
 public:
@@ -111,10 +124,14 @@ public:
 		}else if(poolMethod == std::string("NL_TANH"))
 		{
 			m_nonLinearity = NL_TANH;
-		}else 
+		}else if(poolMethod == std::string("NL_RELU"))
 		{
 			m_nonLinearity = NL_RELU;
 		}
+		else{
+			m_nonLinearity = -1;
+		} 
+		
 	}
 	int getValue(){return m_nonLinearity;}
 private:
@@ -138,12 +155,16 @@ public:
 	std::vector<ConfigBase*> m_next;
 	std::string m_type;
 	double m_initW;
+	int m_nonLinearity; 
 };
 
 class ConfigConv : public ConfigBase
 {
 public:
-	ConfigConv(std::string name, std::string input, std::string type, int kernelSize, int padding, int amount, double weightDecay, int cfm, double initW){
+	ConfigConv(std::string name, std::string input, std::string type,
+		int kernelSize, int padding, int amount,
+		double weightDecay, int cfm, double initW,
+		int non_linearity){
 		m_kernelSize = kernelSize;
 		m_padding = padding;
 		m_amount = amount;
@@ -153,6 +174,7 @@ public:
 		m_cfm = cfm;
 		m_type = type;
 		m_initW = initW;
+		m_nonLinearity = non_linearity;
 	}
 	int m_cfm;
 	int m_kernelSize;
@@ -161,15 +183,44 @@ public:
 	double m_weightDecay;
 };
 
+
+class ConfigLocal : public ConfigBase
+{
+public:
+	ConfigLocal(std::string name, std::string input, std::string type,
+		int kernelSize, int padding, int amount,
+		double weightDecay, int cfm, double initW,
+		int non_linearity){
+			m_kernelSize = kernelSize;
+			m_padding = padding;
+			m_amount = amount;
+			m_weightDecay = weightDecay;
+			m_name = name;
+			m_input = input;
+			m_cfm = cfm;
+			m_type = type;
+			m_initW = initW;
+			m_nonLinearity = non_linearity;
+	}
+	int m_cfm;
+	int m_kernelSize;
+	int m_padding;
+	int m_amount;
+	double m_weightDecay;
+};
+
+
 class ConfigPooling : public ConfigBase
 {
 public:
-	ConfigPooling(std::string name, std::string input, std::string type, int size, int skip){
+	ConfigPooling(std::string name, std::string input, std::string type, int size, int skip,
+		int non_linearity){
 		m_size = size;
 		m_skip = skip;
 		m_name = name;
 		m_input = input;
 		m_type = type;
+		m_nonLinearity = non_linearity;
 	}
 	int m_size;
 	int m_skip;
@@ -179,7 +230,7 @@ class ConfigFC : public ConfigBase
 {
 public:
 	ConfigFC(std::string name, std::string input, std::string type, int numFullConnectNeurons, double weightDecay,
-		double dropoutRate, double initW)
+		double dropoutRate, double initW, int non_linearity)
 	{
 		m_numFullConnectNeurons = numFullConnectNeurons;
 		m_weightDecay = weightDecay;
@@ -188,6 +239,7 @@ public:
 		m_input = input;
 		m_type = type;
 		m_initW = initW;
+		m_nonLinearity = non_linearity;
 	}
 	int m_numFullConnectNeurons;
 	double m_weightDecay;
@@ -199,7 +251,8 @@ class ConfigSoftMax : public ConfigBase
 public:
 	int m_numClasses;
 	double m_weightDecay;
-	ConfigSoftMax(std::string name, std::string input, std::string type, int numClasses, double weightDecay, double initW)
+	ConfigSoftMax(std::string name, std::string input, std::string type, int numClasses, 
+		double weightDecay, double initW , int non_linearity)
 	{
 		m_numClasses = numClasses;
 		m_weightDecay = weightDecay;
@@ -207,6 +260,7 @@ public:
 		m_input = input;
 		m_type = type;
 		m_initW = initW;
+		m_nonLinearity = non_linearity;
 	}
 };
 
@@ -266,9 +320,6 @@ public:
 		delete m_imageShow;
 		delete m_horizontal;
 	}
-
-	int getNonLinearity(){
-		return m_nonLinearity->getValue();}
 
 	bool getImageShow(){
 		return m_imageShow->getValue();}
@@ -352,6 +403,10 @@ public:
 		return m_imageSize;
 	}
 
+	int getTestEpoch(){
+		return m_test_epoch->getValue();
+	}
+
 private:
 	void deleteComment();
 	void deleteSpace();
@@ -384,6 +439,7 @@ private:
 	ConfigDistortion         *m_distortion;
 	ConfigImageShow          *m_imageShow;
 	ConfigHorizontal         *m_horizontal;
+	ConfigTestEpoch          *m_test_epoch;
 
 	double momentum;
 	double lrate;

@@ -51,12 +51,12 @@ public:
 		}
 
 		for(int p = 0; p < m_vec.size(); p++){
-			m_hstPoint[p] = m_vec[p]->devData;
+			m_hstPoint[p] = m_vec[p]->getDev();
 		}
 
 		cudaStat = cudaMemcpy(m_devPoint, m_hstPoint, sizeof(T*) * m_vec.size(), cudaMemcpyHostToDevice);
 		if(cudaStat != cudaSuccess){
-			printf("cuConvLayer::init cudaMemcpy w fail\n");
+			printf("cuMatrixVector::toGpu cudaMemcpy w fail\n");
 			exit(0);
 		}
 	}
@@ -68,14 +68,19 @@ public:
 			int x = rand() % m_vec.size();
 			int y = rand() % m_vec.size();
 			swap(m_vec[x], m_vec[y]);
-			swap(m_hstPoint[x], m_hstPoint[y]);
-			swap(labels->hostData[x], labels->hostData[y]);
+			if(m_hstPoint)
+				swap(m_hstPoint[x], m_hstPoint[y]);
+			swap(labels->getHost()[x], labels->getHost()[y]);
 		}
-		cudaStat = cudaMemcpy(m_devPoint, m_hstPoint, sizeof(T*) * m_vec.size(), cudaMemcpyHostToDevice);
-		if(cudaStat != cudaSuccess){
-			printf("cuConvLayer::init cudaMemcpy w fail\n");
-			exit(0);
+		if(NULL != m_hstPoint && NULL != m_devPoint)
+		{
+			cudaStat = cudaMemcpy(m_devPoint, m_hstPoint, sizeof(T*) * m_vec.size(), cudaMemcpyHostToDevice);
+			if(cudaStat != cudaSuccess){
+				printf("shuffle: cudaMemcpy w fail\n");
+				exit(0);
+			}
 		}
+
 		labels->toGpu();
 	}
 

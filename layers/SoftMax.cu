@@ -99,13 +99,26 @@ __global__ void g_getSmrWgrad(double* wgrad, double* weight, double lambda, int 
 
 void SoftMax::feedforward()
 {
-	matrixMulTB(inputs,
+	dim3 block  = inputs->rows;
+	dim3 thread = min(512, inputs->cols);
+
+	//convert 
+	g_convert<<<block, thread>>>(
+		inputs->getDev(), 
+		inputs_format->getDev(), 
+		inputs->rows, 
+		inputs->cols,
+		inputs->channels);
+	checkCudaErrors(cudaDeviceSynchronize());
+	getLastCudaError("g_convert");
+
+	matrixMulTB(inputs_format,
 		w, outputs);
 
 	int threads = std::min(512, outputs->cols);
 	g_getSoftMaxP<<<outputs->rows, threads, sizeof(double) * threads * 2>>>(
-		outputs->devData,
-		b->devData, 
+		outputs->getDev(),
+		b->getDev(), 
 		outputs->cols);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getSoftMaxP");
@@ -113,21 +126,32 @@ void SoftMax::feedforward()
 
 void SoftMax::backpropagation()
 {
-	g_getSoftMaxDelta<<<dim3(1), dim3(256)>>>(curDelta->devData,
-		outputs->devData,
-		groudTruth->devData, curDelta->getLen());
+	g_getSoftMaxDelta<<<dim3(1), dim3(256)>>>(curDelta->getDev(),
+		outputs->getDev(),
+		groudTruth->getDev(), curDelta->getLen());
 	cudaDeviceSynchronize();
 
 	matrixMul(curDelta,
-		w, preDelta);
+		w, preDelta_format);
+
+	dim3 block = batch;
+	dim3 thread= min(512, preDelta->channels * preDelta->cols);
+	g_preDeltaFormat<<<block, thread>>>(
+		preDelta_format->getDev(),
+		preDelta->getDev(),
+		preDelta->rows,
+		preDelta->cols,
+		preDelta->channels);
+	cudaDeviceSynchronize();
+	getLastCudaError("g_preDeltaFormat");
 }
 
 void SoftMax::getGrad()
 {
-	matrixMulTA(curDelta, inputs, wgrad);
+	matrixMulTA(curDelta, inputs_format, wgrad);
 
-	g_getSmrWgrad<<<dim3(1), dim3(256)>>>(wgrad->devData,
-		w->devData, lambda, wgrad->getLen(), batch);
+	g_getSmrWgrad<<<dim3(1), dim3(256)>>>(wgrad->getDev(),
+		w->getDev(), lambda, wgrad->getLen(), batch);
 	cudaDeviceSynchronize();
 
 	if(curDelta->rows > MAX_THREADS)
@@ -137,8 +161,8 @@ void SoftMax::getGrad()
 	}
 	g_getBgrad<<<dim3(curDelta->cols), dim3(curDelta->rows), 
 		sizeof(double) * curDelta->rows>>>(
-		curDelta->devData, 
-		bgrad->devData,
+		curDelta->getDev(), 
+		bgrad->getDev(),
 		batch);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getBgrad");
@@ -148,12 +172,12 @@ void SoftMax::updateWeight()
 {
 	g_vecAdd<<<dim3(min((momentum_w->getLen() + 255) / 256, 5120)),
 		dim3(256)>>>(
-		momentum_w->devData, 
-		wgrad->devData, 
-		w->devData,
-		momentum_b->devData, 
-		bgrad->devData, 
-		b->devData, 
+		momentum_w->getDev(), 
+		wgrad->getDev(), 
+		w->getDev(),
+		momentum_b->getDev(), 
+		bgrad->getDev(), 
+		b->getDev(), 
 		wgrad->getLen(),
 		bgrad->getLen(),
 		Config::instance()->getMomentum(), 
@@ -168,12 +192,12 @@ void SoftMax::clearMomentum()
 
 void SoftMax::getCost(cuMatrix<double>*cost, int* y)
 {
-	g_getCost_1<<<dim3(1), dim3(256), sizeof(double) * 256>>>(outputs->devData, groudTruth->devData,
-		cost->devData, y, outputs->rows, outputs->cols, batch);
+	g_getCost_1<<<dim3(1), dim3(256), sizeof(double) * 256>>>(outputs->getDev(), groudTruth->getDev(),
+		cost->getDev(), y, outputs->rows, outputs->cols, batch);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getCost_1");
 
-	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->devData,  w->devData, lambda,
+	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(),  w->getDev(), lambda,
 		w->getLen());
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getCost_2");
@@ -197,6 +221,7 @@ cuMatrix<double>* SoftMax::getCurDelta()
 void SoftMax::setPreDelta(cuMatrix<double>* _preDelta)
 {
 	preDelta = _preDelta;
+	preDelta_format = new cuMatrix<double>(preDelta->rows, preDelta->cols * preDelta->channels, 1);
 }
 
 void SoftMax::initRandom()
@@ -266,11 +291,12 @@ SoftMax::SoftMax(std::string name)
 	inputsize = inputs->cols * inputs->channels;
 	outputsize = config->m_numFullConnectNeurons;
 
-	NON_LINEARITY = Config::instance()->getNonLinearity();
+	NON_LINEARITY = config->m_nonLinearity;
 
+	inputs_format = new cuMatrix<double>(inputs->rows, inputs->cols * inputs->channels, 1);
 	outputs = new cuMatrix<double>(batch, outputsize, 1);
 	curDelta= new cuMatrix<double>(batch, outputsize, 1);
-	preDelta= preLayer->getCurDelta();
+	this->setPreDelta(preLayer->getCurDelta());
 
 	w     = new cuMatrix<double>(outputsize, inputsize, 1);
 	wgrad = new cuMatrix<double>(outputsize, inputsize, 1);

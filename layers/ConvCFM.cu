@@ -10,7 +10,6 @@ __global__ void g_ConvCFM_feedforward_1(
 	double** arrayW,
 	double** arrayB,
 	double* conv,
-	double* a, 
 	int inputSize,
 	int kernelSize,
 	int padding,
@@ -27,7 +26,6 @@ __global__ void g_ConvCFM_feedforward_2(
 	double** arrayW,
 	double** arrayB,
 	double* conv2,
-	double* a,
 	int pool1Size,
 	int kernelSize,
 	int padding,
@@ -46,7 +44,6 @@ __global__ void g_ConvCFM_backpropagation(
 	double* _convDelta,
 	double**_w,
 	double* _poolDelta,
-	double* a,
 	int     _convOutputSize,
 	int     _poolOutputSize,
 	int     _kernelAmount1,
@@ -153,7 +150,7 @@ __global__ void g_ConvCFM_Bgrad_1(double* delta,
 
 void ConvCFM::getCost(cuMatrix<double>*cost, int* y)
 {
-	g_getCost_3<<<dim3(amount), dim3(32), sizeof(double) * 32>>>(cost->devData, 
+	g_getCost_3<<<dim3(amount), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
 		w.m_devPoint, 
 		lambda,
 		kernelSize, 
@@ -175,8 +172,7 @@ void ConvCFM::feedforward()
 		g_ConvCFM_feedforward_1<<<block, thread>>>(inputs_1->m_devPoint,
 			w.m_devPoint, 
 			b.m_devPoint,
-			outputs->devData,
-			a->devData,
+			outputs->getDev(),
 			inputDim,
 			kernelSize,
 			padding,
@@ -190,11 +186,10 @@ void ConvCFM::feedforward()
 	else if(inputs_2){
 		dim3 block = dim3(batch, amount, Config::instance()->getChannels());
 		dim3 thread= dim3(min(outputDim * outputDim, 512));
-		g_ConvCFM_feedforward_2<<<block, thread>>>(inputs_2->devData,
+		g_ConvCFM_feedforward_2<<<block, thread>>>(inputs_2->getDev(),
 			w.m_devPoint,
 			b.m_devPoint,
-			outputs->devData,
-			a->devData,
+			outputs->getDev(),
 			inputDim,
 			kernelSize,
 			padding,
@@ -216,7 +211,7 @@ void ConvCFM::feedforward()
 		dim3 thread = dim3(min(256, outputs->getLen()));
 		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
 		g_nonLinearity<<<block, thread>>>(
-			outputs->devData, 
+			outputs->getDev(), 
 			outputs->getLen(),
 			NON_LINEARITY);
 		checkCudaErrors(cudaDeviceSynchronize());
@@ -236,8 +231,8 @@ void ConvCFM::backpropagation()
 		dim3 thread = dim3(min(256, outputs->getLen()));
 		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
 
-		g_dnonLinearity<<<block, thread>>>(curDelta->devData,
-			outputs->devData, curDelta->getLen(), Config::instance()->getNonLinearity());
+		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
+			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
 
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("ConvCFM::g_dnonLinearity");
@@ -250,11 +245,9 @@ void ConvCFM::backpropagation()
 		preDelta->gpuClear();
 
 		g_ConvCFM_backpropagation<<<block, thread>>>(
-			curDelta->devData,
+			curDelta->getDev(),
 			w.m_devPoint,
-			preDelta->devData,
-			a->devData,
-
+			preDelta->getDev(),
 			outputDim,
 			inputDim,
 			inputAmount,
@@ -282,8 +275,8 @@ void ConvCFM::getGrad()
 		dim3 thread= min(kernelSize * kernelSize, 512);
 		g_ConvCFM_wgrad_1<<<block, thread>>>(
 			inputs_1->m_devPoint,
-			curDelta->devData,
-			wgradTmp->devData,
+			curDelta->getDev(),
+			wgradTmp->getDev(),
 			inputDim,
 			outputDim,
 			amount,
@@ -300,7 +293,7 @@ void ConvCFM::getGrad()
 		thread= dim3(256);
 		g_ConvCFM_wgradAdd_1<<<block, thread,
 			sizeof(double) * 256>>>(
-			wgradTmp->devData,
+			wgradTmp->getDev(),
 			wgrad.m_devPoint,
 			w.m_devPoint,
 			outputAmount,
@@ -317,7 +310,7 @@ void ConvCFM::getGrad()
 		block = dim3(amount, Config::instance()->getChannels());
 		thread= dim3(256);
 		g_ConvCFM_Bgrad_1<<<block,thread,sizeof(double) * 256>>>
-			(curDelta->devData,
+			(curDelta->getDev(),
 			bgrad.m_devPoint,
 			outputDim,
 			outputAmount,
@@ -332,9 +325,9 @@ void ConvCFM::getGrad()
 		dim3 block = dim3(batch, cfm * outputAmount, Config::instance()->getChannels());
 		dim3 thread= min(kernelSize * kernelSize, 512);
 
-		g_ConvCFM_wgrad_2<<<block, thread>>>(inputs_2->devData,
-			curDelta->devData,
-			wgradTmp->devData,
+		g_ConvCFM_wgrad_2<<<block, thread>>>(inputs_2->getDev(),
+			curDelta->getDev(),
+			wgradTmp->getDev(),
 			inputDim,
 			outputDim,
 			inputAmount,
@@ -351,7 +344,7 @@ void ConvCFM::getGrad()
 
 		block = dim3(amount, kernelSize * kernelSize, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvCFM_wgradAdd_2<<<block, thread, sizeof(double) * 256>>>(wgradTmp->devData,
+		g_ConvCFM_wgradAdd_2<<<block, thread, sizeof(double) * 256>>>(wgradTmp->getDev(),
 			wgrad.m_devPoint,
 			w.m_devPoint,
 			inputAmount,
@@ -368,7 +361,7 @@ void ConvCFM::getGrad()
 
 		block = dim3(amount, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvCFM_Bgrad_2<<<block, thread, sizeof(double) * 256>>>(curDelta->devData,
+		g_ConvCFM_Bgrad_2<<<block, thread, sizeof(double) * 256>>>(curDelta->getDev(),
 			bgrad.m_devPoint,
 			outputDim,
 			amount,
@@ -414,7 +407,7 @@ ConvCFM::ConvCFM(std::string name)
 		batch     = Config::instance()->getBatchSize();
 		lambda = config->m_weightDecay;
 		cfm = 1;
-		NON_LINEARITY = Config::instance()->getNonLinearity();
+		NON_LINEARITY = config->m_nonLinearity;
 
 		outputs  = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
 		curDelta = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
@@ -456,7 +449,7 @@ ConvCFM::ConvCFM(std::string name)
 		batch     = Config::instance()->getBatchSize();
 		lambda    = config->m_weightDecay;
 		cfm = config->m_cfm;
-		NON_LINEARITY = Config::instance()->getNonLinearity();
+		NON_LINEARITY = config->m_nonLinearity;
 		
 		outputs = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
 		curDelta = new cuMatrix<double>(batch, outputAmount * outputDim  * outputDim,  Config::instance()->getChannels());
@@ -482,34 +475,6 @@ ConvCFM::ConvCFM(std::string name)
 		momentum_w.toGpu();
 		momentum_b.toGpu();
 	}
-
-	/**/
-	a = new cuMatrix<double>(amount, cfm, Config::instance()->getChannels());
-	cuMatrix<double>* c = new cuMatrix<double>(amount, cfm, Config::instance()->getChannels());
-
-	for(int i = 0; i < c->rows; i++){
-		for(int j = 0; j < c->cols; j++){
-			for(int k = 0; k < c->channels; k++){
-				c->set(i, j, k, rand());
-			}
-		}
-	}
-
-	for(int i = 0; i < c->rows; i++){
-		for(int k = 0; k < c->channels; k++){
-			double val = 0.0;
-			for(int j = 0; j < c->cols; j++){
-				val += c->get(i, j, k);
-			}
-			for(int j = 0; j < c->cols; j++){
-				a->set(i,j,k, (double) c->get(i,j,k) / val);
-				printf("%lf ", a->get(i,j,k));
-			}
-			printf("\n");
-		}
-	}
-	a->toGpu();
-	delete c;
 
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
@@ -555,23 +520,31 @@ void ConvCFM::initRandom()
 	srand(clock());
 	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
-// 	for(int i = 0; i < w.size(); i++){
-// 		initMatrix(w[i], initW);
-// 	}
 
-	for(int i = 0; i < w.size(); i++){
-		double epsilon = initW;
-		for(int c = 0; c < Config::instance()->getChannels(); c++)
-		{
-			double r1 = 0.01 + initW * (rand()) / RAND_MAX;
-			double r2 = 0.01 + initW * (rand()) / RAND_MAX;
-			createGaussian(w[i]->hostData + c * w[i]->getArea(), r1,r2,
-				kernelSize, kernelSize, 
-				Config::instance()->getChannels(), 
-				epsilon * 0.5 + epsilon * 0.5 * rand() / RAND_MAX);
-		}
-		w[i]->toGpu();
-	}
+//  	for(int i = 0; i < w.size(); i++){
+//  		initMatrix(w[i], initW);
+//  	}
+	 	for(int i = 0; i < w.size(); i++){
+	 		for(int j = 0; j < w[i]->getLen(); j++){
+	 			w[i]->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+				//printf("%lf ", w[i]->hostData[j]);
+	 		}//printf("\n");
+	 		w[i]->toGpu();
+	 	}
+
+//   	for(int i = 0; i < w.size(); i++){
+//   		double epsilon = initW;
+//   		for(int c = 0; c < Config::instance()->getChannels(); c++)
+//   		{
+//   			double r1 = 0.01 + initW * (rand()) / RAND_MAX;
+//   			double r2 = 0.01 + initW * (rand()) / RAND_MAX;
+//   			createGaussian(w[i]->hostData + c * w[i]->getArea(), r1,r2,
+//   				kernelSize, kernelSize, 
+//   				Config::instance()->getChannels(), 
+//   				epsilon * 0.5 + epsilon * 0.5 * rand() / RAND_MAX);
+//   		}
+//   		w[i]->toGpu();
+//   	}
 }
 
 void ConvCFM::initFromCheckpoint(FILE* file)
@@ -601,7 +574,6 @@ __global__ void g_ConvCFM_feedforward_1(
 	double** arrayW,
 	double** arrayB,
 	double* conv,
-	double* a,
 	int inputSize,
 	int kernelSize,
 	int padding,
@@ -645,7 +617,7 @@ __global__ void g_ConvCFM_feedforward_1(
 						val += curInput[xx * inputSize + yy] * w[i * kernelSize + j];
 				}
 			}
-			curConv[idx] = a[k + c * k1Amount] * (val + b);
+			curConv[idx] = val + b;
 		}
 	}
 }
@@ -663,7 +635,6 @@ __global__ void g_ConvCFM_feedforward_2(
 	double** arrayW,
 	double** arrayB,
 	double* conv2,
-	double* a,
 	int pool1Size,
 	int kernelSize,
 	int padding,
@@ -710,7 +681,7 @@ __global__ void g_ConvCFM_feedforward_2(
 						int xx = x + i - padding;
 						int yy = y + j - padding;
 						if(xx>= 0 && xx < pool1Size && yy >= 0 && yy < pool1Size){
-							val += a[k2 * numOfCFM + k1 + c * k2Amount * numOfCFM] * pl1[xx * pool1Size + yy] * w[i * kernelSize + j];
+							val += pl1[xx * pool1Size + yy] * w[i * kernelSize + j];
 						}
 					}
 				}
@@ -729,7 +700,6 @@ __global__ void g_ConvCFM_backpropagation(
 	double* _convDelta,
 	double**_w,
 	double* _poolDelta,
-	double* a,
 	int     _convOutputSize,
 	int     _poolOutputSize,
 	int     _kernelAmount1,
@@ -781,7 +751,7 @@ __global__ void g_ConvCFM_backpropagation(
 					}
 				}
 			}
-			atomicAdd(nxtDelta + idx, val * a[k2 * numOfCFM + k1 + c * _kernelAmount2 * numOfCFM]);
+			atomicAdd(nxtDelta + idx, val);
 		}
 	}
 }

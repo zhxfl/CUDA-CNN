@@ -33,8 +33,11 @@ public:
 private:
 	cuMatrix<double>* inputs;
 	cuMatrix<double>* outputs;
+	cuMatrix<double>* inputs_format;//convert inputs(batch, size, channel) to (batch, size * channel)
 	cuMatrix<double>* curDelta;
 	cuMatrix<double>* preDelta;
+	cuMatrix<double>* preDelta_format;
+
 
 	cuMatrix<double>* w;
 	cuMatrix<double>* wgrad;

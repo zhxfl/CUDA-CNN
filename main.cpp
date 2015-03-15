@@ -164,8 +164,6 @@ void runCifar100(){
 	if(cmd == 2)
 		cuReadConvNet(ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
-
-
 	/*learning rate*/
 	std::vector<double>nlrate;
 	std::vector<double>nMomentum;
@@ -198,7 +196,7 @@ void runCifar10()
 	cuMatrixVector<double>testX;
 	cuMatrix<int>* trainY, *testY;
 
-	Config::instance()->initPath("Config/Cifar10Config.txt");
+	Config::instance()->initPath("Config/Cifar10Config1.txt");
 	read_CIFAR10_Data(trainX, testX, trainY, testY);
 	preProcessing(trainX, testX);
 
@@ -225,8 +223,6 @@ void runCifar10()
 
 	if(cmd == 2)
 		cuReadConvNet(ImgSize - crop, "Result/checkPoint.txt", nclasses);
-
-	
 	
 	/*learning rate*/
 	std::vector<double>nlrate;
@@ -235,7 +231,7 @@ void runCifar10()
 	double r = 0.05;
 	double m = 0.9;
 	int e = 10;
-	for(int i = 0; i < 100; i++){
+	for(int i = 0; i < 80; i++){
 		nlrate.push_back(r);
 		nMomentum.push_back(m);
 		epoCount.push_back(e);
@@ -275,7 +271,8 @@ void runMnist(){
 	Config::instance()->initPath("Config/MnistConfig.txt");
  	readMnistData(trainX, trainY, "mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", 60000, 1);
  	readMnistData(testX , testY,  "mnist/t10k-images.idx3-ubyte",  "mnist/t10k-labels.idx1-ubyte",  10000, 1);
-
+	MemoryMonitor::instance()->printCpuMemory();
+	MemoryMonitor::instance()->printGpuMemory();
  	/*build CNN net*/
  	int ImgSize = trainX[0]->rows;
 	Config::instance()->setImageSize(ImgSize - Config::instance()->getCrop());

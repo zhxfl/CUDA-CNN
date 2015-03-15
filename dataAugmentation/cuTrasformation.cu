@@ -57,7 +57,7 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 		exit(0);
 	}
 	g_createGaussianKernel<<<dim3(1),dim3(GAUSSIAN_FIELD_SIZE * GAUSSIAN_FIELD_SIZE)>>>(
-		cuGaussianKernel->devData,
+		cuGaussianKernel->getDev(),
 		dElasticSigma,
 		ImgSize);
 	cudaDeviceSynchronize();
@@ -391,8 +391,8 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 
 
 	int threads = min(512, ImgSize * ImgSize);
-	g_generateDistortionMap<<<dim3(batch),threads>>>(cuDispH->devData,
-		cuDispV->devData, cu_d_randomNum, cuGaussianKernel->devData,
+	g_generateDistortionMap<<<dim3(batch),threads>>>(cuDispH->getDev(),
+		cuDispV->getDev(), cu_d_randomNum, cuGaussianKernel->getDev(),
 		Config::instance()->getDistortion(),
 		Config::instance()->getScale(),
 		Config::instance()->getRotation(), ImgSize);
@@ -406,8 +406,8 @@ void cuApplyScaleAndRotate(int batch,
 		double rotation)
 {
 	g_scaleAndRotate<<<dim3(batch),dim3(512)>>>(
-			cuDispH->devData,
-			cuDispV->devData,
+			cuDispH->getDev(),
+			cuDispV->getDev(),
 			scaling,
 			rotation,
 			ImgSize);
@@ -422,8 +422,8 @@ void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize)
 	g_applyDistortionMap<<<dim3(batch, Config::instance()->getChannels()),
 		dim3(threadidx)>>>(inputs,
 		outputs, 
-		cuDispH->devData,
-		cuDispV->devData,
+		cuDispH->getDev(),
+		cuDispV->getDev(),
 		ImgSize);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_applyDistortionMap");
@@ -558,12 +558,12 @@ __global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* ran
 			{
 				if(rand[blockIdx.x] <= 0.0){
 					cuAssert(ix < ImgSize && iy < ImgSize);
-					swap(output[ox * ImgSize + iy], input[ix * ImgSize + iy]);
+					swap(output[ox * ImgSize + oy], input[ix * ImgSize + iy]);
 				}
 			}
 			else if(flag == HORIZONTAL){
 				cuAssert(ix < ImgSize && iy < ImgSize);
-				swap(output[ox * ImgSize + iy], input[ix * ImgSize + iy]);
+				swap(output[ox * ImgSize + oy], input[ix * ImgSize + iy]);
 			}
 			else if(flag == NOT_HORIZONTAL){
 			}

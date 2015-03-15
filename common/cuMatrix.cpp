@@ -20,8 +20,16 @@ cublasHandle_t& getHandle()
 }
 /*matrix multiply*/
 /*z = x * y*/
-void matrixMul(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z)
+void matrixMul(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 {
+	if(x->channels != 1 || y->channels != 1 || z->channels != 1){
+		printf("matrix mul chanels != 1\n");
+		exit(0);
+	}
+	if(x->cols != y->rows || z->rows != x->rows || z->cols != y->cols){
+		printf("matrix mul chanels != 1\n");
+		exit(0);
+	}
 	double alpha = 1.0;
 	double beta = 0.0;
 	cublasStatus_t stat;
@@ -33,26 +41,34 @@ void matrixMul(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<dou
 		x->rows,
 		y->rows,
 		&alpha,
-		y->devData,
+		y->getDev(),
 		y->cols,
-		x->devData,
+		x->getDev(),
 		x->cols,
 		&beta,
-		z->devData,
+		z->getDev(),
 		z->cols);
 	cudaDeviceSynchronize();
 	if(stat != CUBLAS_STATUS_SUCCESS) {
 		printf("matrixMul cublasSgemm error\n");
-		cudaFree(x->devData);
-		cudaFree(y->devData);
-		cudaFree(z->devData);
+		cudaFree(x->getDev());
+		cudaFree(y->getDev());
+		cudaFree(z->getDev());
 		exit(0);
 	}
 }
 
 /*z = T(x) * y*/
-void matrixMulTA(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z)
+void matrixMulTA(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 {
+	if(x->channels != 1 || y->channels != 1 || z->channels != 1){
+		printf("matrix mul chanels != 1\n");
+	}
+
+	if(x->rows != y->rows || z->rows != x->cols || z->cols != y->cols){
+		printf("matrix mul chanels != 1\n");
+		exit(0);
+	}
 	cublasStatus_t stat;
 	double alpha = 1.0;
 	double beta = 0.0;
@@ -64,26 +80,31 @@ void matrixMulTA(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<d
 		x->cols,
 		y->rows,
 		&alpha,
-		y->devData,
+		y->getDev(),
 		y->cols,
-		x->devData,
+		x->getDev(),
 		x->cols,
 		&beta,
-		z->devData,
+		z->getDev(),
 		z->cols);
 	cudaDeviceSynchronize();
 	if(stat != CUBLAS_STATUS_SUCCESS) {
 		printf("matrixMulTA cublasSgemm error\n");
-		cudaFree(x->devData);
-		cudaFree(y->devData);
-		cudaFree(z->devData);
 		exit(0);
 	}
 }
 
 /*z = x * T(y)*/
-void matrixMulTB(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<double>*z)
+void matrixMulTB(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 {
+	if(x->channels != 1 || y->channels != 1 || z->channels != 1){
+		printf("matrix mul chanels != 1\n");
+		exit(0);
+	}
+	if(x->cols != y->cols || z->rows != x->rows || z->cols != y->rows){
+		printf("matrix mul chanels != 1\n");
+		exit(0);
+	}
 	cublasStatus_t stat;
 	double alpha = 1.0;
 	double beta = 0.0;
@@ -95,19 +116,16 @@ void matrixMulTB(const cuMatrix<double>* x, const cuMatrix<double>*y, cuMatrix<d
 		x->rows,
 		y->cols,
 		&alpha,
-		y->devData,
+		y->getDev(),
 		y->cols,
-		x->devData,
+		x->getDev(),
 		x->cols,
 		&beta,
-		z->devData,
+		z->getDev(),
 		z->cols);
 	cudaDeviceSynchronize();
 	if(stat != CUBLAS_STATUS_SUCCESS) {
 		printf("matrixMulTB cublasSgemm error\n");
-		cudaFree(x->devData);
-		cudaFree(y->devData);
-		cudaFree(z->devData);
 		exit(0);
 	}
 }

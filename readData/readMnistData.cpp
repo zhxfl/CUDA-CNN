@@ -86,7 +86,7 @@ int read_Mnist(std::string filename,
 				id++;
 			}
 		}
-		vec.toGpu();
+		//vec.toGpu();
 		return vec.size();
 }
 

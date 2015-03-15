@@ -38,10 +38,10 @@ void Pooling::feedforward()
 	dim3 thread= dim3(512);
 	
 	g_feedforward<<<block, thread>>>(
-		inputs->devData,
-		outputs->devData,
-		pointX->devData,
-		pointY->devData,
+		inputs->getDev(),
+		outputs->getDev(),
+		pointX->getDev(),
+		pointY->getDev(),
 		inputDim,
 		outputDim,
 		skip,
@@ -52,20 +52,42 @@ void Pooling::feedforward()
 		amount);
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("pooling feedforward");
+
+	if(NON_LINEARITY >= 0){
+		dim3 thread = dim3(min(256, outputs->getLen()));
+		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
+		g_nonLinearity<<<block, thread>>>(
+			outputs->getDev(), 
+			outputs->getLen(),
+			NON_LINEARITY);
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("convNCFM::g_nonLinearity");
+	}
+
 }
 
 void Pooling::backpropagation()
 {
+	if(NON_LINEARITY >= 0){
+		dim3 thread = dim3(min(256, outputs->getLen()));
+		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
+
+		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
+			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
+
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("ConvNCFM::g_dnonLinearity");
+	}
 	preDelta->gpuClear();
 
 	int curDeltalen = curDelta->getLen();
 	dim3 block = dim3(std::min(512, (curDeltalen + 511) / 512));
 	dim3 thread= dim3(512);
 
-	g_backpropagation<<<block, thread>>>(pointX->devData,
-		pointY->devData,
-		curDelta->devData,
-		preDelta->devData,
+	g_backpropagation<<<block, thread>>>(pointX->getDev(),
+		pointY->getDev(),
+		curDelta->getDev(),
+		preDelta->getDev(),
 		outputDim,
 		inputDim,
 		curDeltalen);
@@ -93,6 +115,7 @@ Pooling::Pooling(std::string name)
 	amount = preLayer->outputAmount;
 	inputAmount = amount;
 	outputAmount = amount;
+	NON_LINEARITY = config->m_nonLinearity;
 	
 	batch= Config::instance()->getBatchSize();
 	

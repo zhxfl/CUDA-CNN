@@ -157,7 +157,7 @@ __global__ void g_ConvNCFM_Bgrad_1(double* delta,
 
 void ConvNCFM::getCost(cuMatrix<double>*cost, int* y)
 {
-	g_getCost_3<<<dim3(amount), dim3(32), sizeof(double) * 32>>>(cost->devData, 
+	g_getCost_3<<<dim3(amount), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
 		w.m_devPoint, 
 		lambda,
 		kernelSize, 
@@ -179,7 +179,7 @@ void ConvNCFM::feedforward()
 		g_ConvNCFM_feedforward_1<<<block, thread>>>(inputs_1->m_devPoint,
 			w.m_devPoint, 
 			b.m_devPoint,
-			outputs->devData,
+			outputs->getDev(),
 			inputDim,
 			kernelSize,
 			padding,
@@ -193,10 +193,10 @@ void ConvNCFM::feedforward()
 	else if(inputs_2){
 		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
 		dim3 thread= dim3(min(outputDim * outputDim, 512));
-		g_ConvNCFM_feedforward_2<<<block, thread>>>(inputs_2->devData,
+		g_ConvNCFM_feedforward_2<<<block, thread>>>(inputs_2->getDev(),
 			w.m_devPoint,
 			b.m_devPoint,
-			outputs->devData,
+			outputs->getDev(),
 			inputDim,
 			kernelSize,
 			padding,
@@ -219,7 +219,7 @@ void ConvNCFM::feedforward()
 		dim3 thread = dim3(min(256, outputs->getLen()));
 		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
 		g_nonLinearity<<<block, thread>>>(
-			outputs->devData, 
+			outputs->getDev(), 
 			outputs->getLen(),
 			NON_LINEARITY);
 		checkCudaErrors(cudaDeviceSynchronize());
@@ -239,8 +239,8 @@ void ConvNCFM::backpropagation()
 		dim3 thread = dim3(min(256, outputs->getLen()));
 		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
 
-		g_dnonLinearity<<<block, thread>>>(curDelta->devData,
-			outputs->devData, curDelta->getLen(), Config::instance()->getNonLinearity());
+		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
+			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
 
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("ConvNCFM::g_dnonLinearity");
@@ -253,9 +253,9 @@ void ConvNCFM::backpropagation()
 		preDelta->gpuClear();
 
 		g_ConvNCFM_backpropagation<<<block, thread>>>(
-			curDelta->devData,
+			curDelta->getDev(),
 			w.m_devPoint,
-			preDelta->devData,
+			preDelta->getDev(),
 			outputDim,
 			inputDim,
 			inputAmount,
@@ -284,8 +284,8 @@ void ConvNCFM::getGrad()
 		dim3 thread= min(kernelSize * kernelSize, 512);
 		g_ConvNCFM_wgrad_1<<<block, thread>>>(
 			inputs_1->m_devPoint,
-			curDelta->devData,
-			wgradTmp->devData,
+			curDelta->getDev(),
+			wgradTmp->getDev(),
 			inputDim,
 			outputDim,
 			outputAmount,
@@ -303,7 +303,7 @@ void ConvNCFM::getGrad()
 		thread= dim3(256);
 		g_ConvNCFM_wgradAdd_1<<<block, thread,
 			sizeof(double) * 256>>>(
-			wgradTmp->devData,
+			wgradTmp->getDev(),
 			wgrad.m_devPoint,
 			w.m_devPoint,
 			outputAmount,
@@ -321,7 +321,7 @@ void ConvNCFM::getGrad()
 		block = dim3(amount, Config::instance()->getChannels());
 		thread= dim3(256);
 		g_ConvNCFM_Bgrad_1<<<block,thread,sizeof(double) * 256>>>
-			(curDelta->devData,
+			(curDelta->getDev(),
 			bgrad.m_devPoint,
 			outputDim,
 			outputAmount,
@@ -336,9 +336,9 @@ void ConvNCFM::getGrad()
 		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
 		dim3 thread= min(kernelSize * kernelSize, 512);
 
-		g_ConvNCFM_wgrad_2<<<block, thread>>>(inputs_2->devData,
-			curDelta->devData,
-			wgradTmp->devData,
+		g_ConvNCFM_wgrad_2<<<block, thread>>>(inputs_2->getDev(),
+			curDelta->getDev(),
+			wgradTmp->getDev(),
 			inputDim,
 			outputDim,
 			inputAmount,
@@ -356,7 +356,7 @@ void ConvNCFM::getGrad()
 
 		block = dim3(amount, kernelSize * kernelSize, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvNCFM_wgradAdd_2<<<block, thread, sizeof(double) * 256>>>(wgradTmp->devData,
+		g_ConvNCFM_wgradAdd_2<<<block, thread, sizeof(double) * 256>>>(wgradTmp->getDev(),
 			wgrad.m_devPoint,
 			w.m_devPoint,
 			inputAmount,
@@ -375,7 +375,7 @@ void ConvNCFM::getGrad()
 
 		block = dim3(amount, Config::instance()->getChannels());
 		thread= dim3(256);
-		g_ConvNCFM_Bgrad_2<<<block, thread, sizeof(double) * 256>>>(curDelta->devData,
+		g_ConvNCFM_Bgrad_2<<<block, thread, sizeof(double) * 256>>>(curDelta->getDev(),
 			bgrad.m_devPoint,
 			outputDim,
 			inputAmount,
@@ -424,7 +424,7 @@ ConvNCFM::ConvNCFM(std::string name)
 		outputDim = (inputDim - kernelSize + 1) + padding * 2;
 		batch     = Config::instance()->getBatchSize();
 		lambda    = config->m_weightDecay;
-		NON_LINEARITY = Config::instance()->getNonLinearity();
+		NON_LINEARITY = config->m_nonLinearity;
 
 		outputs  = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
 		curDelta = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
@@ -465,7 +465,7 @@ ConvNCFM::ConvNCFM(std::string name)
 		outputDim = (inputDim + 1 - kernelSize) + padding * 2;
 		batch     = Config::instance()->getBatchSize();
 		lambda    = config->m_weightDecay;
-		NON_LINEARITY = Config::instance()->getNonLinearity();
+		NON_LINEARITY = config->m_nonLinearity;
 
 		outputs = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
 
@@ -531,8 +531,30 @@ void ConvNCFM::initRandom()
 	srand(clock());
 	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
+
+	//  	for(int i = 0; i < w.size(); i++){
+	//  		initMatrix(w[i], initW);
+	//  	}
+// 	for(int i = 0; i < w.size(); i++){
+// 		for(int j = 0; j < w[i]->getLen(); j++){
+// 			w[i]->hostData[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+// 			printf("%lf ", w[i]->hostData[j]);
+// 		}printf("\n");
+// 		w[i]->toGpu();
+// 	}
+	srand(clock());
 	for(int i = 0; i < w.size(); i++){
-		initMatrix(w[i], initW);
+		double epsilon = 0.1;
+		for(int c = 0; c < Config::instance()->getChannels(); c++)
+		{
+			double r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+			double r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+			createGaussian(w[i]->getHost() + c * w[i]->getArea(), r1,r2,
+				kernelSize, kernelSize, 
+				Config::instance()->getChannels(), 
+				epsilon * 0.5 + epsilon * rand() / RAND_MAX);
+		}
+		w[i]->toGpu();
 	}
 }
 

@@ -38,6 +38,20 @@ __global__ void g_getCost_2(double* cost,
 __global__ void g_getCost_1(double* softMaxP,
 	double* groundTruth, double* cost, int*y, int rows, int cols, int batch);
 
+/*
+* function: cuMatrix(batch, size, channel) to cuMatrix(batch, size * channel, 1)
+* blocks  : dim3(batch)
+* threads : dim3(min(512, cuPool[poolidx]->cols))
+*/
+__global__ void g_convert(double* cuPool, double*cuPoolToFlActi, int batch, int size, int channel);
+
+/*
+function: g_preDeltaFormat
+threads : <<<dim3(batch), dim3(512)>>> 
+*/
+__global__ void g_preDeltaFormat(double* cuPoolFlDelta, 
+	double* cuPoolDelta, int batch, int size, int channels);
+
 #endif
 
 

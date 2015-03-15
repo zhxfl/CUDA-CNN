@@ -312,3 +312,47 @@ __global__ void g_getCost_2(double* cost,
 		cost[0] += _sum[0] * lambda * 0.5;
 	}
 }
+
+
+/*
+function: g_preDeltaFormat
+threads : <<<dim3(batch), dim3(512)>>> 
+*/
+__global__ void g_preDeltaFormat(double* cuPoolFlDelta, 
+	double* cuPoolDelta, int batch, int size, int channels)
+{
+	int b = blockIdx.x;
+	int len = size * channels;
+	for(int i = 0; i < len; i += blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < len)
+		{
+			int s = id / channels;
+			int c = id % channels;
+			cuPoolDelta[c * batch * size + b * size + s] = cuPoolFlDelta[b * size * channels + size * c + s];
+		}
+	}
+}
+
+
+/*
+* function: cuMatrix(batch, size, channel) to cuMatrix(batch, size * channel, 1)
+* blocks  : dim3(batch)
+* threads : dim3(min(512, cuPool[poolidx]->cols))
+*/
+__global__ void g_convert(double* cuPool, double*cuPoolToFlActi, int batch, int size, int channel)
+{
+	int b   = blockIdx.x;
+	int len = size * channel;
+	for(int i = 0; i < len; i+=blockDim.x)
+	{
+		int id = i + threadIdx.x;
+		if(id < len)
+		{
+			int s = id / channel;
+			int c = id % channel;
+			cuPoolToFlActi[b * size * channel + size * c + s] = cuPool[c * batch * size + b * size + s];
+		}
+	}
+}

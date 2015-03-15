@@ -64,8 +64,11 @@ double Config::get_word_double(string &str, string name){
 }
 
 string Config::get_word_type(string &str, string name){
-
 		size_t pos = str.find(name);    
+		if(pos == str.npos){
+			return "NULL";
+		}
+
 		int i = pos + 1;
 		int res = 0;
 		while(1){
@@ -116,9 +119,12 @@ void Config:: get_layers_config(string &str){
 			int pd = get_word_int(layers[i], "PADDING");
 			int cfm= get_word_int(layers[i], "COMBINE_FEATRUE_MAPS");
 			double initW = get_word_double(layers[i], "initW");
-
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-			layer = new ConfigConv(name, input, type, ks, pd, ka, wd, cfm, initW);
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			m_nonLinearity = new ConfigNonLinearity(non_linearity);
+
+			layer = new ConfigConv(name, input, type, ks, pd, ka, wd, cfm,
+				initW, m_nonLinearity->getValue());
 			m_conv.push_back((ConfigConv*)layer);
 			printf("\n\n********conv layer********\n");
 			printf("NAME          : %s\n", name.c_str());
@@ -128,19 +134,47 @@ void Config:: get_layers_config(string &str){
 			printf("PADDING       : %d\n", pd);
 			printf("WEIGHT_DECAY  : %lf\n", wd);
 			printf("initW         : %lf\n", initW);
+			printf("non_linearity : %s\n", non_linearity.c_str());
 		}
 		else if(type == string("POOLING"))
 		{
 			int size = get_word_int(layers[i], "SIZE");
 			int skip = get_word_int(layers[i], "SKIP");
-			layer = new ConfigPooling(name, input, type, size, skip);
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			m_nonLinearity = new ConfigNonLinearity(non_linearity);
+
+			layer = new ConfigPooling(name, input, type, size, skip, m_nonLinearity->getValue());
 
 			m_pooling.push_back((ConfigPooling*)layer);
 			printf("\n\n********pooling layer********\n");
 			printf("NAME          : %s\n", name.c_str());
 			printf("INPUT         : %s\n", input.c_str());
-			printf("size          : %d\n",  size);
+			printf("size          : %d\n", size);
 			printf("skip          : %d\n", skip);
+			printf("non_linearity : %s\n", non_linearity.c_str());
+		}
+		else if(string("LOCAL") == type){
+			int ks = get_word_int(layers[i], "KERNEL_SIZE");
+			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
+			int pd = get_word_int(layers[i], "PADDING");
+			int cfm= get_word_int(layers[i], "COMBINE_FEATRUE_MAPS");
+			double initW = get_word_double(layers[i], "initW");
+			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			m_nonLinearity = new ConfigNonLinearity(non_linearity);
+
+			layer = new ConfigConv(name, input, type, ks, pd, ka, wd, cfm,
+				initW, m_nonLinearity->getValue());
+			m_conv.push_back((ConfigConv*)layer);
+			printf("\n\n********local connect layer********\n");
+			printf("NAME          : %s\n", name.c_str());
+			printf("INPUT         : %s\n", input.c_str());
+			printf("KERNEL_SIZE   : %d\n", ks);
+			printf("KERNEL_AMOUNT : %d\n", ka);
+			printf("PADDING       : %d\n", pd);
+			printf("WEIGHT_DECAY  : %lf\n", wd);
+			printf("initW         : %lf\n", initW);
+			printf("non_linearity : %s\n", non_linearity.c_str());
 		}
 		else if(type == string("FC"))
 		{
@@ -148,8 +182,11 @@ void Config:: get_layers_config(string &str){
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
 			double drop = get_word_double(layers[i], "DROPCONNECT_RATE");
 			double initW= get_word_double(layers[i], "initW");
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigFC(name, input, type, hn, wd, drop, initW);
+			layer = new ConfigFC(name, input, type, hn, wd,
+				drop, initW, m_nonLinearity->getValue());
 			m_fc.push_back((ConfigFC*) layer);
 
 			printf("\n\n********Full Connect Layer********\n");
@@ -159,13 +196,17 @@ void Config:: get_layers_config(string &str){
 			printf("WEIGHT_DECAY            : %lf\n", wd);
 			printf("DROPCONNECT_RATE        : %lf\n", drop);
 			printf("initW                   : %lf\n", initW);
+			printf("non_linearity           : %s\n", non_linearity.c_str());
 		}
 		else if(type == string("SOFTMAX"))
 		{
 			int numClasses = get_word_int(layers[i], "NUM_CLASSES");
 			double weightDecay = get_word_double(layers[i], "WEIGHT_DECAY");
 			double initW= get_word_double(layers[i], "initW");
-			layer = new ConfigSoftMax(name, input, type, numClasses, weightDecay, initW);
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			m_nonLinearity = new ConfigNonLinearity(non_linearity);
+			layer = new ConfigSoftMax(name, input, type, numClasses, weightDecay, 
+				initW, m_nonLinearity->getValue());
 			m_softMax.push_back((ConfigSoftMax*)layer);
 
 			printf("\n\n********SoftMax Layer********\n");
@@ -174,6 +215,7 @@ void Config:: get_layers_config(string &str){
 			printf("NUM_CLASSES  : %d\n", numClasses);
 			printf("WEIGHT_DECAY : %lf\n", weightDecay);
 			printf("initW        : %lf\n", initW);
+			printf("non_linearity: %s\n", non_linearity.c_str());
 		}
 
 		insertLayerByName(name, layer);
@@ -205,11 +247,6 @@ void Config::init(std::string path)
 	int batch_size = get_word_int(m_configStr, "BATCH_SIZE");
 	m_batchSize = new ConfigBatchSize(batch_size);
 	printf("batch Size            : %d\n", batch_size);
-
-	/*NON_LINEARITY*/
-	string non_linearity = get_word_type(m_configStr, "NON_LINEARITY");
-	m_nonLinearity = new ConfigNonLinearity(non_linearity);
-	printf("non_linearity         : %s\n", non_linearity.c_str());
 
 	/*CHANNELS*/
 	int channels = get_word_int(m_configStr, "CHANNELS");
@@ -245,6 +282,11 @@ void Config::init(std::string path)
 	bool horizontal = get_word_bool(m_configStr, "HORIZONTAL");
 	m_horizontal = new ConfigHorizontal(horizontal);
 	printf("HORIZONTAL            : %d\n", horizontal);
+
+	/*Test Epoch*/
+	int test_epoch = get_word_int(m_configStr, "TEST_EPOCH");
+	m_test_epoch = new ConfigTestEpoch(test_epoch);
+	printf("Test_Epoch            : %d\n", test_epoch);
 
 	/*Layers*/
 	get_layers_config(m_configStr);

@@ -90,19 +90,19 @@ void
 	for (int imgId = 0; imgId < trainX.size(); imgId++) {
 		int len = trainX[0]->getLen();
 		for (int i = 0; i < len; i++) {
-			aver->hostData[i] += trainX[imgId]->hostData[i];
+			aver->getHost()[i] += trainX[imgId]->getHost()[i];
 		}
 	}
 
 	for(int i = 0; i < aver->getLen(); i++){
 		int len = trainX.size();
-		aver->hostData[i] /= len;
+		aver->getHost()[i] /= len;
 	}
 
 	for (int imgId = 0; imgId < trainX.size(); imgId++) {
 		int len = trainX[0]->getLen();
 		for (int i = 0; i < len; i++) {
-			 trainX[imgId]->hostData[i] -= aver->hostData[i];
+			 trainX[imgId]->getHost()[i] -= aver->getHost()[i];
 		}
 	}
 
@@ -112,19 +112,19 @@ void
 	for (int imgId = 0; imgId < testX.size(); imgId++) {
 		int len = testX[0]->getLen();
 		for (int i = 0; i < len; i++) {
-			aver->hostData[i] += testX[imgId]->hostData[i];
+			aver->getHost()[i] += testX[imgId]->getHost()[i];
 		}
 	}
 
 	for(int i = 0; i < aver->getLen(); i++){
 		int len = testX.size();
-		aver->hostData[i] /= len;
+		aver->getHost()[i] /= len;
 	}
 
 	for (int imgId = 0; imgId < testX.size(); imgId++) {
 		int len = testX[0]->getLen();
 		for (int i = 0; i < len; i++) {
-			testX[imgId]->hostData[i] -= aver->hostData[i];
+			testX[imgId]->getHost()[i] -= aver->getHost()[i];
 		}
 	}
 

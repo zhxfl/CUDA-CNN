@@ -59,7 +59,7 @@ void read_CIFAR10_Data(cuMatrixVector<double> &trainX,
 		string name = filename + string(str) + ".bin";
 		read_batch(name, trainX, trainY);
 	}
-	trainX.toGpu();
+	//trainX.toGpu();
 	trainY->toGpu();
 
 	/*read the test data and test labels*/
@@ -67,6 +67,6 @@ void read_CIFAR10_Data(cuMatrixVector<double> &trainX,
 	filename = "cifar-10-batches-bin/test_batch.bin";
 	testY = new cuMatrix<int>(10000, 1, 1);
 	read_batch(filename, testX,testY);
-	testX.toGpu();
+	//testX.toGpu();
 	testY->toGpu();
 }

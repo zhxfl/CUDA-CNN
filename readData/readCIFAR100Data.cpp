@@ -54,13 +54,13 @@ void read_CIFAR100_Data(cuMatrixVector<double> &trainX,
 	trainY = new cuMatrix<int>(50000, 1, 1);
 	read_batch(filename, trainX, trainY, 50000);
 	
-	trainX.toGpu();
+	//trainX.toGpu();
 	trainY->toGpu();
 
 	/*read the test data and test labels*/
 	filename = "cifar-100-binary/test.bin";
 	testY = new cuMatrix<int>(10000, 1, 1);
 	read_batch(filename, testX, testY, 10000);
-	testX.toGpu();
+	//testX.toGpu();
 	testY->toGpu();
 }

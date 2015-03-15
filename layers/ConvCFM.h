@@ -73,7 +73,6 @@ private:
 	cuMatrixVector<double> momentum_w;
 	cuMatrixVector<double> momentum_b;
 	cuMatrix<double>* wgradTmp;
-	cuMatrix<double>* a;
 };
 
 #endif 

@@ -18,6 +18,7 @@ KERNEL_SIZE = 5;
 KERNEL_AMOUNT = 10;
 WEIGHT_DECAY = 4e-4;
 POOLING_DIM = 2;
+initW = 5;
 ]
 
 [
@@ -26,6 +27,7 @@ KERNEL_SIZE = 5;
 KERNEL_AMOUNT = 20;
 WEIGHT_DECAY = 4e-4;
 POOLING_DIM = 2;
+initW = 5;
 ]
 
 [

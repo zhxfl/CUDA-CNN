@@ -147,10 +147,10 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 			//val = val * 2.0 - 0.5;
 			//val = val * epsilon;
 			gaussian[row * cols + col] = val;
-			printf("%lf ", val);
-		}printf("\n");
+			//printf("%lf ", val);
+		}//printf("\n");
 	}
-	printf("\n\n");
+	//printf("\n\n");
 }
 
 
