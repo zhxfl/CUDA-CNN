@@ -6,7 +6,7 @@
 >1.  The c version from Eric <a href="http://eric-yuan.me/cnn/"> Eric </a>   
 >2.  <a href="http://zhxfl.github.io/cuda-cnn_cuda-stream"> Overlap Data Transfers in CUDA </a>   
 >
->Functions
+>Results
 >--------
 >CNN accelerated by cuda.   
 >The <a href="http://rodrigob.github.io/are_we_there_yet/build/classification_datasets_results.html"> start-of-art result's</a> of popular datasets    
@@ -19,11 +19,13 @@
 >--------
 >1. Use ***DropConnnect*** to train the NetWork
 >2. Support checkpoint, the program will save the best test result and save the network weight in the file "Result/checkPoint.txt", If the program exit accidentally, you can continue the program form this checkpoint.
->3. Translate the data set of mnist, including scale, rotate, ***distortion***.
+>3. Translate the data set of mnist, including scale, rotate, ***distortion***,
+ accordding to <a href="http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=D1C7D701BD39935473808DA5A93426C5?doi=10.1.1.160.8494&rep=rep1&type=pdf">Best Practices for Convolutional Neural Networks Applied to Visual Document Analysis</a>.
 >4. The log will be saved in the file "Result/log.txt".  
->5. In the convolutional layers, you can chose ***combine feature maps***, according to "notes on Convolutional Neural NetWorks"
->
-
+>5. In the convolutional layers, you can chose ***combine feature maps***, according to <a href="http://cogprints.org/5869/1/cnn_tutorial.pdf">notes on Convolutional Neural NetWorks</a>.      
+>6. Support <a href="http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks">local connection layers</a>.
+The demo Configure file <a href="https://github.com/zhxfl/CUDA-CNN/blob/master/Config/Cifar10Config1.txt">Cifar10</a> is very small but can get 79.9%.      
+>7. If you want the program run fast, you can set the "TEST_EPOCH" to be large.    
 ***
 
 >Compile
