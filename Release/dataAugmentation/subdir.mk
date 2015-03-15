@@ -20,8 +20,8 @@ OBJS += \
 dataAugmentation/%.o: ../dataAugmentation/%.cu
 	@echo 'Building file: $<'
 	@echo 'Invoking: NVCC Compiler'
-	/usr/local/cuda-6.5/bin/nvcc -I/home/zhxfl/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 -gencode arch=compute_50,code=sm_50  -odir "dataAugmentation" -M -o "$(@:%.o=%.d)" "$<"
-	/usr/local/cuda-6.5/bin/nvcc -I/home/zhxfl/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 --compile --relocatable-device-code=false -gencode arch=compute_50,code=compute_50 -gencode arch=compute_50,code=sm_50  -x cu -o  "$@" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 -gencode arch=compute_35,code=sm_35  -odir "dataAugmentation" -M -o "$(@:%.o=%.d)" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 --compile --relocatable-device-code=true -gencode arch=compute_35,code=compute_35 -gencode arch=compute_35,code=sm_35  -x cu -o  "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

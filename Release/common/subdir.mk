@@ -10,9 +10,16 @@ CPP_SRCS += \
 ../common/cuMatrixVector.cpp \
 ../common/util.cpp 
 
+CU_SRCS += \
+../common/cuBase.cu 
+
+CU_DEPS += \
+./common/cuBase.d 
+
 OBJS += \
 ./common/Config.o \
 ./common/MemoryMonitor.o \
+./common/cuBase.o \
 ./common/cuMatrix.o \
 ./common/cuMatrixVector.o \
 ./common/util.o 
@@ -29,8 +36,16 @@ CPP_DEPS += \
 common/%.o: ../common/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: NVCC Compiler'
-	/usr/local/cuda-6.5/bin/nvcc -I/home/zhxfl/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 -gencode arch=compute_50,code=sm_50  -odir "common" -M -o "$(@:%.o=%.d)" "$<"
-	/usr/local/cuda-6.5/bin/nvcc -I/home/zhxfl/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 --compile  -x c++ -o  "$@" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 -gencode arch=compute_35,code=sm_35  -odir "common" -M -o "$(@:%.o=%.d)" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 --compile  -x c++ -o  "$@" "$<"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+common/%.o: ../common/%.cu
+	@echo 'Building file: $<'
+	@echo 'Invoking: NVCC Compiler'
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 -gencode arch=compute_35,code=sm_35  -odir "common" -M -o "$(@:%.o=%.d)" "$<"
+	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 --compile --relocatable-device-code=true -gencode arch=compute_35,code=compute_35 -gencode arch=compute_35,code=sm_35  -x cu -o  "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
