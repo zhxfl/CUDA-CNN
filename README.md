@@ -11,7 +11,7 @@
 >CNN accelerated by cuda.   
 >The <a href="http://rodrigob.github.io/are_we_there_yet/build/classification_datasets_results.html"> start-of-art result's</a> of popular datasets    
 >1. Test on <a href="http://yann.lecun.com/exdb/mnist/"> mnist</a> and get 99.76%, after voting(99.82%) (best 99.79%)   
->2. Test on cifar-10  and get 81.38%   (best 90%)   
+>2. Test on cifar-10  and get 81.42%   (best 90%)   
 >3. Test on cifar-100 and get 51.13%   (best 65%)   
 ***
 
