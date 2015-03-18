@@ -18,6 +18,8 @@
 #include "layers/SoftMax.h"
 #include "layers/LayerBase.h"
 #include "layers/LocalConnect.h"
+#include "layers/LRN.h"
+
 #include <queue>
 
 cuMatrixVector<double>* cu_distortion_vector;
@@ -107,6 +109,9 @@ void cuInitCNNMemory(
 			new FullConnect(top->m_name);
 		}else if(top->m_type == std::string("SOFTMAX")){
 			new SoftMax(top->m_name);
+		}
+		else if(std::string("LRN") == top->m_type){
+			new LRN(top->m_name);
 		}
 		for(int n = 0; n < top->m_next.size(); n++){
 			qqq.push(top->m_next[n]);
@@ -522,8 +527,6 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			if(start + batch <= x.size() - batch)
 				getBatchImageWithStreams(x, batchImg[batchImgId], start + batch, stream1);
 			batchImgId = 1 - batchImgId;
-			//showImg(batchImg[batchImgId][batchImgId], 10);
-			//cv::waitKey(0);
 			
 			cuApplyCropRandom(batchImg[batchImgId].m_devPoint,
 				cu_distortion_vector->m_devPoint, batch, ImgSize);
@@ -535,10 +538,14 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 				cuApplyHorizontal(cu_distortion_vector->m_devPoint,
 					cu_distortion_vector->m_devPoint, batch, ImgSize, RANDOM_HORIZONTAL);
 			}
+			
+			cuApplyWhiteNoise(cu_distortion_vector->m_devPoint,
+				cu_distortion_vector->m_devPoint, batch, ImgSize, Config::instance()->getWhiteNoise());
+
 			if (Config::instance()->getImageShow()) {
 				for (int ff = batch - 1; ff >= 0; ff--) {
-					showImg(batchImg[batchImgId][ff], 10);
-					showImg(cu_distortion_vector->m_vec[ff], 10);
+					showImg(batchImg[batchImgId][ff], 1);
+					showImg(cu_distortion_vector->m_vec[ff], 1);
 					cv::waitKey(0);
 				}
 			}
@@ -636,3 +643,5 @@ int cuVoteAdd(cuMatrix<int>*& voteSum,
 	correct->toCpu();
 	return correct->get(0, 0, 0);
 }
+
+

@@ -46,13 +46,19 @@ private:
 class ConfigScale
 {
 public:
-	ConfigScale(double scale)
-	{
-		m_scale = scale;
-	}
+	ConfigScale(double scale):m_scale(scale){}
 	double getValue(){return m_scale;}
 private:
 	double m_scale;
+};
+
+class ConfigWhiteNoise
+{
+public:
+	ConfigWhiteNoise(double stdev):m_stdev(stdev){}
+	double getValue(){return m_stdev;}
+private:
+	double m_stdev;
 };
 
 class ConfigTestEpoch
@@ -66,7 +72,6 @@ public:
 private:
 	int m_testEpoch;
 };
-
 
 class ConfigRotation
 {
@@ -156,6 +161,26 @@ public:
 	std::string m_type;
 	double m_initW;
 	int m_nonLinearity; 
+};
+
+class ConfigLRN : public ConfigBase{
+public:
+	ConfigLRN(std::string name, 
+		std::string input,
+		std::string type,
+		double k, int n, 
+		double alpha, double belta, 
+		int nonLinearity):
+	  m_k(k), m_n(n), m_alpha(alpha), m_belta(belta){
+		  m_nonLinearity = nonLinearity;
+		  m_name  = name;
+		  m_input = input; 
+		  m_type = type;
+	  }
+	double m_k;
+	double m_alpha;
+	double m_belta;
+	int m_n;
 };
 
 class ConfigConv : public ConfigBase
@@ -407,6 +432,9 @@ public:
 		return m_test_epoch->getValue();
 	}
 
+	double getWhiteNoise(){
+		return m_white_noise->getValue();
+	}
 private:
 	void deleteComment();
 	void deleteSpace();
@@ -440,7 +468,7 @@ private:
 	ConfigImageShow          *m_imageShow;
 	ConfigHorizontal         *m_horizontal;
 	ConfigTestEpoch          *m_test_epoch;
-
+	ConfigWhiteNoise         *m_white_noise;
 	double momentum;
 	double lrate;
 	int m_imageSize;

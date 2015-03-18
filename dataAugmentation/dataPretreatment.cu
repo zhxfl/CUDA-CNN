@@ -85,7 +85,7 @@ void
 	int n_cols     = trainX[0]->cols;
 	int n_channels = trainX[0]->channels;
 
-	cuMatrix<double>* aver = new cuMatrix<double>(n_rows, n_cols, n_channels);
+	std::auto_ptr<cuMatrix<double> > aver(new cuMatrix<double>(n_rows, n_cols, n_channels));
 
 	for (int imgId = 0; imgId < trainX.size(); imgId++) {
 		int len = trainX[0]->getLen();
@@ -127,6 +127,4 @@ void
 			testX[imgId]->getHost()[i] -= aver->getHost()[i];
 		}
 	}
-
-	delete aver;
 }

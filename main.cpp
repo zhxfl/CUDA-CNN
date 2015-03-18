@@ -196,7 +196,7 @@ void runCifar10()
 	cuMatrixVector<double>testX;
 	cuMatrix<int>* trainY, *testY;
 
-	Config::instance()->initPath("Config/Cifar10Config1.txt");
+	Config::instance()->initPath("Config/Cifar10Config2.txt");
 	read_CIFAR10_Data(trainX, testX, trainY, testY);
 	preProcessing(trainX, testX);
 
@@ -230,14 +230,14 @@ void runCifar10()
 	std::vector<int>epoCount;
 	double r = 0.05;
 	double m = 0.9;
-	int e = 10;
-	for(int i = 0; i < 80; i++){
+	int e = 25;
+	for(int i = 0; i < 40; i++){
 		nlrate.push_back(r);
 		nMomentum.push_back(m);
 		epoCount.push_back(e);
 		r = r * 0.90;
-		m = m + 0.001;
-		if(m >= 1.0) break;
+		//m = m + 0.001;
+		//if(m >= 1.0) break;
 	}
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);

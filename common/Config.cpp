@@ -176,6 +176,26 @@ void Config:: get_layers_config(string &str){
 			printf("initW         : %lf\n", initW);
 			printf("non_linearity : %s\n", non_linearity.c_str());
 		}
+		else if(string("LRN") == type){
+			double lrn_k     = get_word_double(layers[i], "LRN_K");
+			int    lrn_n     = get_word_int(layers[i], "LRN_N");
+			double lrn_alpha = get_word_double(layers[i], "LRN_ALPHA");
+			double lrn_belta = get_word_double(layers[i], "LRN_BALTA");
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			m_nonLinearity = new ConfigNonLinearity(non_linearity);
+
+			layer = new ConfigLRN(name, input, type, lrn_k, lrn_n, lrn_alpha, lrn_belta, 
+				m_nonLinearity->getValue());
+
+			printf("\n\n********local Response Normalization layer********\n");
+			printf("NAME          : %s\n", name.c_str());
+			printf("INPUT         : %s\n", input.c_str());
+			printf("lrn_k         : %lf\n", lrn_k);
+			printf("lrn_n         : %d\n",  lrn_n);
+			printf("lrn_alpha     : %lf\n", lrn_alpha);
+			printf("lrn_belta     : %lf\n", lrn_belta);
+			printf("non_linearity : %s\n", non_linearity.c_str());
+		}
 		else if(type == string("FC"))
 		{
 			int hn = get_word_int(layers[i], "NUM_FULLCONNECT_NEURONS");
@@ -288,6 +308,11 @@ void Config::init(std::string path)
 	m_test_epoch = new ConfigTestEpoch(test_epoch);
 	printf("Test_Epoch            : %d\n", test_epoch);
 
+	/*WHITE_NOISE*/
+	double stdev = get_word_double(m_configStr, "WHITE_NOISE");
+	m_white_noise = new ConfigWhiteNoise(stdev);
+	printf("White Noise           : %d\n", stdev);
+	
 	/*Layers*/
 	get_layers_config(m_configStr);
 	printf("\n\n\n");

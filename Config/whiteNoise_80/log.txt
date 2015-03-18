@@ -1,0 +1,700 @@
+epoch=0 time=81.376s cost=1.516791 Momentum=0.900000 lrate=0.05000000
+correct 53.820000%/53.820000%
+epoch=1 time=81.306s cost=1.307370 Momentum=0.900000 lrate=0.05000000
+epoch=2 time=80.961s cost=1.171225 Momentum=0.900000 lrate=0.05000000
+epoch=3 time=81.180s cost=1.069882 Momentum=0.900000 lrate=0.05000000
+epoch=4 time=81.637s cost=0.996121 Momentum=0.900000 lrate=0.05000000
+epoch=5 time=81.069s cost=1.038553 Momentum=0.900000 lrate=0.05000000
+correct 66.810000%/66.810000%
+epoch=6 time=81.671s cost=0.973920 Momentum=0.900000 lrate=0.05000000
+epoch=7 time=81.252s cost=0.917016 Momentum=0.900000 lrate=0.05000000
+epoch=8 time=81.575s cost=0.810777 Momentum=0.900000 lrate=0.05000000
+epoch=9 time=81.260s cost=0.915140 Momentum=0.900000 lrate=0.05000000
+epoch=10 time=80.958s cost=0.766426 Momentum=0.900000 lrate=0.05000000
+correct 71.050000%/71.050000%
+epoch=11 time=80.804s cost=0.844783 Momentum=0.901000 lrate=0.04500000
+epoch=12 time=80.991s cost=0.841120 Momentum=0.901000 lrate=0.04500000
+epoch=13 time=80.776s cost=0.853349 Momentum=0.901000 lrate=0.04500000
+epoch=14 time=80.952s cost=0.879432 Momentum=0.901000 lrate=0.04500000
+epoch=15 time=80.783s cost=0.766210 Momentum=0.901000 lrate=0.04500000
+correct 71.470000%/71.470000%
+epoch=16 time=80.980s cost=0.765586 Momentum=0.901000 lrate=0.04500000
+epoch=17 time=80.831s cost=0.743864 Momentum=0.901000 lrate=0.04500000
+epoch=18 time=80.993s cost=0.796231 Momentum=0.901000 lrate=0.04500000
+epoch=19 time=80.830s cost=0.692014 Momentum=0.901000 lrate=0.04500000
+epoch=20 time=80.854s cost=0.766115 Momentum=0.901000 lrate=0.04500000
+correct 73.590000%/73.590000%
+epoch=21 time=80.686s cost=0.716623 Momentum=0.902000 lrate=0.04050000
+epoch=22 time=80.879s cost=0.694653 Momentum=0.902000 lrate=0.04050000
+epoch=23 time=80.713s cost=0.736342 Momentum=0.902000 lrate=0.04050000
+epoch=24 time=80.867s cost=0.802056 Momentum=0.902000 lrate=0.04050000
+epoch=25 time=80.677s cost=0.806363 Momentum=0.902000 lrate=0.04050000
+correct 74.680000%/74.680000%
+epoch=26 time=80.887s cost=0.586969 Momentum=0.902000 lrate=0.04050000
+epoch=27 time=80.716s cost=0.718947 Momentum=0.902000 lrate=0.04050000
+epoch=28 time=80.873s cost=0.674164 Momentum=0.902000 lrate=0.04050000
+epoch=29 time=80.670s cost=0.668448 Momentum=0.902000 lrate=0.04050000
+epoch=30 time=80.841s cost=0.542247 Momentum=0.902000 lrate=0.04050000
+correct 75.510000%/75.510000%
+epoch=31 time=80.715s cost=0.607561 Momentum=0.903000 lrate=0.03645000
+epoch=32 time=80.887s cost=0.633844 Momentum=0.903000 lrate=0.03645000
+epoch=33 time=80.675s cost=0.552717 Momentum=0.903000 lrate=0.03645000
+epoch=34 time=80.843s cost=0.623387 Momentum=0.903000 lrate=0.03645000
+epoch=35 time=80.671s cost=0.541786 Momentum=0.903000 lrate=0.03645000
+correct 76.130000%/76.130000%
+epoch=36 time=80.885s cost=0.523620 Momentum=0.903000 lrate=0.03645000
+epoch=37 time=80.677s cost=0.569629 Momentum=0.903000 lrate=0.03645000
+epoch=38 time=80.898s cost=0.540061 Momentum=0.903000 lrate=0.03645000
+epoch=39 time=80.666s cost=0.657306 Momentum=0.903000 lrate=0.03645000
+epoch=40 time=80.865s cost=0.591747 Momentum=0.903000 lrate=0.03645000
+correct 75.630000%/76.130000%
+epoch=41 time=80.709s cost=0.645169 Momentum=0.904000 lrate=0.03280500
+epoch=42 time=80.885s cost=0.572496 Momentum=0.904000 lrate=0.03280500
+epoch=43 time=80.703s cost=0.617143 Momentum=0.904000 lrate=0.03280500
+epoch=44 time=80.880s cost=0.553676 Momentum=0.904000 lrate=0.03280500
+epoch=45 time=80.726s cost=0.605024 Momentum=0.904000 lrate=0.03280500
+correct 75.690000%/76.130000%
+epoch=46 time=80.921s cost=0.590670 Momentum=0.904000 lrate=0.03280500
+epoch=47 time=80.731s cost=0.555737 Momentum=0.904000 lrate=0.03280500
+epoch=48 time=80.924s cost=0.499896 Momentum=0.904000 lrate=0.03280500
+epoch=49 time=80.727s cost=0.611736 Momentum=0.904000 lrate=0.03280500
+epoch=50 time=80.891s cost=0.509060 Momentum=0.904000 lrate=0.03280500
+correct 76.330000%/76.330000%
+epoch=51 time=80.710s cost=0.526908 Momentum=0.905000 lrate=0.02952450
+epoch=52 time=80.979s cost=0.542119 Momentum=0.905000 lrate=0.02952450
+epoch=53 time=80.739s cost=0.553325 Momentum=0.905000 lrate=0.02952450
+epoch=54 time=80.885s cost=0.564420 Momentum=0.905000 lrate=0.02952450
+epoch=55 time=80.707s cost=0.498930 Momentum=0.905000 lrate=0.02952450
+correct 76.380000%/76.380000%
+epoch=56 time=80.912s cost=0.459990 Momentum=0.905000 lrate=0.02952450
+epoch=57 time=80.746s cost=0.443549 Momentum=0.905000 lrate=0.02952450
+epoch=58 time=80.922s cost=0.433460 Momentum=0.905000 lrate=0.02952450
+epoch=59 time=80.689s cost=0.567407 Momentum=0.905000 lrate=0.02952450
+epoch=60 time=80.894s cost=0.478156 Momentum=0.905000 lrate=0.02952450
+correct 74.700000%/76.380000%
+epoch=61 time=80.729s cost=0.447080 Momentum=0.906000 lrate=0.02657205
+epoch=62 time=80.920s cost=0.593762 Momentum=0.906000 lrate=0.02657205
+epoch=63 time=80.735s cost=0.549709 Momentum=0.906000 lrate=0.02657205
+epoch=64 time=80.902s cost=0.449989 Momentum=0.906000 lrate=0.02657205
+epoch=65 time=80.735s cost=0.383269 Momentum=0.906000 lrate=0.02657205
+correct 76.350000%/76.380000%
+epoch=66 time=80.932s cost=0.494701 Momentum=0.906000 lrate=0.02657205
+epoch=67 time=80.739s cost=0.493853 Momentum=0.906000 lrate=0.02657205
+epoch=68 time=80.919s cost=0.515672 Momentum=0.906000 lrate=0.02657205
+epoch=69 time=80.724s cost=0.367173 Momentum=0.906000 lrate=0.02657205
+epoch=70 time=80.894s cost=0.339735 Momentum=0.906000 lrate=0.02657205
+correct 77.250000%/77.250000%
+epoch=71 time=80.775s cost=0.414843 Momentum=0.907000 lrate=0.02391485
+epoch=72 time=80.922s cost=0.345931 Momentum=0.907000 lrate=0.02391485
+epoch=73 time=80.773s cost=0.508677 Momentum=0.907000 lrate=0.02391485
+epoch=74 time=80.903s cost=0.316646 Momentum=0.907000 lrate=0.02391485
+epoch=75 time=80.742s cost=0.421917 Momentum=0.907000 lrate=0.02391485
+correct 76.070000%/77.250000%
+epoch=76 time=80.922s cost=0.330887 Momentum=0.907000 lrate=0.02391485
+epoch=77 time=80.770s cost=0.436744 Momentum=0.907000 lrate=0.02391485
+epoch=78 time=80.930s cost=0.421781 Momentum=0.907000 lrate=0.02391485
+epoch=79 time=80.740s cost=0.327344 Momentum=0.907000 lrate=0.02391485
+epoch=80 time=80.902s cost=0.262873 Momentum=0.907000 lrate=0.02391485
+correct 77.440000%/77.440000%
+epoch=81 time=80.740s cost=0.338605 Momentum=0.908000 lrate=0.02152336
+epoch=82 time=80.936s cost=0.428475 Momentum=0.908000 lrate=0.02152336
+epoch=83 time=80.749s cost=0.379111 Momentum=0.908000 lrate=0.02152336
+epoch=84 time=80.884s cost=0.402404 Momentum=0.908000 lrate=0.02152336
+epoch=85 time=80.727s cost=0.372211 Momentum=0.908000 lrate=0.02152336
+correct 76.760000%/77.440000%
+epoch=86 time=80.928s cost=0.366407 Momentum=0.908000 lrate=0.02152336
+epoch=87 time=80.746s cost=0.345890 Momentum=0.908000 lrate=0.02152336
+epoch=88 time=80.936s cost=0.351699 Momentum=0.908000 lrate=0.02152336
+epoch=89 time=80.725s cost=0.414980 Momentum=0.908000 lrate=0.02152336
+epoch=90 time=80.893s cost=0.306342 Momentum=0.908000 lrate=0.02152336
+correct 77.630000%/77.630000%
+epoch=91 time=80.739s cost=0.395083 Momentum=0.909000 lrate=0.01937102
+epoch=92 time=80.913s cost=0.429428 Momentum=0.909000 lrate=0.01937102
+epoch=93 time=80.743s cost=0.274880 Momentum=0.909000 lrate=0.01937102
+epoch=94 time=80.904s cost=0.351425 Momentum=0.909000 lrate=0.01937102
+epoch=95 time=80.736s cost=0.294374 Momentum=0.909000 lrate=0.01937102
+correct 77.980000%/77.980000%
+epoch=96 time=80.931s cost=0.343549 Momentum=0.909000 lrate=0.01937102
+epoch=97 time=80.747s cost=0.435940 Momentum=0.909000 lrate=0.01937102
+epoch=98 time=80.935s cost=0.382590 Momentum=0.909000 lrate=0.01937102
+epoch=99 time=80.752s cost=0.308156 Momentum=0.909000 lrate=0.01937102
+epoch=100 time=80.917s cost=0.311727 Momentum=0.909000 lrate=0.01937102
+correct 77.900000%/77.980000%
+epoch=101 time=80.762s cost=0.359499 Momentum=0.910000 lrate=0.01743392
+epoch=102 time=80.941s cost=0.461899 Momentum=0.910000 lrate=0.01743392
+epoch=103 time=80.756s cost=0.424472 Momentum=0.910000 lrate=0.01743392
+epoch=104 time=80.898s cost=0.271091 Momentum=0.910000 lrate=0.01743392
+epoch=105 time=80.734s cost=0.326921 Momentum=0.910000 lrate=0.01743392
+correct 77.750000%/77.980000%
+epoch=106 time=80.929s cost=0.283676 Momentum=0.910000 lrate=0.01743392
+epoch=107 time=80.769s cost=0.253031 Momentum=0.910000 lrate=0.01743392
+epoch=108 time=80.921s cost=0.350811 Momentum=0.910000 lrate=0.01743392
+epoch=109 time=80.718s cost=0.215820 Momentum=0.910000 lrate=0.01743392
+epoch=110 time=80.907s cost=0.315629 Momentum=0.910000 lrate=0.01743392
+correct 77.620000%/77.980000%
+epoch=111 time=80.762s cost=0.309028 Momentum=0.911000 lrate=0.01569053
+epoch=112 time=80.951s cost=0.297892 Momentum=0.911000 lrate=0.01569053
+epoch=113 time=80.754s cost=0.363798 Momentum=0.911000 lrate=0.01569053
+epoch=114 time=80.906s cost=0.264449 Momentum=0.911000 lrate=0.01569053
+epoch=115 time=80.735s cost=0.326170 Momentum=0.911000 lrate=0.01569053
+correct 77.820000%/77.980000%
+epoch=116 time=80.938s cost=0.266563 Momentum=0.911000 lrate=0.01569053
+epoch=117 time=80.752s cost=0.297463 Momentum=0.911000 lrate=0.01569053
+epoch=118 time=80.944s cost=0.231968 Momentum=0.911000 lrate=0.01569053
+epoch=119 time=80.873s cost=0.332684 Momentum=0.911000 lrate=0.01569053
+epoch=120 time=80.935s cost=0.259471 Momentum=0.911000 lrate=0.01569053
+correct 78.010000%/78.010000%
+epoch=121 time=80.798s cost=0.306745 Momentum=0.912000 lrate=0.01412148
+epoch=122 time=80.963s cost=0.296576 Momentum=0.912000 lrate=0.01412148
+epoch=123 time=80.783s cost=0.435038 Momentum=0.912000 lrate=0.01412148
+epoch=124 time=80.920s cost=0.260414 Momentum=0.912000 lrate=0.01412148
+epoch=125 time=80.708s cost=0.271072 Momentum=0.912000 lrate=0.01412148
+correct 77.890000%/78.010000%
+epoch=126 time=80.939s cost=0.212449 Momentum=0.912000 lrate=0.01412148
+epoch=127 time=80.763s cost=0.280035 Momentum=0.912000 lrate=0.01412148
+epoch=128 time=80.945s cost=0.278895 Momentum=0.912000 lrate=0.01412148
+epoch=129 time=80.756s cost=0.235888 Momentum=0.912000 lrate=0.01412148
+epoch=130 time=80.920s cost=0.275418 Momentum=0.912000 lrate=0.01412148
+correct 77.680000%/78.010000%
+epoch=131 time=80.780s cost=0.248832 Momentum=0.913000 lrate=0.01270933
+epoch=132 time=80.942s cost=0.275030 Momentum=0.913000 lrate=0.01270933
+epoch=133 time=80.760s cost=0.195802 Momentum=0.913000 lrate=0.01270933
+epoch=134 time=80.919s cost=0.299636 Momentum=0.913000 lrate=0.01270933
+epoch=135 time=80.726s cost=0.279545 Momentum=0.913000 lrate=0.01270933
+correct 78.000000%/78.010000%
+epoch=136 time=80.944s cost=0.273257 Momentum=0.913000 lrate=0.01270933
+epoch=137 time=80.771s cost=0.272521 Momentum=0.913000 lrate=0.01270933
+epoch=138 time=80.930s cost=0.205946 Momentum=0.913000 lrate=0.01270933
+epoch=139 time=80.752s cost=0.255617 Momentum=0.913000 lrate=0.01270933
+epoch=140 time=80.907s cost=0.222623 Momentum=0.913000 lrate=0.01270933
+correct 77.900000%/78.010000%
+epoch=141 time=80.771s cost=0.230183 Momentum=0.914000 lrate=0.01143840
+epoch=142 time=80.943s cost=0.287498 Momentum=0.914000 lrate=0.01143840
+epoch=143 time=80.776s cost=0.227130 Momentum=0.914000 lrate=0.01143840
+epoch=144 time=80.904s cost=0.249790 Momentum=0.914000 lrate=0.01143840
+epoch=145 time=80.735s cost=0.169114 Momentum=0.914000 lrate=0.01143840
+correct 78.340000%/78.340000%
+epoch=146 time=80.934s cost=0.228392 Momentum=0.914000 lrate=0.01143840
+epoch=147 time=80.753s cost=0.356525 Momentum=0.914000 lrate=0.01143840
+epoch=148 time=80.951s cost=0.250878 Momentum=0.914000 lrate=0.01143840
+epoch=149 time=80.745s cost=0.271477 Momentum=0.914000 lrate=0.01143840
+epoch=150 time=80.922s cost=0.207654 Momentum=0.914000 lrate=0.01143840
+correct 77.640000%/78.340000%
+epoch=151 time=80.744s cost=0.259581 Momentum=0.915000 lrate=0.01029456
+epoch=152 time=80.944s cost=0.180376 Momentum=0.915000 lrate=0.01029456
+epoch=153 time=80.762s cost=0.259408 Momentum=0.915000 lrate=0.01029456
+epoch=154 time=80.910s cost=0.274495 Momentum=0.915000 lrate=0.01029456
+epoch=155 time=80.732s cost=0.211940 Momentum=0.915000 lrate=0.01029456
+correct 78.780000%/78.780000%
+epoch=156 time=80.932s cost=0.236346 Momentum=0.915000 lrate=0.01029456
+epoch=157 time=80.779s cost=0.277519 Momentum=0.915000 lrate=0.01029456
+epoch=158 time=80.938s cost=0.165665 Momentum=0.915000 lrate=0.01029456
+epoch=159 time=80.735s cost=0.236656 Momentum=0.915000 lrate=0.01029456
+epoch=160 time=80.919s cost=0.189807 Momentum=0.915000 lrate=0.01029456
+correct 78.780000%/78.780000%
+epoch=161 time=80.759s cost=0.162933 Momentum=0.916000 lrate=0.00926510
+epoch=162 time=80.952s cost=0.204952 Momentum=0.916000 lrate=0.00926510
+epoch=163 time=80.788s cost=0.200222 Momentum=0.916000 lrate=0.00926510
+epoch=164 time=80.933s cost=0.158650 Momentum=0.916000 lrate=0.00926510
+epoch=165 time=80.717s cost=0.191604 Momentum=0.916000 lrate=0.00926510
+correct 78.720000%/78.780000%
+epoch=166 time=80.939s cost=0.217114 Momentum=0.916000 lrate=0.00926510
+epoch=167 time=80.775s cost=0.269649 Momentum=0.916000 lrate=0.00926510
+epoch=168 time=80.941s cost=0.247978 Momentum=0.916000 lrate=0.00926510
+epoch=169 time=80.733s cost=0.263790 Momentum=0.916000 lrate=0.00926510
+epoch=170 time=80.941s cost=0.227944 Momentum=0.916000 lrate=0.00926510
+correct 78.710000%/78.780000%
+epoch=171 time=80.769s cost=0.214532 Momentum=0.917000 lrate=0.00833859
+epoch=172 time=80.957s cost=0.228626 Momentum=0.917000 lrate=0.00833859
+epoch=173 time=80.737s cost=0.207051 Momentum=0.917000 lrate=0.00833859
+epoch=174 time=80.921s cost=0.218153 Momentum=0.917000 lrate=0.00833859
+epoch=175 time=80.741s cost=0.225267 Momentum=0.917000 lrate=0.00833859
+correct 78.850000%/78.850000%
+epoch=176 time=80.950s cost=0.234289 Momentum=0.917000 lrate=0.00833859
+epoch=177 time=80.749s cost=0.224384 Momentum=0.917000 lrate=0.00833859
+epoch=178 time=80.953s cost=0.188554 Momentum=0.917000 lrate=0.00833859
+epoch=179 time=80.734s cost=0.111041 Momentum=0.917000 lrate=0.00833859
+epoch=180 time=80.929s cost=0.192146 Momentum=0.917000 lrate=0.00833859
+correct 78.830000%/78.850000%
+epoch=181 time=80.740s cost=0.269488 Momentum=0.918000 lrate=0.00750473
+epoch=182 time=80.947s cost=0.235172 Momentum=0.918000 lrate=0.00750473
+epoch=183 time=80.757s cost=0.198953 Momentum=0.918000 lrate=0.00750473
+epoch=184 time=80.908s cost=0.174743 Momentum=0.918000 lrate=0.00750473
+epoch=185 time=80.761s cost=0.174558 Momentum=0.918000 lrate=0.00750473
+correct 79.440000%/79.440000%
+epoch=186 time=80.955s cost=0.208181 Momentum=0.918000 lrate=0.00750473
+epoch=187 time=80.741s cost=0.133978 Momentum=0.918000 lrate=0.00750473
+epoch=188 time=80.948s cost=0.159754 Momentum=0.918000 lrate=0.00750473
+epoch=189 time=80.723s cost=0.158088 Momentum=0.918000 lrate=0.00750473
+epoch=190 time=80.920s cost=0.155115 Momentum=0.918000 lrate=0.00750473
+correct 79.000000%/79.440000%
+epoch=191 time=80.751s cost=0.157883 Momentum=0.919000 lrate=0.00675426
+epoch=192 time=80.937s cost=0.197136 Momentum=0.919000 lrate=0.00675426
+epoch=193 time=80.745s cost=0.099933 Momentum=0.919000 lrate=0.00675426
+epoch=194 time=80.898s cost=0.230200 Momentum=0.919000 lrate=0.00675426
+epoch=195 time=80.726s cost=0.143652 Momentum=0.919000 lrate=0.00675426
+correct 79.120000%/79.440000%
+epoch=196 time=80.940s cost=0.150874 Momentum=0.919000 lrate=0.00675426
+epoch=197 time=80.752s cost=0.128742 Momentum=0.919000 lrate=0.00675426
+epoch=198 time=80.922s cost=0.169570 Momentum=0.919000 lrate=0.00675426
+epoch=199 time=80.737s cost=0.141312 Momentum=0.919000 lrate=0.00675426
+epoch=200 time=80.905s cost=0.216895 Momentum=0.919000 lrate=0.00675426
+correct 79.010000%/79.440000%
+epoch=201 time=80.796s cost=0.229490 Momentum=0.920000 lrate=0.00607883
+epoch=202 time=80.938s cost=0.132334 Momentum=0.920000 lrate=0.00607883
+epoch=203 time=80.822s cost=0.159465 Momentum=0.920000 lrate=0.00607883
+epoch=204 time=80.926s cost=0.152754 Momentum=0.920000 lrate=0.00607883
+epoch=205 time=80.731s cost=0.187864 Momentum=0.920000 lrate=0.00607883
+correct 79.310000%/79.440000%
+epoch=206 time=80.947s cost=0.189009 Momentum=0.920000 lrate=0.00607883
+epoch=207 time=80.764s cost=0.160630 Momentum=0.920000 lrate=0.00607883
+epoch=208 time=80.948s cost=0.121473 Momentum=0.920000 lrate=0.00607883
+epoch=209 time=80.740s cost=0.145201 Momentum=0.920000 lrate=0.00607883
+epoch=210 time=80.925s cost=0.140315 Momentum=0.920000 lrate=0.00607883
+correct 79.270000%/79.440000%
+epoch=211 time=80.761s cost=0.134690 Momentum=0.921000 lrate=0.00547095
+epoch=212 time=80.958s cost=0.090950 Momentum=0.921000 lrate=0.00547095
+epoch=213 time=80.755s cost=0.103222 Momentum=0.921000 lrate=0.00547095
+epoch=214 time=80.915s cost=0.101866 Momentum=0.921000 lrate=0.00547095
+epoch=215 time=80.724s cost=0.087462 Momentum=0.921000 lrate=0.00547095
+correct 79.490000%/79.490000%
+epoch=216 time=80.932s cost=0.099264 Momentum=0.921000 lrate=0.00547095
+epoch=217 time=80.745s cost=0.201687 Momentum=0.921000 lrate=0.00547095
+epoch=218 time=80.946s cost=0.125916 Momentum=0.921000 lrate=0.00547095
+epoch=219 time=80.749s cost=0.193703 Momentum=0.921000 lrate=0.00547095
+epoch=220 time=80.922s cost=0.144679 Momentum=0.921000 lrate=0.00547095
+correct 79.230000%/79.490000%
+epoch=221 time=80.761s cost=0.199133 Momentum=0.922000 lrate=0.00492385
+epoch=222 time=80.944s cost=0.130102 Momentum=0.922000 lrate=0.00492385
+epoch=223 time=80.791s cost=0.114889 Momentum=0.922000 lrate=0.00492385
+epoch=224 time=80.923s cost=0.152316 Momentum=0.922000 lrate=0.00492385
+epoch=225 time=80.712s cost=0.090110 Momentum=0.922000 lrate=0.00492385
+correct 79.450000%/79.490000%
+epoch=226 time=80.951s cost=0.091210 Momentum=0.922000 lrate=0.00492385
+epoch=227 time=80.778s cost=0.098056 Momentum=0.922000 lrate=0.00492385
+epoch=228 time=80.958s cost=0.088751 Momentum=0.922000 lrate=0.00492385
+epoch=229 time=80.733s cost=0.158350 Momentum=0.922000 lrate=0.00492385
+epoch=230 time=80.922s cost=0.182442 Momentum=0.922000 lrate=0.00492385
+correct 79.560000%/79.560000%
+epoch=231 time=80.770s cost=0.105734 Momentum=0.923000 lrate=0.00443147
+epoch=232 time=80.932s cost=0.137697 Momentum=0.923000 lrate=0.00443147
+epoch=233 time=80.744s cost=0.105215 Momentum=0.923000 lrate=0.00443147
+epoch=234 time=80.918s cost=0.117114 Momentum=0.923000 lrate=0.00443147
+epoch=235 time=80.747s cost=0.154710 Momentum=0.923000 lrate=0.00443147
+correct 79.490000%/79.560000%
+epoch=236 time=80.963s cost=0.103676 Momentum=0.923000 lrate=0.00443147
+epoch=237 time=80.758s cost=0.125499 Momentum=0.923000 lrate=0.00443147
+epoch=238 time=80.948s cost=0.127276 Momentum=0.923000 lrate=0.00443147
+epoch=239 time=80.749s cost=0.138342 Momentum=0.923000 lrate=0.00443147
+epoch=240 time=80.926s cost=0.077978 Momentum=0.923000 lrate=0.00443147
+correct 79.240000%/79.560000%
+epoch=241 time=80.768s cost=0.135495 Momentum=0.924000 lrate=0.00398832
+epoch=242 time=80.948s cost=0.140042 Momentum=0.924000 lrate=0.00398832
+epoch=243 time=80.781s cost=0.036243 Momentum=0.924000 lrate=0.00398832
+epoch=244 time=80.918s cost=0.072472 Momentum=0.924000 lrate=0.00398832
+epoch=245 time=80.751s cost=0.135562 Momentum=0.924000 lrate=0.00398832
+correct 79.500000%/79.560000%
+epoch=246 time=80.938s cost=0.103184 Momentum=0.924000 lrate=0.00398832
+epoch=247 time=80.755s cost=0.192078 Momentum=0.924000 lrate=0.00398832
+epoch=248 time=80.955s cost=0.102100 Momentum=0.924000 lrate=0.00398832
+epoch=249 time=80.735s cost=0.084292 Momentum=0.924000 lrate=0.00398832
+epoch=250 time=80.918s cost=0.119206 Momentum=0.924000 lrate=0.00398832
+correct 79.210000%/79.560000%
+epoch=251 time=80.786s cost=0.074288 Momentum=0.925000 lrate=0.00358949
+epoch=252 time=80.943s cost=0.168083 Momentum=0.925000 lrate=0.00358949
+epoch=253 time=80.737s cost=0.099814 Momentum=0.925000 lrate=0.00358949
+epoch=254 time=80.925s cost=0.105757 Momentum=0.925000 lrate=0.00358949
+epoch=255 time=80.765s cost=0.081703 Momentum=0.925000 lrate=0.00358949
+correct 78.980000%/79.560000%
+epoch=256 time=80.961s cost=0.187672 Momentum=0.925000 lrate=0.00358949
+epoch=257 time=80.753s cost=0.047544 Momentum=0.925000 lrate=0.00358949
+epoch=258 time=80.950s cost=0.093011 Momentum=0.925000 lrate=0.00358949
+epoch=259 time=80.739s cost=0.077425 Momentum=0.925000 lrate=0.00358949
+epoch=260 time=80.926s cost=0.088595 Momentum=0.925000 lrate=0.00358949
+correct 79.460000%/79.560000%
+epoch=261 time=80.762s cost=0.086862 Momentum=0.926000 lrate=0.00323054
+epoch=262 time=80.943s cost=0.063779 Momentum=0.926000 lrate=0.00323054
+epoch=263 time=80.760s cost=0.082022 Momentum=0.926000 lrate=0.00323054
+epoch=264 time=80.916s cost=0.083949 Momentum=0.926000 lrate=0.00323054
+epoch=265 time=80.743s cost=0.166349 Momentum=0.926000 lrate=0.00323054
+correct 79.380000%/79.560000%
+epoch=266 time=80.945s cost=0.073577 Momentum=0.926000 lrate=0.00323054
+epoch=267 time=80.741s cost=0.090332 Momentum=0.926000 lrate=0.00323054
+epoch=268 time=80.950s cost=0.101713 Momentum=0.926000 lrate=0.00323054
+epoch=269 time=80.760s cost=0.121910 Momentum=0.926000 lrate=0.00323054
+epoch=270 time=80.931s cost=0.106910 Momentum=0.926000 lrate=0.00323054
+correct 79.610000%/79.610000%
+epoch=271 time=80.770s cost=0.113428 Momentum=0.927000 lrate=0.00290749
+epoch=272 time=80.960s cost=0.073715 Momentum=0.927000 lrate=0.00290749
+epoch=273 time=80.799s cost=0.046767 Momentum=0.927000 lrate=0.00290749
+epoch=274 time=80.933s cost=0.141636 Momentum=0.927000 lrate=0.00290749
+epoch=275 time=80.712s cost=0.115163 Momentum=0.927000 lrate=0.00290749
+correct 79.550000%/79.610000%
+epoch=276 time=80.949s cost=0.098430 Momentum=0.927000 lrate=0.00290749
+epoch=277 time=80.781s cost=0.149430 Momentum=0.927000 lrate=0.00290749
+epoch=278 time=80.942s cost=0.171075 Momentum=0.927000 lrate=0.00290749
+epoch=279 time=80.750s cost=0.086039 Momentum=0.927000 lrate=0.00290749
+epoch=280 time=80.923s cost=0.052832 Momentum=0.927000 lrate=0.00290749
+correct 79.820000%/79.820000%
+epoch=281 time=80.782s cost=0.088506 Momentum=0.928000 lrate=0.00261674
+epoch=282 time=80.948s cost=0.098560 Momentum=0.928000 lrate=0.00261674
+epoch=283 time=80.792s cost=0.119183 Momentum=0.928000 lrate=0.00261674
+epoch=284 time=80.944s cost=0.103583 Momentum=0.928000 lrate=0.00261674
+epoch=285 time=80.740s cost=0.092292 Momentum=0.928000 lrate=0.00261674
+correct 79.630000%/79.820000%
+epoch=286 time=80.947s cost=0.100256 Momentum=0.928000 lrate=0.00261674
+epoch=287 time=80.801s cost=0.074114 Momentum=0.928000 lrate=0.00261674
+epoch=288 time=80.948s cost=0.045392 Momentum=0.928000 lrate=0.00261674
+epoch=289 time=80.777s cost=0.078752 Momentum=0.928000 lrate=0.00261674
+epoch=290 time=80.913s cost=0.090349 Momentum=0.928000 lrate=0.00261674
+correct 79.440000%/79.820000%
+epoch=291 time=80.802s cost=0.046063 Momentum=0.929000 lrate=0.00235506
+epoch=292 time=80.962s cost=0.103852 Momentum=0.929000 lrate=0.00235506
+epoch=293 time=80.761s cost=0.075548 Momentum=0.929000 lrate=0.00235506
+epoch=294 time=80.937s cost=0.092995 Momentum=0.929000 lrate=0.00235506
+epoch=295 time=80.748s cost=0.084847 Momentum=0.929000 lrate=0.00235506
+correct 79.780000%/79.820000%
+epoch=296 time=80.953s cost=0.066983 Momentum=0.929000 lrate=0.00235506
+epoch=297 time=80.756s cost=0.055864 Momentum=0.929000 lrate=0.00235506
+epoch=298 time=80.954s cost=0.120632 Momentum=0.929000 lrate=0.00235506
+epoch=299 time=80.712s cost=0.069610 Momentum=0.929000 lrate=0.00235506
+epoch=300 time=80.915s cost=0.082625 Momentum=0.929000 lrate=0.00235506
+correct 79.700000%/79.820000%
+epoch=301 time=80.787s cost=0.082175 Momentum=0.930000 lrate=0.00211956
+epoch=302 time=80.943s cost=0.084335 Momentum=0.930000 lrate=0.00211956
+epoch=303 time=80.761s cost=0.032813 Momentum=0.930000 lrate=0.00211956
+epoch=304 time=80.932s cost=0.041868 Momentum=0.930000 lrate=0.00211956
+epoch=305 time=80.727s cost=0.046362 Momentum=0.930000 lrate=0.00211956
+correct 79.740000%/79.820000%
+epoch=306 time=80.949s cost=0.051570 Momentum=0.930000 lrate=0.00211956
+epoch=307 time=80.755s cost=0.055263 Momentum=0.930000 lrate=0.00211956
+epoch=308 time=80.941s cost=0.052141 Momentum=0.930000 lrate=0.00211956
+epoch=309 time=80.739s cost=0.127737 Momentum=0.930000 lrate=0.00211956
+epoch=310 time=80.907s cost=0.063077 Momentum=0.930000 lrate=0.00211956
+correct 79.510000%/79.820000%
+epoch=311 time=80.781s cost=0.086271 Momentum=0.931000 lrate=0.00190760
+epoch=312 time=80.952s cost=0.055030 Momentum=0.931000 lrate=0.00190760
+epoch=313 time=80.759s cost=0.072730 Momentum=0.931000 lrate=0.00190760
+epoch=314 time=80.912s cost=0.079787 Momentum=0.931000 lrate=0.00190760
+epoch=315 time=80.740s cost=0.035887 Momentum=0.931000 lrate=0.00190760
+correct 79.380000%/79.820000%
+epoch=316 time=80.941s cost=0.118078 Momentum=0.931000 lrate=0.00190760
+epoch=317 time=80.759s cost=0.104200 Momentum=0.931000 lrate=0.00190760
+epoch=318 time=80.964s cost=0.055621 Momentum=0.931000 lrate=0.00190760
+epoch=319 time=80.750s cost=0.066154 Momentum=0.931000 lrate=0.00190760
+epoch=320 time=80.923s cost=0.076051 Momentum=0.931000 lrate=0.00190760
+correct 79.490000%/79.820000%
+epoch=321 time=80.781s cost=0.104075 Momentum=0.932000 lrate=0.00171684
+epoch=322 time=80.949s cost=0.049200 Momentum=0.932000 lrate=0.00171684
+epoch=323 time=80.749s cost=0.036544 Momentum=0.932000 lrate=0.00171684
+epoch=324 time=80.917s cost=0.074696 Momentum=0.932000 lrate=0.00171684
+epoch=325 time=80.732s cost=0.050160 Momentum=0.932000 lrate=0.00171684
+correct 79.680000%/79.820000%
+epoch=326 time=80.944s cost=0.053977 Momentum=0.932000 lrate=0.00171684
+epoch=327 time=80.751s cost=0.080286 Momentum=0.932000 lrate=0.00171684
+epoch=328 time=80.945s cost=0.111575 Momentum=0.932000 lrate=0.00171684
+epoch=329 time=80.764s cost=0.066104 Momentum=0.932000 lrate=0.00171684
+epoch=330 time=80.929s cost=0.059177 Momentum=0.932000 lrate=0.00171684
+correct 79.600000%/79.820000%
+epoch=331 time=80.756s cost=0.049469 Momentum=0.933000 lrate=0.00154516
+epoch=332 time=80.941s cost=0.063917 Momentum=0.933000 lrate=0.00154516
+epoch=333 time=80.784s cost=0.044394 Momentum=0.933000 lrate=0.00154516
+epoch=334 time=80.927s cost=0.055177 Momentum=0.933000 lrate=0.00154516
+epoch=335 time=80.718s cost=0.068618 Momentum=0.933000 lrate=0.00154516
+correct 79.810000%/79.820000%
+epoch=336 time=80.961s cost=0.043379 Momentum=0.933000 lrate=0.00154516
+epoch=337 time=80.761s cost=0.055656 Momentum=0.933000 lrate=0.00154516
+epoch=338 time=80.948s cost=0.069876 Momentum=0.933000 lrate=0.00154516
+epoch=339 time=80.780s cost=0.044544 Momentum=0.933000 lrate=0.00154516
+epoch=340 time=80.928s cost=0.060107 Momentum=0.933000 lrate=0.00154516
+correct 79.790000%/79.820000%
+epoch=341 time=80.771s cost=0.086309 Momentum=0.934000 lrate=0.00139064
+epoch=342 time=80.951s cost=0.048909 Momentum=0.934000 lrate=0.00139064
+epoch=343 time=80.773s cost=0.049633 Momentum=0.934000 lrate=0.00139064
+epoch=344 time=80.920s cost=0.051924 Momentum=0.934000 lrate=0.00139064
+epoch=345 time=80.714s cost=0.058087 Momentum=0.934000 lrate=0.00139064
+correct 79.970000%/79.970000%
+epoch=346 time=80.934s cost=0.080100 Momentum=0.934000 lrate=0.00139064
+epoch=347 time=80.760s cost=0.035514 Momentum=0.934000 lrate=0.00139064
+epoch=348 time=80.950s cost=0.065623 Momentum=0.934000 lrate=0.00139064
+epoch=349 time=80.747s cost=0.066023 Momentum=0.934000 lrate=0.00139064
+epoch=350 time=80.913s cost=0.029228 Momentum=0.934000 lrate=0.00139064
+correct 79.730000%/79.970000%
+epoch=351 time=80.759s cost=0.055798 Momentum=0.935000 lrate=0.00125158
+epoch=352 time=80.938s cost=0.066310 Momentum=0.935000 lrate=0.00125158
+epoch=353 time=80.770s cost=0.026935 Momentum=0.935000 lrate=0.00125158
+epoch=354 time=80.917s cost=0.066413 Momentum=0.935000 lrate=0.00125158
+epoch=355 time=80.738s cost=0.036786 Momentum=0.935000 lrate=0.00125158
+correct 80.060000%/80.060000%
+epoch=356 time=80.948s cost=0.071023 Momentum=0.935000 lrate=0.00125158
+epoch=357 time=80.749s cost=0.055462 Momentum=0.935000 lrate=0.00125158
+epoch=358 time=80.954s cost=0.090859 Momentum=0.935000 lrate=0.00125158
+epoch=359 time=80.735s cost=0.052683 Momentum=0.935000 lrate=0.00125158
+epoch=360 time=80.930s cost=0.087682 Momentum=0.935000 lrate=0.00125158
+correct 79.620000%/80.060000%
+epoch=361 time=80.789s cost=0.035818 Momentum=0.936000 lrate=0.00112642
+epoch=362 time=80.961s cost=0.036784 Momentum=0.936000 lrate=0.00112642
+epoch=363 time=80.768s cost=0.076333 Momentum=0.936000 lrate=0.00112642
+epoch=364 time=80.922s cost=0.059152 Momentum=0.936000 lrate=0.00112642
+epoch=365 time=80.745s cost=0.067577 Momentum=0.936000 lrate=0.00112642
+correct 79.930000%/80.060000%
+epoch=366 time=80.945s cost=0.066997 Momentum=0.936000 lrate=0.00112642
+epoch=367 time=80.772s cost=0.043102 Momentum=0.936000 lrate=0.00112642
+epoch=368 time=80.942s cost=0.069077 Momentum=0.936000 lrate=0.00112642
+epoch=369 time=80.757s cost=0.086043 Momentum=0.936000 lrate=0.00112642
+epoch=370 time=80.906s cost=0.034761 Momentum=0.936000 lrate=0.00112642
+correct 79.920000%/80.060000%
+epoch=371 time=80.761s cost=0.041541 Momentum=0.937000 lrate=0.00101378
+epoch=372 time=80.953s cost=0.052343 Momentum=0.937000 lrate=0.00101378
+epoch=373 time=80.760s cost=0.075970 Momentum=0.937000 lrate=0.00101378
+epoch=374 time=80.925s cost=0.053607 Momentum=0.937000 lrate=0.00101378
+epoch=375 time=80.731s cost=0.045747 Momentum=0.937000 lrate=0.00101378
+correct 79.760000%/80.060000%
+epoch=376 time=80.937s cost=0.024987 Momentum=0.937000 lrate=0.00101378
+epoch=377 time=80.742s cost=0.104033 Momentum=0.937000 lrate=0.00101378
+epoch=378 time=80.937s cost=0.037599 Momentum=0.937000 lrate=0.00101378
+epoch=379 time=80.752s cost=0.061773 Momentum=0.937000 lrate=0.00101378
+epoch=380 time=80.933s cost=0.064503 Momentum=0.937000 lrate=0.00101378
+correct 79.970000%/80.060000%
+epoch=381 time=80.780s cost=0.065706 Momentum=0.938000 lrate=0.00091240
+epoch=382 time=80.949s cost=0.035685 Momentum=0.938000 lrate=0.00091240
+epoch=383 time=80.773s cost=0.040521 Momentum=0.938000 lrate=0.00091240
+epoch=384 time=80.908s cost=0.083888 Momentum=0.938000 lrate=0.00091240
+epoch=385 time=80.730s cost=0.060027 Momentum=0.938000 lrate=0.00091240
+correct 80.140000%/80.140000%
+epoch=386 time=81.003s cost=0.057512 Momentum=0.938000 lrate=0.00091240
+epoch=387 time=80.857s cost=0.045650 Momentum=0.938000 lrate=0.00091240
+epoch=388 time=81.070s cost=0.050608 Momentum=0.938000 lrate=0.00091240
+epoch=389 time=80.873s cost=0.052084 Momentum=0.938000 lrate=0.00091240
+epoch=390 time=81.024s cost=0.051991 Momentum=0.938000 lrate=0.00091240
+correct 80.000000%/80.140000%
+epoch=391 time=80.887s cost=0.041271 Momentum=0.939000 lrate=0.00082116
+epoch=392 time=81.051s cost=0.068144 Momentum=0.939000 lrate=0.00082116
+epoch=393 time=80.874s cost=0.058733 Momentum=0.939000 lrate=0.00082116
+epoch=394 time=81.044s cost=0.045061 Momentum=0.939000 lrate=0.00082116
+epoch=395 time=80.856s cost=0.043318 Momentum=0.939000 lrate=0.00082116
+correct 79.970000%/80.140000%
+epoch=396 time=81.047s cost=0.059057 Momentum=0.939000 lrate=0.00082116
+epoch=397 time=80.877s cost=0.044217 Momentum=0.939000 lrate=0.00082116
+epoch=398 time=81.064s cost=0.040970 Momentum=0.939000 lrate=0.00082116
+epoch=399 time=80.845s cost=0.036813 Momentum=0.939000 lrate=0.00082116
+epoch=400 time=81.056s cost=0.045160 Momentum=0.939000 lrate=0.00082116
+correct 79.840000%/80.140000%
+epoch=401 time=80.890s cost=0.046983 Momentum=0.940000 lrate=0.00073904
+epoch=402 time=81.042s cost=0.046426 Momentum=0.940000 lrate=0.00073904
+epoch=403 time=80.873s cost=0.053153 Momentum=0.940000 lrate=0.00073904
+epoch=404 time=81.030s cost=0.042266 Momentum=0.940000 lrate=0.00073904
+epoch=405 time=80.854s cost=0.042453 Momentum=0.940000 lrate=0.00073904
+correct 79.720000%/80.140000%
+epoch=406 time=81.056s cost=0.059517 Momentum=0.940000 lrate=0.00073904
+epoch=407 time=80.862s cost=0.050494 Momentum=0.940000 lrate=0.00073904
+epoch=408 time=81.066s cost=0.050084 Momentum=0.940000 lrate=0.00073904
+epoch=409 time=80.870s cost=0.081707 Momentum=0.940000 lrate=0.00073904
+epoch=410 time=81.045s cost=0.069815 Momentum=0.940000 lrate=0.00073904
+correct 80.040000%/80.140000%
+epoch=411 time=80.842s cost=0.040392 Momentum=0.941000 lrate=0.00066514
+epoch=412 time=81.059s cost=0.047584 Momentum=0.941000 lrate=0.00066514
+epoch=413 time=80.865s cost=0.094482 Momentum=0.941000 lrate=0.00066514
+epoch=414 time=81.045s cost=0.066678 Momentum=0.941000 lrate=0.00066514
+epoch=415 time=80.890s cost=0.036429 Momentum=0.941000 lrate=0.00066514
+correct 80.030000%/80.140000%
+epoch=416 time=81.057s cost=0.049366 Momentum=0.941000 lrate=0.00066514
+epoch=417 time=80.892s cost=0.057224 Momentum=0.941000 lrate=0.00066514
+epoch=418 time=81.071s cost=0.055075 Momentum=0.941000 lrate=0.00066514
+epoch=419 time=80.830s cost=0.068597 Momentum=0.941000 lrate=0.00066514
+epoch=420 time=81.028s cost=0.052551 Momentum=0.941000 lrate=0.00066514
+correct 80.080000%/80.140000%
+epoch=421 time=80.873s cost=0.048714 Momentum=0.942000 lrate=0.00059863
+epoch=422 time=81.052s cost=0.022347 Momentum=0.942000 lrate=0.00059863
+epoch=423 time=80.893s cost=0.067555 Momentum=0.942000 lrate=0.00059863
+epoch=424 time=81.047s cost=0.044894 Momentum=0.942000 lrate=0.00059863
+epoch=425 time=80.838s cost=0.037008 Momentum=0.942000 lrate=0.00059863
+correct 80.050000%/80.140000%
+epoch=426 time=81.054s cost=0.083480 Momentum=0.942000 lrate=0.00059863
+epoch=427 time=80.845s cost=0.045618 Momentum=0.942000 lrate=0.00059863
+epoch=428 time=81.045s cost=0.026968 Momentum=0.942000 lrate=0.00059863
+epoch=429 time=80.862s cost=0.062418 Momentum=0.942000 lrate=0.00059863
+epoch=430 time=81.031s cost=0.028570 Momentum=0.942000 lrate=0.00059863
+correct 80.180000%/80.180000%
+epoch=431 time=80.889s cost=0.076287 Momentum=0.943000 lrate=0.00053876
+epoch=432 time=81.063s cost=0.038012 Momentum=0.943000 lrate=0.00053876
+epoch=433 time=80.869s cost=0.057499 Momentum=0.943000 lrate=0.00053876
+epoch=434 time=81.043s cost=0.047756 Momentum=0.943000 lrate=0.00053876
+epoch=435 time=80.865s cost=0.048334 Momentum=0.943000 lrate=0.00053876
+correct 79.950000%/80.180000%
+epoch=436 time=81.062s cost=0.053629 Momentum=0.943000 lrate=0.00053876
+epoch=437 time=80.870s cost=0.044392 Momentum=0.943000 lrate=0.00053876
+epoch=438 time=81.051s cost=0.039167 Momentum=0.943000 lrate=0.00053876
+epoch=439 time=81.061s cost=0.071876 Momentum=0.943000 lrate=0.00053876
+epoch=440 time=82.537s cost=0.042818 Momentum=0.943000 lrate=0.00053876
+correct 79.790000%/80.180000%
+epoch=441 time=84.503s cost=0.038174 Momentum=0.944000 lrate=0.00048489
+epoch=442 time=81.258s cost=0.034991 Momentum=0.944000 lrate=0.00048489
+epoch=443 time=81.358s cost=0.096370 Momentum=0.944000 lrate=0.00048489
+epoch=444 time=81.479s cost=0.070494 Momentum=0.944000 lrate=0.00048489
+epoch=445 time=81.327s cost=0.094983 Momentum=0.944000 lrate=0.00048489
+correct 79.850000%/80.180000%
+epoch=446 time=81.589s cost=0.063878 Momentum=0.944000 lrate=0.00048489
+epoch=447 time=81.773s cost=0.034615 Momentum=0.944000 lrate=0.00048489
+epoch=448 time=82.280s cost=0.024456 Momentum=0.944000 lrate=0.00048489
+epoch=449 time=81.713s cost=0.049839 Momentum=0.944000 lrate=0.00048489
+epoch=450 time=81.939s cost=0.054152 Momentum=0.944000 lrate=0.00048489
+correct 80.090000%/80.180000%
+epoch=451 time=81.730s cost=0.045034 Momentum=0.945000 lrate=0.00043640
+epoch=452 time=82.211s cost=0.057490 Momentum=0.945000 lrate=0.00043640
+epoch=453 time=81.683s cost=0.062083 Momentum=0.945000 lrate=0.00043640
+epoch=454 time=81.202s cost=0.028672 Momentum=0.945000 lrate=0.00043640
+epoch=455 time=81.200s cost=0.059614 Momentum=0.945000 lrate=0.00043640
+correct 80.160000%/80.180000%
+epoch=456 time=81.510s cost=0.037716 Momentum=0.945000 lrate=0.00043640
+epoch=457 time=80.939s cost=0.031889 Momentum=0.945000 lrate=0.00043640
+epoch=458 time=81.965s cost=0.074302 Momentum=0.945000 lrate=0.00043640
+epoch=459 time=80.968s cost=0.042860 Momentum=0.945000 lrate=0.00043640
+epoch=460 time=81.221s cost=0.038427 Momentum=0.945000 lrate=0.00043640
+correct 80.230000%/80.230000%
+epoch=461 time=81.135s cost=0.023056 Momentum=0.946000 lrate=0.00039276
+epoch=462 time=81.098s cost=0.051668 Momentum=0.946000 lrate=0.00039276
+epoch=463 time=81.283s cost=0.042592 Momentum=0.946000 lrate=0.00039276
+epoch=464 time=81.725s cost=0.055878 Momentum=0.946000 lrate=0.00039276
+epoch=465 time=81.715s cost=0.073925 Momentum=0.946000 lrate=0.00039276
+correct 80.160000%/80.230000%
+epoch=466 time=81.458s cost=0.037240 Momentum=0.946000 lrate=0.00039276
+epoch=467 time=81.012s cost=0.040666 Momentum=0.946000 lrate=0.00039276
+epoch=468 time=81.434s cost=0.055460 Momentum=0.946000 lrate=0.00039276
+epoch=469 time=81.350s cost=0.041377 Momentum=0.946000 lrate=0.00039276
+epoch=470 time=82.482s cost=0.064964 Momentum=0.946000 lrate=0.00039276
+correct 80.140000%/80.230000%
+epoch=471 time=81.251s cost=0.051498 Momentum=0.947000 lrate=0.00035348
+epoch=472 time=81.204s cost=0.052337 Momentum=0.947000 lrate=0.00035348
+epoch=473 time=81.045s cost=0.050116 Momentum=0.947000 lrate=0.00035348
+epoch=474 time=81.880s cost=0.039820 Momentum=0.947000 lrate=0.00035348
+epoch=475 time=81.128s cost=0.068488 Momentum=0.947000 lrate=0.00035348
+correct 80.240000%/80.240000%
+epoch=476 time=81.245s cost=0.036512 Momentum=0.947000 lrate=0.00035348
+epoch=477 time=81.481s cost=0.024752 Momentum=0.947000 lrate=0.00035348
+epoch=478 time=81.086s cost=0.062932 Momentum=0.947000 lrate=0.00035348
+epoch=479 time=81.041s cost=0.034028 Momentum=0.947000 lrate=0.00035348
+epoch=480 time=81.387s cost=0.047118 Momentum=0.947000 lrate=0.00035348
+correct 80.120000%/80.240000%
+epoch=481 time=81.021s cost=0.053739 Momentum=0.948000 lrate=0.00031813
+epoch=482 time=81.167s cost=0.040843 Momentum=0.948000 lrate=0.00031813
+epoch=483 time=80.971s cost=0.049011 Momentum=0.948000 lrate=0.00031813
+epoch=484 time=81.138s cost=0.064245 Momentum=0.948000 lrate=0.00031813
+epoch=485 time=81.231s cost=0.050324 Momentum=0.948000 lrate=0.00031813
+correct 80.290000%/80.290000%
+epoch=486 time=81.160s cost=0.054274 Momentum=0.948000 lrate=0.00031813
+epoch=487 time=80.992s cost=0.035903 Momentum=0.948000 lrate=0.00031813
+epoch=488 time=81.154s cost=0.047409 Momentum=0.948000 lrate=0.00031813
+epoch=489 time=80.947s cost=0.037314 Momentum=0.948000 lrate=0.00031813
+epoch=490 time=81.147s cost=0.032231 Momentum=0.948000 lrate=0.00031813
+correct 80.120000%/80.290000%
+epoch=491 time=81.179s cost=0.060977 Momentum=0.949000 lrate=0.00028632
+epoch=492 time=81.092s cost=0.035758 Momentum=0.949000 lrate=0.00028632
+epoch=493 time=81.103s cost=0.050120 Momentum=0.949000 lrate=0.00028632
+epoch=494 time=81.091s cost=0.062390 Momentum=0.949000 lrate=0.00028632
+epoch=495 time=80.956s cost=0.047777 Momentum=0.949000 lrate=0.00028632
+correct 80.110000%/80.290000%
+epoch=496 time=81.848s cost=0.034150 Momentum=0.949000 lrate=0.00028632
+epoch=497 time=81.284s cost=0.046534 Momentum=0.949000 lrate=0.00028632
+epoch=498 time=83.310s cost=0.043931 Momentum=0.949000 lrate=0.00028632
+epoch=499 time=81.894s cost=0.037541 Momentum=0.949000 lrate=0.00028632
+epoch=500 time=81.116s cost=0.051954 Momentum=0.949000 lrate=0.00028632
+correct 80.060000%/80.290000%
+epoch=501 time=82.610s cost=0.043573 Momentum=0.950000 lrate=0.00025769
+epoch=502 time=83.948s cost=0.018866 Momentum=0.950000 lrate=0.00025769
+epoch=503 time=83.554s cost=0.022932 Momentum=0.950000 lrate=0.00025769
+epoch=504 time=83.814s cost=0.026513 Momentum=0.950000 lrate=0.00025769
+epoch=505 time=82.426s cost=0.029842 Momentum=0.950000 lrate=0.00025769
+correct 80.080000%/80.290000%
+epoch=506 time=81.383s cost=0.043427 Momentum=0.950000 lrate=0.00025769
+epoch=507 time=81.052s cost=0.033257 Momentum=0.950000 lrate=0.00025769
+epoch=508 time=81.244s cost=0.027430 Momentum=0.950000 lrate=0.00025769
+epoch=509 time=81.723s cost=0.044439 Momentum=0.950000 lrate=0.00025769
+epoch=510 time=81.911s cost=0.021666 Momentum=0.950000 lrate=0.00025769
+correct 80.080000%/80.290000%
+epoch=511 time=81.882s cost=0.047047 Momentum=0.951000 lrate=0.00023192
+epoch=512 time=81.713s cost=0.050781 Momentum=0.951000 lrate=0.00023192
+epoch=513 time=81.169s cost=0.039851 Momentum=0.951000 lrate=0.00023192
+epoch=514 time=81.421s cost=0.045774 Momentum=0.951000 lrate=0.00023192
+epoch=515 time=81.150s cost=0.039297 Momentum=0.951000 lrate=0.00023192
+correct 80.280000%/80.290000%
+epoch=516 time=81.317s cost=0.057082 Momentum=0.951000 lrate=0.00023192
+epoch=517 time=81.146s cost=0.038621 Momentum=0.951000 lrate=0.00023192
+epoch=518 time=81.245s cost=0.091205 Momentum=0.951000 lrate=0.00023192
+epoch=519 time=81.148s cost=0.047868 Momentum=0.951000 lrate=0.00023192
+epoch=520 time=81.968s cost=0.033857 Momentum=0.951000 lrate=0.00023192
+correct 80.080000%/80.290000%
+epoch=521 time=81.315s cost=0.068385 Momentum=0.952000 lrate=0.00020873
+epoch=522 time=81.967s cost=0.065597 Momentum=0.952000 lrate=0.00020873
+epoch=523 time=81.238s cost=0.037718 Momentum=0.952000 lrate=0.00020873
+epoch=524 time=82.193s cost=0.062191 Momentum=0.952000 lrate=0.00020873
+epoch=525 time=81.748s cost=0.032213 Momentum=0.952000 lrate=0.00020873
+correct 80.070000%/80.290000%
+epoch=526 time=81.611s cost=0.046046 Momentum=0.952000 lrate=0.00020873
+epoch=527 time=82.072s cost=0.048836 Momentum=0.952000 lrate=0.00020873
+epoch=528 time=83.666s cost=0.057187 Momentum=0.952000 lrate=0.00020873
+epoch=529 time=83.109s cost=0.030038 Momentum=0.952000 lrate=0.00020873
+epoch=530 time=81.284s cost=0.062556 Momentum=0.952000 lrate=0.00020873
+correct 80.010000%/80.290000%
+epoch=531 time=81.097s cost=0.065434 Momentum=0.953000 lrate=0.00018786
+epoch=532 time=81.318s cost=0.037476 Momentum=0.953000 lrate=0.00018786
+epoch=533 time=81.288s cost=0.047021 Momentum=0.953000 lrate=0.00018786
+epoch=534 time=81.183s cost=0.041838 Momentum=0.953000 lrate=0.00018786
+epoch=535 time=80.978s cost=0.061262 Momentum=0.953000 lrate=0.00018786
+correct 80.000000%/80.290000%
+epoch=536 time=81.185s cost=0.043157 Momentum=0.953000 lrate=0.00018786
+epoch=537 time=81.012s cost=0.022552 Momentum=0.953000 lrate=0.00018786
+epoch=538 time=81.174s cost=0.028954 Momentum=0.953000 lrate=0.00018786
+epoch=539 time=80.978s cost=0.038025 Momentum=0.953000 lrate=0.00018786
+epoch=540 time=81.289s cost=0.043105 Momentum=0.953000 lrate=0.00018786
+correct 80.060000%/80.290000%
+epoch=541 time=80.909s cost=0.053696 Momentum=0.954000 lrate=0.00016907
+epoch=542 time=81.087s cost=0.036068 Momentum=0.954000 lrate=0.00016907
+epoch=543 time=80.920s cost=0.058941 Momentum=0.954000 lrate=0.00016907
+epoch=544 time=81.073s cost=0.037951 Momentum=0.954000 lrate=0.00016907
+epoch=545 time=80.877s cost=0.061728 Momentum=0.954000 lrate=0.00016907
+correct 80.130000%/80.290000%
+epoch=546 time=81.079s cost=0.034058 Momentum=0.954000 lrate=0.00016907
+epoch=547 time=80.900s cost=0.027969 Momentum=0.954000 lrate=0.00016907
+epoch=548 time=81.091s cost=0.063654 Momentum=0.954000 lrate=0.00016907
+epoch=549 time=80.881s cost=0.053546 Momentum=0.954000 lrate=0.00016907
+epoch=550 time=81.058s cost=0.064197 Momentum=0.954000 lrate=0.00016907
+correct 80.230000%/80.290000%
+epoch=551 time=80.888s cost=0.044414 Momentum=0.955000 lrate=0.00015216
+epoch=552 time=91.386s cost=0.034329 Momentum=0.955000 lrate=0.00015216
+epoch=553 time=82.226s cost=0.041707 Momentum=0.955000 lrate=0.00015216
+epoch=554 time=82.301s cost=0.037618 Momentum=0.955000 lrate=0.00015216
+epoch=555 time=82.143s cost=0.059605 Momentum=0.955000 lrate=0.00015216
+correct 80.020000%/80.290000%
+epoch=556 time=82.326s cost=0.034227 Momentum=0.955000 lrate=0.00015216
+epoch=557 time=82.131s cost=0.037108 Momentum=0.955000 lrate=0.00015216
+epoch=558 time=82.323s cost=0.020478 Momentum=0.955000 lrate=0.00015216
+epoch=559 time=82.213s cost=0.028897 Momentum=0.955000 lrate=0.00015216
+epoch=560 time=81.211s cost=0.035488 Momentum=0.955000 lrate=0.00015216
+correct 80.120000%/80.290000%
+epoch=561 time=81.027s cost=0.033851 Momentum=0.956000 lrate=0.00013695
+epoch=562 time=81.225s cost=0.033016 Momentum=0.956000 lrate=0.00013695
+epoch=563 time=81.065s cost=0.037527 Momentum=0.956000 lrate=0.00013695
+epoch=564 time=81.210s cost=0.019198 Momentum=0.956000 lrate=0.00013695
+epoch=565 time=81.045s cost=0.041319 Momentum=0.956000 lrate=0.00013695
+correct 80.040000%/80.290000%
+epoch=566 time=81.220s cost=0.018586 Momentum=0.956000 lrate=0.00013695
+epoch=567 time=80.938s cost=0.038140 Momentum=0.956000 lrate=0.00013695
+epoch=568 time=81.120s cost=0.071771 Momentum=0.956000 lrate=0.00013695
+epoch=569 time=80.913s cost=0.023017 Momentum=0.956000 lrate=0.00013695
+epoch=570 time=81.083s cost=0.040519 Momentum=0.956000 lrate=0.00013695
+correct 80.010000%/80.290000%
+epoch=571 time=81.647s cost=0.023510 Momentum=0.957000 lrate=0.00012325
+epoch=572 time=82.340s cost=0.027947 Momentum=0.957000 lrate=0.00012325
+epoch=573 time=81.005s cost=0.029836 Momentum=0.957000 lrate=0.00012325
+epoch=574 time=81.329s cost=0.040046 Momentum=0.957000 lrate=0.00012325
+epoch=575 time=81.277s cost=0.042959 Momentum=0.957000 lrate=0.00012325
+correct 80.070000%/80.290000%
+epoch=576 time=81.180s cost=0.051710 Momentum=0.957000 lrate=0.00012325
+epoch=577 time=82.478s cost=0.056172 Momentum=0.957000 lrate=0.00012325
+epoch=578 time=81.479s cost=0.035122 Momentum=0.957000 lrate=0.00012325
+epoch=579 time=82.777s cost=0.027367 Momentum=0.957000 lrate=0.00012325
+epoch=580 time=81.284s cost=0.038087 Momentum=0.957000 lrate=0.00012325
+correct 80.060000%/80.290000%
+epoch=581 time=82.281s cost=0.034278 Momentum=0.958000 lrate=0.00011093
+epoch=582 time=82.519s cost=0.032041 Momentum=0.958000 lrate=0.00011093

@@ -28,7 +28,7 @@ double dElasticSigma   = 4.0;   /* higher numbers are more smooth and less disto
 
 int getRandomNumLen(int batch, int ImgSize)
 {
-	return batch * ImgSize * ImgSize * 2;
+	return batch * ImgSize * ImgSize * 2 * Config::instance()->getChannels();
 }
 
 /*
@@ -63,13 +63,15 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 	cudaDeviceSynchronize();
 
 	/*cu_d_randomNum*/
-	checkCudaErrors(cudaMalloc((void**)&cu_d_randomNum, sizeof(double) * getRandomNumLen(batch, ImgSize)));
-
+	checkCudaErrors(
+		MemoryMonitor::instance()->gpuMalloc((void**)&cu_d_randomNum, sizeof(double) * getRandomNumLen(batch, ImgSize))
+		);
 	/*cu_d_randonNumf*/
-	checkCudaErrors(cudaMalloc((void**)&cu_d_randonNumf, sizeof(float) * getRandomNumLen(batch, ImgSize)));
-
+	checkCudaErrors(
+		MemoryMonitor::instance()->gpuMalloc((void**)&cu_d_randonNumf, sizeof(float) * getRandomNumLen(batch, ImgSize))
+		);
 	/*cu_h_randomNum*/
-	cu_h_randomNum = (double*)malloc(sizeof(double) * getRandomNumLen(batch, ImgSize));
+	cu_h_randomNum = (double*)MemoryMonitor::instance()->cpuMalloc(sizeof(double) * getRandomNumLen(batch, ImgSize));
 	if(!cu_h_randomNum)
 	{
 		printf("malloc cu_h_randomNum fail\n");
@@ -388,8 +390,6 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getRandomUniform");
 
-
-
 	int threads = min(512, ImgSize * ImgSize);
 	g_generateDistortionMap<<<dim3(batch),threads>>>(cuDispH->getDev(),
 		cuDispV->getDev(), cu_d_randomNum, cuGaussianKernel->getDev(),
@@ -585,4 +585,57 @@ void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize,
 
 	cudaDeviceSynchronize();
 	getLastCudaError("g_applyHorizontal");
+}
+
+
+__global__ void g_applyWhiteNoise(
+	double** _inputs, 
+	double ** _outputs,
+	double * _random,
+	int ImgSize, 
+	double stdev){
+
+		int s = blockIdx.x;
+		int c = blockIdx.y;
+
+		int ImgSize2 = ImgSize * ImgSize;
+
+		int offset = ImgSize2 * c;
+		double* input = _inputs [s] + offset;
+		double* output= _outputs[s] + offset;
+
+		double* rand = _random + offset;
+		//if(_random[blockIdx.x] >= 0.9){
+		if(true){
+			for(int i = 0; i < ImgSize2; i += blockDim.x){
+				int idx = i + threadIdx.x;
+				if(idx < ImgSize2){
+					double val = input[idx] + stdev * rand[idx];
+					if(val < -1.0) val = -1.0;
+					if(val >  1.0) val = 1.0;
+					output[idx] = val;
+				}
+			}
+		}else{
+			for(int i = 0; i < ImgSize2; i += blockDim.x){
+				int idx = i + threadIdx.x;
+				if(idx < ImgSize2){
+					output[idx] = input[idx];
+				}
+			}
+		}
+}
+
+
+/*
+ref: http://en.wikipedia.org/wiki/White_noise
+*/
+void cuApplyWhiteNoise(double **inputs, double**outputs, int batch, int ImgSize, double stdev)
+{
+	dim3 blocks  = dim3(batch, Config::instance()->getChannels());
+	dim3 threads = dim3(min(ImgSize * ImgSize, 512));
+	
+	g_applyWhiteNoise<<<blocks, threads>>>(inputs, outputs, cu_d_randomNum, ImgSize, stdev);
+	cudaDeviceSynchronize();
+	getLastCudaError("g_applyWhiteNoise");
 }

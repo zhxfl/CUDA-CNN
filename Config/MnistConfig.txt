@@ -10,6 +10,7 @@ DISTORTION = 3.4;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = false;             #horizontal reflection#
 TEST_EPOCH = 1;                 #the period to get the test dataset's error rate#
+WHITE_NOISE = 0.01;   
 
 [
 LAYER = CONV;
