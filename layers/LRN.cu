@@ -7,9 +7,13 @@
 #include "../common/cuBase.h"
 
 /*
-* function: unLRN
+* int _min = (outputDim * outputDim + 15) / 16 * 16;
+* int remain = min(1024 / _min, outputAmount); //32
+* int div = (outputAmount + remain - 1) / remain;//1
+* dim3 block = dim3(batch, div);
+* dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
 */
-__global__ void g_backpropagation(
+__global__ void g_LRN_backpropagation(
 	double* inputs,
 	double* inputsDelta,
 	double* outputsDelta,
@@ -24,7 +28,15 @@ __global__ void g_backpropagation(
 	double lrn_alpha,
 	double lrn_belta);
 
-__global__ void g_feedforward(
+/*
+ * int _min = (outputDim * outputDim + 31) / 32 * 32;
+ * int curDeltalen = curDelta->getLen();
+ * int remain = min(1024 / _min, outputAmount); //32
+ * int div = (outputAmount + remain - 1) / remain;//1
+ * dim3 block = dim3(batch, div);
+ * dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
+*/
+__global__ void g_LRN_feedforward(
 	double* inputs ,
 	double* outputs,
 	int inputDim,
@@ -40,10 +52,20 @@ __global__ void g_feedforward(
 
 void LRN::feedforward()
 {
-	dim3 block = dim3(batch, amount, Config::instance()->getChannels());
-	dim3 thread= dim3(min(inputDim * inputDim, 512));
+	int _min = (outputDim * outputDim + 31) / 32 * 32;
+
+	if(_min < 256 && _min > 128) _min = 256;
+	else if(_min < 128 && _min > 64) _min = 128;
+	else if(_min < 64 && _min > 32) _min = 64;
+	else if(_min < 32 && _min > 16) _min = 32;
+	else _min = 16;
+
+	int remain = min(1024 / _min, outputAmount); //32
+	int div = (outputAmount + remain - 1) / remain;//1
+	dim3 block = dim3(batch, div);
+	dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
 	
-	g_feedforward<<<block, thread>>>(
+	g_LRN_feedforward<<<block, thread>>>(
 		inputs->getDev(),
 		outputs->getDev(),
 		inputDim,
@@ -86,11 +108,20 @@ void LRN::backpropagation()
 	}
 	preDelta->gpuClear();
 
-	int curDeltalen = curDelta->getLen();
-	dim3 block = dim3(batch, amount, Config::instance()->getChannels());
-	dim3 thread= dim3(min(inputDim * inputDim, 512));
+	int _min = (outputDim * outputDim + 31) / 32 * 32;
+	if(_min < 256 && _min > 128) _min = 256;
+	else if(_min < 128 && _min > 64) _min = 128;
+	else if(_min < 64 && _min > 32) _min = 64;
+	else if(_min < 32 && _min > 16) _min = 32;
+	else _min = 16;
 
-	g_backpropagation<<<block, thread>>>(inputs->getDev(),
+	int curDeltalen = curDelta->getLen();
+	int remain = min(1024 / _min, outputAmount); //32
+	int div = (outputAmount + remain - 1) / remain;//1
+	dim3 block = dim3(batch, div);
+	dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
+
+	g_LRN_backpropagation<<<block, thread>>>(inputs->getDev(),
 		curDelta->getDev(),
 		preDelta->getDev(),
 		inputDim,
@@ -129,21 +160,22 @@ LRN::LRN(std::string name)
 	lrn_alpha = config->m_alpha;
 	lrn_belta = config->m_belta;
 
-	int channels = inputs->channels;
-
-	outputs  = new cuMatrix<double>(batch, amount * outputDim * outputDim, channels);
-	curDelta = new cuMatrix<double>(batch, amount * outputDim * outputDim, channels);
+	outputs  = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
+	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
 	preDelta = preLayer->getCurDelta();
 
 	Layers::instance()->set(m_name, this);
 }
 
 /*
-*blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
-*threads: dim3(min(convOutputSize * convOutputSize, 512));
+ * int _min = (outputDim * outputDim + 31) / 32 * 32;
+ * int curDeltalen = curDelta->getLen();
+ * int remain = min(1024 / _min, outputAmount); //32
+ * int div = (outputAmount + remain - 1) / remain;//1
+ * dim3 block = dim3(batch, div);
+ * dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
 */
-
-__global__ void g_feedforward(
+__global__ void g_LRN_feedforward(
 	double* inputs ,
 	double* outputs,
 	int inputDim,
@@ -158,8 +190,9 @@ __global__ void g_feedforward(
 	double lrn_belta)
 {
 	int sp = blockIdx.x;
-	int k  = blockIdx.y;
-	int c  = blockIdx.z;
+	//int k  = blockIdx.y;
+	int k  = blockIdx.y * blockDim.y + threadIdx.y;
+	if(k >= kAmount)return;
 
 	int inputDim2   = inputDim  * inputDim;
 	int outputDim2  = outputDim * outputDim;
@@ -175,27 +208,37 @@ __global__ void g_feedforward(
 				from = 0;
 				to = kAmount - 1;
 			}else{
-				from = (k - lrn_n / 2) >= 0 ? (k - lrn_n / 2) : 0;
-				to   = (k + lrn_n / 2) <= (kAmount - 1) ? (k + lrn_n / 2) : (kAmount - 1);
+				int half = lrn_n >> 1;
+				from = (k - half) >= 0 ? (k - half) : 0;
+				to   = (k + half) <= (kAmount - 1) ? (k + half) : (kAmount - 1);
 			}
 			double u = 0.0;
-			int skip = InputArea * c + (sp * kAmount) * inputDim2;
-			double a = inputs[skip + inputDim2 * k + idx];
+			int offset = from * InputArea + sp * inputDim2 + idx;
+			int koffset = InputArea * k + sp * inputDim2 + idx;
+			double a = inputs[koffset];
+			
 			for(int j = from; j <= to; j++){
-				double val = inputs[skip + j * inputDim2 + idx];
+				double val = inputs[offset];
 				u = u + val * val;
+				offset += InputArea;
 			}
-			u = u * lrn_alpha + lrn_k;
-			u = pow(u, lrn_belta);
-			outputs[skip + outputDim2 * k + idx] = a / u;
+			u = u * lrn_alpha / (to - from + 1) + lrn_k;
+			u = (double)pow((float)u, (float)lrn_belta);
+			outputs[koffset] = a / u;
 		}
 	}
 }
 
 /*
-* function: unLRN
+ * int _min = (outputDim * outputDim + 31) / 32 * 32;
+ * int curDeltalen = curDelta->getLen();
+ * int remain = min(1024 / _min, outputAmount); //32
+ * int div = (outputAmount + remain - 1) / remain;//1
+ * dim3 block = dim3(batch, div);
+ * dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
 */
-__global__ void g_backpropagation(
+
+__global__ void g_LRN_backpropagation(
 	double* inputs ,
 	double* inputsDelta,
 	double* outputsDelta,
@@ -211,8 +254,8 @@ __global__ void g_backpropagation(
 	double lrn_belta)
 {
 	int sp = blockIdx.x;
-	int k  = blockIdx.y;
-	int c  = blockIdx.z;
+	int k  = blockIdx.y * blockDim.y + threadIdx.y;
+	if(k >= kAmount)return;
 
 	int inputDim2  = inputDim  * inputDim;
 	int outputDim2 = outputDim * outputDim;
@@ -228,22 +271,33 @@ __global__ void g_backpropagation(
 				from = 0;
 				to = kAmount - 1;
 			}else{
-				from = (k - lrn_n / 2) >= 0 ? (k - lrn_n / 2) : 0;
-				to   = (k + lrn_n / 2) <= (kAmount - 1) ? (k + lrn_n / 2) : (kAmount - 1);
+				int half = lrn_n >> 1;
+				from = (k - half) >= 0 ? (k - half) : 0;
+				to   = (k + half) <= (kAmount - 1) ? (k + half) : (kAmount - 1);
 			}
 
 			double u = 0.0;
-			int skip = InputArea * c + (sp * kAmount) * inputDim2;
-			double a = inputs[skip + k * inputDim2 + idx];
+
+			int offset = from * InputArea + sp * inputDim2 + idx;
+			int koffset = InputArea * k + sp * inputDim2 + idx;
+
+			double a = inputs[koffset];
 			for(int j = from; j <= to; j++){
-				double val = inputs[skip + j * inputDim2 + idx];
+				double val = inputs[offset];
 				u = u + val * val;
+				offset += InputArea;
 			}
-			u = u * lrn_alpha + lrn_k;
-			double u1 = pow(u, lrn_belta) - 2.0 * lrn_belta * lrn_alpha * pow(u, lrn_belta - 1) * a * a;
-			double u2 = pow(u, 2.0 * lrn_belta);
-			outputsDelta[skip + k * outputDim2 + idx] = 
-				inputsDelta[skip + k * inputDim2 + idx] * u1 / u2;
+
+			//
+			u = u * lrn_alpha / (to - from + 1) + lrn_k;
+			double t1 = (double)pow((float)u, (float)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
+			double t2 = t1 * u;                //pow(u, lrn_belta)
+			double t3 = t2 * t2;               //pow(u, 2.0 * lrn_belta)
+
+			double u1 = t2 - 2.0 * lrn_belta * lrn_alpha * t1 * a * a / (to - from + 1);
+			double u2 = t3;
+			outputsDelta[koffset] = 
+				inputsDelta[koffset] * u1 / u2;
 		}
 	}
 }

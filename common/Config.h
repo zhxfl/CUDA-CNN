@@ -161,6 +161,10 @@ public:
 	std::string m_type;
 	double m_initW;
 	int m_nonLinearity; 
+	std::string m_initType;
+	bool isGaussian(){
+		return m_initType == std::string("Gaussian");
+	}
 };
 
 class ConfigLRN : public ConfigBase{
@@ -188,7 +192,7 @@ class ConfigConv : public ConfigBase
 public:
 	ConfigConv(std::string name, std::string input, std::string type,
 		int kernelSize, int padding, int amount,
-		double weightDecay, int cfm, double initW,
+		double weightDecay, int cfm, double initW, std::string initType,
 		int non_linearity){
 		m_kernelSize = kernelSize;
 		m_padding = padding;
@@ -200,6 +204,7 @@ public:
 		m_type = type;
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
+		m_initType = initType;
 	}
 	int m_cfm;
 	int m_kernelSize;
@@ -213,23 +218,20 @@ class ConfigLocal : public ConfigBase
 {
 public:
 	ConfigLocal(std::string name, std::string input, std::string type,
-		int kernelSize, int padding, int amount,
-		double weightDecay, int cfm, double initW,
+		int kernelSize, int amount,
+		double weightDecay, double initW, std::string initType,
 		int non_linearity){
 			m_kernelSize = kernelSize;
-			m_padding = padding;
 			m_amount = amount;
 			m_weightDecay = weightDecay;
 			m_name = name;
 			m_input = input;
-			m_cfm = cfm;
 			m_type = type;
 			m_initW = initW;
 			m_nonLinearity = non_linearity;
+			m_initType = initType;
 	}
-	int m_cfm;
 	int m_kernelSize;
-	int m_padding;
 	int m_amount;
 	double m_weightDecay;
 };
@@ -255,7 +257,7 @@ class ConfigFC : public ConfigBase
 {
 public:
 	ConfigFC(std::string name, std::string input, std::string type, int numFullConnectNeurons, double weightDecay,
-		double dropoutRate, double initW, int non_linearity)
+		double dropoutRate, double initW, std::string initType, int non_linearity)
 	{
 		m_numFullConnectNeurons = numFullConnectNeurons;
 		m_weightDecay = weightDecay;
@@ -265,6 +267,7 @@ public:
 		m_type = type;
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
+		m_initType = initType;
 	}
 	int m_numFullConnectNeurons;
 	double m_weightDecay;
@@ -277,7 +280,7 @@ public:
 	int m_numClasses;
 	double m_weightDecay;
 	ConfigSoftMax(std::string name, std::string input, std::string type, int numClasses, 
-		double weightDecay, double initW , int non_linearity)
+		double weightDecay, double initW, std::string initType, int non_linearity)
 	{
 		m_numClasses = numClasses;
 		m_weightDecay = weightDecay;
@@ -286,6 +289,7 @@ public:
 		m_type = type;
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
+		m_initType = initType;
 	}
 };
 
@@ -329,9 +333,6 @@ public:
 	}
 
 	void clear(){
-		m_fc.clear();
-		m_conv.clear();
-		m_softMax.clear();
 
 		delete  m_nonLinearity;
 		delete  m_isGrandientChecking;
@@ -379,32 +380,15 @@ public:
 		return m_distortion->getValue();
 	}
 
-	const std::vector<ConfigConv*>& getConv(){
-		return m_conv;
-	}
-
-	const std::vector<ConfigPooling*>& getPooling(){
-		return m_pooling;
-	}
-
-	const std::vector<ConfigFC*>& getFC(){
-		return m_fc;
-	}
-
-	const std::vector<ConfigSoftMax*>& getSoftMax(){
-		return m_softMax;
-	}
-
 	const std::vector<ConfigBase*> getFirstLayers(){
 		return m_firstLayers;
 	}
 
 	ConfigBase* getLayerByName(std::string name){
 		if(m_layerMaps.find(name) != m_layerMaps.end()){
-					return m_layerMaps[name];
+			return m_layerMaps[name];
 		}
-		else 
-		{
+		else{
 			printf("layer %s does not exit\n", name.c_str());
 			exit(0);
 		}
@@ -435,6 +419,10 @@ public:
 	double getWhiteNoise(){
 		return m_white_noise->getValue();
 	}
+
+	int getClasses(){
+		return m_classes;
+	}
 private:
 	void deleteComment();
 	void deleteSpace();
@@ -448,10 +436,6 @@ private:
 	void init(std::string path);
 	std::string m_configStr;
 	std::string m_path;
-	std::vector<ConfigFC*>m_fc;
-	std::vector<ConfigConv*>m_conv;
-	std::vector<ConfigPooling*>m_pooling;
-	std::vector<ConfigSoftMax*>m_softMax;
 
 	std::map<std::string, ConfigBase*>m_layerMaps;
 	std::vector<ConfigBase*>m_firstLayers;
@@ -472,6 +456,7 @@ private:
 	double momentum;
 	double lrate;
 	int m_imageSize;
+	int m_classes;
 };
 
 #endif

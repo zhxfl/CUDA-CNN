@@ -146,11 +146,11 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 			double val = gaussian[row * cols + col] / _sum;
 			//val = val * 2.0 - 0.5;
 			//val = val * epsilon;
-			gaussian[row * cols + col] = val;
-			//printf("%lf ", val);
-		}//printf("\n");
+			gaussian[row * cols + col] = val * epsilon;
+			printf("%lf ", val * epsilon);
+		}printf("\n");
 	}
-	//printf("\n\n");
+	printf("\n\n");
 }
 
 
@@ -177,12 +177,9 @@ void dropDelta(cuMatrix<double>* M, double cuDropProb)
 void initMatrix(cuMatrix<double>* M, double initW)
 {
 	for(int c = 0; c < M->channels; c++){
-		cv::Mat mean = cv::Mat::zeros(1, 1, CV_64FC1);
-		cv::Mat sigma= cv::Mat::ones(1, 1, CV_64FC1);
-		sigma.at<double>(0,0) = initW;
-		cv::RNG rng(clock());
-		cv::Mat matrix2xN(M->rows, M->cols, CV_64FC1);
-		rng.fill(matrix2xN, cv::RNG::NORMAL, mean, sigma);
+		srand(time(NULL));
+		Mat matrix2xN = Mat::zeros(M->rows,M->cols,CV_64FC1);
+		randn(matrix2xN, 0, initW); 
 		for(int i = 0; i < matrix2xN.rows; i++){
 			for(int j = 0; j < matrix2xN.cols; j++){
 				M->set(i,j,c, matrix2xN.at<double>(i, j));
@@ -191,5 +188,6 @@ void initMatrix(cuMatrix<double>* M, double initW)
 		}
 		printf("\n\n");
 	}
+
 	M->toGpu();
 }

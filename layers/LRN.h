@@ -57,6 +57,8 @@ public:
 		return outputDim;
 	}
 
+	void printParameter(){};
+
 private:
 	cuMatrix<double>* inputs;
 	cuMatrix<double>* preDelta;

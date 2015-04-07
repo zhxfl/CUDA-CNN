@@ -2,79 +2,122 @@
 #include "../common/cuBase.h"
 #include "../common/Config.h"
 /*
-*	blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
+*	blocks : dim3(batch, cuKernelScan[0]),
 *	threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
 __global__ void g_ConvCFM_feedforward_1(
-	double** arrayS,
-	double** arrayW,
-	double** arrayB,
-	double* conv,
-	int inputSize,
+	double** inputs,
+	double** ws,
+	double** bs,
+	double* outputs,
+	int inputDim,
 	int kernelSize,
 	int padding,
-	int convSize,
-	int convArea,
+	int outputDim,
+	int outputArea,
 	int batch,
-	int k1Amount);
+	int inputAmount,
+	int outputAmount,
+	int cfm);
+
+
 /*
-*	blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
+	dim3 block = dim3(batch, outputAmount);
+	dim3 thread= dim3(4, min(outputDim * outputDim, 256));
+	cfm = 1, outputDim , inputDim <=32 ,kernelSize = 5;
+
+*/
+__global__ void g_ConvCFM_feedforward_s_cmf1_1(
+	double** inputs,
+	double** ws,
+	double** bs,
+	double* outputs,
+	int inputDim,
+	int kernelSize,
+	int padding,
+	int outputDim,
+	int outputArea,
+	int batch,
+	int inputAmount,
+	int outputAmount);
+
+__global__ void g_ConvCFM_wgrad__2(double* _inputs,
+	double* _curDelta,
+	double** _wgrad,
+	double** w,
+	int inputDim,
+	int curDeltaDim,
+	int kernelSize,
+
+	int inputAmount,
+	int outputAmount,
+	int padding,
+
+	int inputArea,
+	int curDeltaArea,
+	int batch,
+	double lambda);
+/*
+*	blocks : dim3(batch, cuKernelScan[0]),
 *	threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
 __global__ void g_ConvCFM_feedforward_2(
-	double* pool1,
-	double** arrayW,
-	double** arrayB,
-	double* conv2,
-	int pool1Size,
+	double*  inputs,
+	double** ws,
+	double** bs,
+	double*  outputs,
+	int inputDim,
 	int kernelSize,
 	int padding,
-	int conv2Size,
-	int k1Amount,
-	int k2Amount,
-	int pool1Area,
-	int conv2Area,
-	int numOfCFM);
+	int outputDim,
+	int inputAmount,
+	int outputAmount,
+	int inputAear,
+	int outputAear,
+	int cfm);
 
 /*
-* blocks : dim3(batch, numOfCFM * kernelAmount2, Config::instance()->getChannels())
+* blocks : dim3(batch, numOfCFM * kernelAmount2)
 * threads: dim3(threadidx)
 */
 __global__ void g_ConvCFM_backpropagation(
-	double* _convDelta,
-	double**_w,
-	double* _poolDelta,
-	int     _convOutputSize,
-	int     _poolOutputSize,
-	int     _kernelAmount1,
-	int     _kernelAmount2,
-	int     _kernelSize,
-	int     _padding,
-	int     _convDeltaArea,
-	int     _poolDeltaArea,
-	int numOfCFM);
+	double* _curDelta,
+	double**ws,
+	double* _preDelta,
+	int     curDim,
+	int     preDim,
+	int     curAmount,
+	int     preAmount,
+	int     kernelSize,
+	int     padding,
+	int     curArea,
+	int     preArea,
+	int     cfm);
 
 /*
-* blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
+* blocks  : dim3(batch, cuKernelScan[cl]),
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvCFM_wgrad_2(double* pool,
-	double* convDelta,
-	double* WgradTmp,
-	int poolOutputSize,
-	int convOutputSize,
-	int kernelAmount1,
-	int kernelAmount2,
+__global__ void g_ConvCFM_wgrad_2(double* _inputs,
+	double* _curDelta,
+	double** _wgrad,
+	double** w,
+	int inputDim,
+	int curDeltaDim,
 	int kernelSize,
+
+	int inputAmount,
+	int outputAmount,
 	int padding,
-	int poolArea,
-	int convDeltaArea,
-	int wgradTmpArea,
-	int numOfCMF);
+
+	int inputArea,
+	int curDeltaArea,
+	int batch,
+	double lambda);
 
 
 /*
-* blocks  : dim3(kernelAmount2, kernelSize * kernelSize, Config::instance()->getChannels()),
+* blocks  : dim3(kernelAmount2, kernelSize * kernelSize),
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
@@ -94,7 +137,7 @@ __global__ void g_ConvCFM_wgradAdd_2(
 	);
 
 /*
-* blocks  : dim3(kernelAmount2, Config::instance()->getChannels())
+* blocks  : dim3(kernelAmount2)
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
@@ -106,20 +149,26 @@ __global__ void g_ConvCFM_Bgrad_2(double* delta,
 	int deltaArea);
 
 /*
-* blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
+* blocks  : dim3(batch, cuKernelScan[cl]),
 * threads : dim3(threadidx)
 */
-__global__ void g_ConvCFM_wgrad_1(double** sArray,
-	double* convDelta,
-	double* WgradTmp,
-	int imgSize,
-	int convOutputSize,
-	int kernelAmount2,
+__global__ void g_ConvCFM_wgrad_1(double**_inputs,
+	double* _curDelta,
+	double** _wgrad,
+	double** w,
+	int inputDim,
+	int curDeltaDim,
 	int kernelSize,
+
+	int inputAmount,
+	int outputAmount,
 	int padding,
-	int sArrayArea,
-	int convDeltaArea,
-	int wgrapTmpArea);
+
+	int inputArea,
+	int curDeltaAea,
+	int batch,
+	double lambda);
+
 
 /*
 * <<<dim3(k1, kernelSize*kernelSize, channels), dim3(256)>>>
@@ -135,7 +184,7 @@ __global__ void g_ConvCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
 	int wArea);
 
 /*
-*blocks  : dim3(kernelAmount2, Config::instance()->getChannels())
+*blocks  : dim3(kernelAmount2)
 *threads : dim3(256)
 *shared  : sizeof(double) * 256
 */
@@ -167,40 +216,61 @@ void ConvCFM::feedforward()
 		exit(0);
 	}
 	if(inputs_1){
-		dim3 block = dim3(batch, amount, Config::instance()->getChannels());
-		dim3 thread= dim3(min(outputDim * outputDim, 512));
-		g_ConvCFM_feedforward_1<<<block, thread>>>(inputs_1->m_devPoint,
-			w.m_devPoint, 
-			b.m_devPoint,
-			outputs->getDev(),
-			inputDim,
-			kernelSize,
-			padding,
-			outputDim,
-			outputs->getArea(),
-			batch,
-			amount);
-		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("convCFM:g_ConvCFM_feedforward_1");
+		if(inputDim <= 32 && cfm == 1){
+		//if(0){
+			dim3 block = dim3(batch, outputAmount);
+			dim3 thread= dim3(min(outputDim * outputDim, 1024));
+			
+			g_ConvCFM_feedforward_s_cmf1_1<<<block, thread>>>(
+				inputs_1->m_devPoint, w.m_devPoint, b.m_devPoint, outputs->getDev(),
+				inputDim, kernelSize, padding, outputDim, outputs->getArea(),batch, inputAmount, outputAmount);
+			
+			checkCudaErrors(cudaDeviceSynchronize());
+			getLastCudaError("convCFM:g_ConvCFM_feedforward_s_cmf1_1");
+			
+		}else{
+			dim3 block = dim3(batch, outputAmount);
+			dim3 thread= dim3(min(outputDim * outputDim, 1024));
+			g_ConvCFM_feedforward_1<<<block, thread>>>(inputs_1->m_devPoint,
+				w.m_devPoint, 
+				b.m_devPoint,
+				outputs->getDev(),
+				inputDim,
+				kernelSize,
+				padding,
+				outputDim,
+				outputs->getArea(),
+				batch,
+				inputAmount,
+				outputAmount,
+				cfm);
+			checkCudaErrors(cudaDeviceSynchronize());
+			getLastCudaError("convCFM:g_ConvCFM_feedforward_1");
+		}
 	}
 	else if(inputs_2){
-		dim3 block = dim3(batch, amount, Config::instance()->getChannels());
-		dim3 thread= dim3(min(outputDim * outputDim, 512));
-		g_ConvCFM_feedforward_2<<<block, thread>>>(inputs_2->getDev(),
-			w.m_devPoint,
-			b.m_devPoint,
-			outputs->getDev(),
-			inputDim,
-			kernelSize,
-			padding,
-			outputDim,
-			inputAmount,
-			outputAmount,
-			inputs_2->getArea(),
-			outputs->getArea(),
-			cfm);
-		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("convCFM::g_ConvCFM_feedforward_2");
+			int remain = min(512 / 128, outputAmount); //32
+			int div = (outputAmount + remain - 1) / remain;//1
+			dim3 block = dim3(batch, div);
+			dim3 thread= dim3(min(outputDim * outputDim, 128), remain);
+			/*
+				最慢的kernel函数，由于outputDim = 4所以每个block只能分配到16个线程。
+			*/
+			g_ConvCFM_feedforward_2<<<block, thread>>>(inputs_2->getDev(),
+				w.m_devPoint,
+				b.m_devPoint,
+				outputs->getDev(),
+				inputDim,
+				kernelSize,
+				padding,
+				outputDim,
+				inputAmount,
+				outputAmount,
+				inputs_2->getArea(),
+				outputs->getArea(),
+				cfm);
+			checkCudaErrors(cudaDeviceSynchronize());
+			getLastCudaError("convCFM::g_ConvCFM_feedforward_2");
 	}
 	else{
 		printf("ConvCFM init error\n");
@@ -239,7 +309,7 @@ void ConvCFM::backpropagation()
 	}
 	
 	if(inputs_2){
-		dim3 block = dim3(batch, cfm * outputAmount, Config::instance()->getChannels());
+		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= min(outputDim * outputDim, 512);
 
 		preDelta->gpuClear();
@@ -271,45 +341,33 @@ void ConvCFM::getGrad()
 		exit(0);
 	}
 	if(inputs_1){
-		dim3 block = dim3(batch, outputAmount, Config::instance()->getChannels());
-		dim3 thread= min(kernelSize * kernelSize, 512);
+		dim3 block = dim3(cfm, outputAmount);
+		dim3 thread= min(kernelSize * kernelSize * batch, 512);
+
 		g_ConvCFM_wgrad_1<<<block, thread>>>(
 			inputs_1->m_devPoint,
 			curDelta->getDev(),
-			wgradTmp->getDev(),
+			wgrad.m_devPoint,
+			w.m_devPoint,
 			inputDim,
 			outputDim,
-			amount,
 			kernelSize,
+			inputAmount,
+			outputAmount,
 			padding,
 			inputDim * inputDim,
 			curDelta->getArea(),
-			wgradTmp->getArea());
+			batch,
+			lambda);
 
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("g_ConvCFM_wgrad_1");
 
-		block = dim3(outputAmount, kernelSize * kernelSize, Config::instance()->getChannels());
+		block = dim3(amount);
 		thread= dim3(256);
-		g_ConvCFM_wgradAdd_1<<<block, thread,
-			sizeof(double) * 256>>>(
-			wgradTmp->getDev(),
-			wgrad.m_devPoint,
-			w.m_devPoint,
-			outputAmount,
-			kernelSize,
-			batch,
-			lambda,
-			wgradTmp->getArea(),
-			wgrad[0]->getArea(),
-			w[0]->getArea());
-
-		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("ConvCFM::getGrad::g_wgradAdd_1");
-
-		block = dim3(amount, Config::instance()->getChannels());
-		thread= dim3(256);
-		g_ConvCFM_Bgrad_1<<<block,thread,sizeof(double) * 256>>>
+		g_ConvCFM_Bgrad_1<<<block,
+			thread,
+			sizeof(double) * 256>>>
 			(curDelta->getDev(),
 			bgrad.m_devPoint,
 			outputDim,
@@ -322,44 +380,27 @@ void ConvCFM::getGrad()
 		getLastCudaError("ConvCFM::getGrad::g_ConvCFM_Bgrad_1");
 	}
 	else if(inputs_2){
-		dim3 block = dim3(batch, cfm * outputAmount, Config::instance()->getChannels());
-		dim3 thread= min(kernelSize * kernelSize, 512);
+ 		dim3 block = dim3(cfm, outputAmount);
+ 		dim3 thread= min(kernelSize * kernelSize * batch, 512);
+ 
+ 		g_ConvCFM_wgrad_2<<<block, thread>>>(inputs_2->getDev(),
+ 			curDelta->getDev(),
+ 			wgrad.m_devPoint,
+ 			w.m_devPoint,
+ 			inputDim,
+ 			outputDim,
+ 			kernelSize,
+ 			inputAmount,
+ 			outputAmount,
+ 			padding,
+ 			inputs_2->getArea(),
+ 			curDelta->getArea(),
+ 			batch,
+ 			lambda);
+ 		cudaDeviceSynchronize();
+ 		getLastCudaError("g_ConvCFM_wgrad_2");
 
-		g_ConvCFM_wgrad_2<<<block, thread>>>(inputs_2->getDev(),
-			curDelta->getDev(),
-			wgradTmp->getDev(),
-			inputDim,
-			outputDim,
-			inputAmount,
-			outputAmount,
-			kernelSize,
-			padding,
-			inputs_2->getArea(),
-			curDelta->getArea(),
-			wgradTmp->getArea(),
-			cfm
-			);
-		cudaDeviceSynchronize();
-		getLastCudaError("g_ConvCFM_wgrad_2");
-
-		block = dim3(amount, kernelSize * kernelSize, Config::instance()->getChannels());
-		thread= dim3(256);
-		g_ConvCFM_wgradAdd_2<<<block, thread, sizeof(double) * 256>>>(wgradTmp->getDev(),
-			wgrad.m_devPoint,
-			w.m_devPoint,
-			inputAmount,
-			outputAmount,
-			kernelSize,
-			batch,
-			wgradTmp->getArea(),
-			wgrad[0]->getArea(),
-			w[0]->getArea(),
-			lambda,cfm);
-		cudaDeviceSynchronize();
-		getLastCudaError("g_ConvCFM_wgradAdd_2");
-
-
-		block = dim3(amount, Config::instance()->getChannels());
+		block = dim3(amount);
 		thread= dim3(256);
 		g_ConvCFM_Bgrad_2<<<block, thread, sizeof(double) * 256>>>(curDelta->getDev(),
 			bgrad.m_devPoint,
@@ -396,7 +437,7 @@ ConvCFM::ConvCFM(std::string name)
 	{
 		inputs_1 = Layers::instance()->getInputs();
 		inputs_2 = NULL;
-		inputAmount = 1;
+		inputAmount = Config::instance()->getChannels();
 		amount = config->m_amount;
 		outputAmount = amount;
 		kernelSize = config->m_kernelSize;
@@ -409,16 +450,15 @@ ConvCFM::ConvCFM(std::string name)
 		cfm = 1;
 		NON_LINEARITY = config->m_nonLinearity;
 
-		outputs  = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
-		curDelta = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
-		wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount * kernelSize * kernelSize, Config::instance()->getChannels());
+		outputs  = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
+		curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
 		preDelta = NULL;
 
 		for(int i = 0; i < amount; i++){
-			w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-			b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
-			wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-			bgrad.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+			w.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
+			b.push_back(new cuMatrix<double>(1, 1, 1));
+			wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
+			bgrad.push_back(new cuMatrix<double>(1, 1, 1));
 		}
 		w.toGpu();
 		b.toGpu();
@@ -426,14 +466,13 @@ ConvCFM::ConvCFM(std::string name)
 		bgrad.toGpu();
 
 		for(int i = 0; i < amount; i++){
-			momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-			momentum_b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+			momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
+			momentum_b.push_back(new cuMatrix<double>(1, 1, 1));
 		}
 		momentum_w.toGpu();
 		momentum_b.toGpu();
 	}
 	else {
-		ConfigConv* config = (ConfigConv*)Config::instance()->getLayerByName(m_name);
 		ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
 
 		inputs_1 = NULL;
@@ -442,7 +481,7 @@ ConvCFM::ConvCFM(std::string name)
 		amount = config->m_amount;
 		outputAmount = amount;
 		kernelSize = config->m_kernelSize;
-		padding = config->m_kernelSize;
+		padding = config->m_padding;
 
 		inputDim  = preLayer->outputDim;
 		outputDim = (inputDim + 1 - kernelSize) + padding * 2;
@@ -451,16 +490,15 @@ ConvCFM::ConvCFM(std::string name)
 		cfm = config->m_cfm;
 		NON_LINEARITY = config->m_nonLinearity;
 		
-		outputs = new cuMatrix<double>(batch, outputAmount * outputDim * outputDim, Config::instance()->getChannels());
-		curDelta = new cuMatrix<double>(batch, outputAmount * outputDim  * outputDim,  Config::instance()->getChannels());
-		wgradTmp = new cuMatrix<double>(batch, cfm * outputAmount  * kernelSize * kernelSize, Config::instance()->getChannels());
+		outputs = new cuMatrix<double> (batch, outputDim * outputDim, outputAmount);
+		curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
 		preDelta = preLayer->getCurDelta();
 
 		for(int i = 0; i < amount; i++){
-			w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-			b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
-			wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-			bgrad.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+			w.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
+			b.push_back(new cuMatrix<double>(1, 1, 1));
+			wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
+			bgrad.push_back(new cuMatrix<double>(1, 1, 1));
 		}
 
 		w.toGpu();
@@ -469,8 +507,8 @@ ConvCFM::ConvCFM(std::string name)
 		bgrad.toGpu();
 
 		for(int i = 0; i < amount; i++){
-			momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, Config::instance()->getChannels()));
-			momentum_b.push_back(new cuMatrix<double>(1, 1, Config::instance()->getChannels()));
+			momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
+			momentum_b.push_back(new cuMatrix<double>(1, 1, 1));
 		}
 		momentum_w.toGpu();
 		momentum_b.toGpu();
@@ -482,7 +520,7 @@ ConvCFM::ConvCFM(std::string name)
 
 void ConvCFM::save(FILE* file)
 {
-	for(int a = 0; a < amount; a++){
+	for(int a = 0; a < w.size(); a++){
 		
 		w[a]->toCpu();
 		b[a]->toCpu();
@@ -524,27 +562,31 @@ void ConvCFM::initRandom()
 //  	for(int i = 0; i < w.size(); i++){
 //  		initMatrix(w[i], initW);
 //  	}
-	 	for(int i = 0; i < w.size(); i++){
-	 		for(int j = 0; j < w[i]->getLen(); j++){
-	 			w[i]->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
+		for(int i = 0; i < w.size(); i++){
+			double epsilon = initW;
+			for(int c = 0; c < w[i]->channels; c++)
+			{
+				double r1 = 0.01 + 5 * (rand()) / RAND_MAX;
+				double r2 = 0.01 + 5 * (rand()) / RAND_MAX;
+				createGaussian(w[i]->getHost() + c * w[i]->getArea(), r1,r2,
+					kernelSize, kernelSize, w[i]->channels,
+					epsilon);
+			}
+			w[i]->toGpu();
+		}
+	}
+	else{
+		for(int i = 0; i < w.size(); i++){
+			for(int j = 0; j < w[i]->getLen(); j++){
+				w[i]->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
 				//printf("%lf ", w[i]->hostData[j]);
-	 		}//printf("\n");
-	 		w[i]->toGpu();
-	 	}
+			}//printf("\n");
+			w[i]->toGpu();
+		}
+	}
 
-//   	for(int i = 0; i < w.size(); i++){
-//   		double epsilon = initW;
-//   		for(int c = 0; c < Config::instance()->getChannels(); c++)
-//   		{
-//   			double r1 = 0.01 + initW * (rand()) / RAND_MAX;
-//   			double r2 = 0.01 + initW * (rand()) / RAND_MAX;
-//   			createGaussian(w[i]->hostData + c * w[i]->getArea(), r1,r2,
-//   				kernelSize, kernelSize, 
-//   				Config::instance()->getChannels(), 
-//   				epsilon * 0.5 + epsilon * 0.5 * rand() / RAND_MAX);
-//   		}
-//   		w[i]->toGpu();
-//   	}
+ 		 	
 }
 
 void ConvCFM::initFromCheckpoint(FILE* file)
@@ -569,261 +611,429 @@ void ConvCFM::initFromCheckpoint(FILE* file)
 	}
 }
 
-__global__ void g_ConvCFM_feedforward_1(
-	double** arrayS,
-	double** arrayW,
-	double** arrayB,
-	double* conv,
-	int inputSize,
+/*
+	dim3 block = dim3(batch, outputAmount);
+	dim3 thread= dim3(4, min(outputDim * outputDim, 256));
+	cfm = 1, outputDim , inputDim <=32 ,kernelSize = 5;
+
+*/
+__global__ void g_ConvCFM_feedforward_s_cmf1_1(
+	double** inputs,
+	double** ws,
+	double** bs,
+	double* outputs,
+	int inputDim,
 	int kernelSize,
 	int padding,
-	int convSize,
-	int convArea,
+	int outputDim,
+	int outputArea,
 	int batch,
-	int k1Amount)
+	int inputAmount,
+	int outputAmount)
 {
 	int sp = blockIdx.x;
-	int k  = blockIdx.y;
-	int c  = blockIdx.z;
+	int ok = blockIdx.y;
 
-	int convSize2  = convSize * convSize;
-	int inputSize2 = inputSize* inputSize;
-	int kernelSize2= kernelSize * kernelSize;
+	int outputSize2 = outputDim * outputDim;
+	int inputSize2  = inputDim  * inputDim;
+	int kernelSize2 = kernelSize* kernelSize;
 
-	int convSkip  = convArea * c + (sp * k1Amount + k) * convSize2;
+	double *w = ws[ok];
+	//__shared__ double w[5 * 5];
 
-	double* curInput = arrayS[sp] + c * inputSize2;
-	double* w        = arrayW[k]  + c * kernelSize2;
-	double  b        = arrayB[k][c];
+	double* curInput  = inputs[sp] + ok % inputAmount * inputSize2;
+	double* curOutput = outputs + ok * outputArea + sp * outputSize2;
+	
+	/*load the image to shared memory*/
+// 	double* _w = ws[ok];
+// 	if(threadIdx.x < kernelSize2){
+// 		w[threadIdx.x] = _w[threadIdx.x];
+// 	}
+//	__syncthreads();
 
-	double* curConv  = conv   + convSkip;
+	double b = bs[ok][0];
 
 	/*convolution*/
-	for(int tidx = 0; tidx < convSize2; tidx += blockDim.x)
+	for(int tidx = 0; tidx < outputSize2; tidx += blockDim.x)
 	{
 		int idx = tidx + threadIdx.x;
-		if(idx < convSize2)
+		if(idx < outputSize2)
 		{
-			int x = idx / convSize;
-			int y = idx % convSize;
+			int x = idx / outputDim;
+			int y = idx % outputDim;
 			double val = 0.0;
-			for(int i = 0; i < kernelSize; i++)
-			{
-				for(int j = 0; j < kernelSize; j++)
-				{
+			for(int i = 0; i < kernelSize; i++){
 					int xx = x + i - padding;
+					int skipx = xx * inputDim;
+					int skipk = i  * kernelSize;
+				for(int j = 0; j < kernelSize;j++){
 					int yy = y + j - padding;
-					if(xx >= 0 && xx < inputSize && yy >= 0 && yy < inputSize)
-						val += curInput[xx * inputSize + yy] * w[i * kernelSize + j];
+
+					if(xx >= 0 && xx < inputDim && yy >= 0 && yy < inputDim){
+
+						val += curInput[skipx + yy] * w[skipk + j];
+					}
 				}
 			}
-			curConv[idx] = val + b;
+			curOutput[idx] = val + b;
 		}
 	}
 }
 
 
 /*
-* function: get convolution layer and pooling output
-* blocks  : dim3(batch, kernelAmount2, Config::instance()->getChannels()),
-* threads : dim3(threadidx)
+	dim3 block = dim3(batch, outputAmount);
+	dim3 thread= dim3(min(outputDim * outputDim, 512));
 */
-
-
-__global__ void g_ConvCFM_feedforward_2(
-	double* pool1,
-	double** arrayW,
-	double** arrayB,
-	double* conv2,
-	int pool1Size,
+__global__ void g_ConvCFM_feedforward_1(
+	double** inputs,
+	double** ws,
+	double** bs,
+	double* outputs,
+	int inputDim,
 	int kernelSize,
 	int padding,
-	int conv2Size,
-	int k1Amount,
-	int k2Amount,
-	int pool1Area,
-	int conv2Area,
-	int numOfCFM)
+	int outputDim,
+	int outputArea,
+	int batch,
+	int inputAmount,
+	int outputAmount,
+	int cfm)
 {
 	int sp = blockIdx.x;
-	int k2 = blockIdx.y;
-	int c  = blockIdx.z;
+	int ok  = blockIdx.y;
 
-	double* w  = arrayW[k2] + kernelSize * kernelSize * c;
-	double  b  = arrayB[k2][c];
+	int outputSize2 = outputDim * outputDim;
+	int inputSize2  = inputDim  * inputDim;
+	int kernelSize2 = kernelSize* kernelSize;
 
-	int pool1Size2 = pool1Size * pool1Size;
-	int conv2Size2 = conv2Size * conv2Size;
+	double  b         = bs[ok][0];
 
-	int skip2 = sp * k2Amount + k2;
-
-	double* cv2 = conv2
-		+ conv2Area * c
-		+ skip2 * conv2Size2;
-
-	for(int tidx = 0; tidx < conv2Size2; tidx += blockDim.x)
+	double* curOutput = outputs + ok * outputArea + sp * outputSize2;
+	/*convolution*/
+	for(int tidx = 0; tidx < outputSize2; tidx += blockDim.x)
 	{
 		int idx = tidx + threadIdx.x;
-		if(idx < conv2Size2)
+		if(idx < outputSize2)
 		{
-			int x = idx / conv2Size;
-			int y = idx % conv2Size;
+			int x = idx / outputDim;
+			int y = idx % outputDim;
 			double val = 0.0;
-			for(int k1 = 0; k1 < numOfCFM; k1++)
-			{
-				int kk1 = (k1 + k2) % k1Amount;
-				double* pl1 = pool1
-					+ pool1Area * c
-					+ (sp * k1Amount + kk1) * pool1Size2;
-
-				for (int i = 0; i < kernelSize; i++) {
-					for (int j = 0; j < kernelSize; j++) {
-						int xx = x + i - padding;
+			for(int c = 0; c < cfm; c++){
+				double* curInput = inputs[sp] + (ok + c ) % inputAmount * inputSize2;
+				double* w        = ws[ok] + c * kernelSize2;
+				for(int i = 0; i < kernelSize; i++){
+					int xx = x + i - padding;
+					for(int j = 0; j < kernelSize; j++){
 						int yy = y + j - padding;
-						if(xx>= 0 && xx < pool1Size && yy >= 0 && yy < pool1Size){
-							val += pl1[xx * pool1Size + yy] * w[i * kernelSize + j];
+						if(xx >= 0 && xx < inputDim && yy >= 0 && yy < inputDim)
+							val += curInput[xx * inputDim + yy] * w[i * kernelSize + j];
+					}
+				}
+			}
+			curOutput[idx] = val + b;
+		}
+	}
+}
+
+/*
+dim3 block = dim3(batch, div);
+dim3 thread= dim3(min(outputDim * outputDim, 512, remain));
+*/
+
+__global__ void g_ConvCFM_feedforward_2(
+	double*  inputs,
+	double** ws,
+	double** bs,
+	double*  outputs,
+	int inputDim,
+	int kernelSize,
+	int padding,
+	int outputDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int outputArea,
+	int cfm)
+{
+	int sp = blockIdx.x;
+	int ok  = blockIdx.y * blockDim.y + threadIdx.y;
+	if(ok >= outputAmount)return;
+
+	int outputSize2 = outputDim * outputDim;
+	int inputSize2  = inputDim* inputDim;
+	int kernelSize2 = kernelSize * kernelSize;
+
+	double  b         = bs[ok][0];
+
+	double* curOutput = outputs + ok * outputArea + sp * outputSize2;
+
+	/*convolution*/
+	for(int tidx = 0; tidx < outputSize2; tidx += blockDim.x)
+	{
+		int idx = tidx + threadIdx.x;
+		if(idx < outputSize2)
+		{
+			int x = idx / outputDim;
+			int y = idx % outputDim;
+			double val = 0.0;
+			for(int c = 0; c < cfm; c++){
+				double* curInput = inputs + (ok + c) % inputAmount * inputArea + sp * inputSize2;
+				double* w        = ws[ok] + c * kernelSize2;
+				for(int i = 0; i < kernelSize; i++){
+					int xx = x + i - padding;
+					for(int j = 0; j < kernelSize; j++){
+						int yy = y + j - padding;
+						if(xx >= 0 && xx < inputDim && yy >= 0 && yy < inputDim)
+							val += curInput[xx * inputDim + yy] * w[i * kernelSize + j];
+					}
+				}
+			}
+			curOutput[idx] = val + b;
+		}
+	}
+}
+
+
+/*
+dim3 block = dim3(batch, outputAmount);
+dim3 thread= min(outputDim * outputDim, 512);
+*/
+__global__ void g_ConvCFM_backpropagation(
+	double* _curDelta,
+	double**ws,
+	double* _preDelta,
+	int     curDim,
+	int     preDim,
+	int     preAmount,
+	int     curAmount,
+	int     kernelSize,
+	int     padding,
+	int     curArea,
+	int     preArea,
+	int     cfm)
+{
+	int sp = blockIdx.x;
+	int ok = blockIdx.y;
+
+	int curSize2    = curDim     * curDim;
+	int preSize2    = preDim     * preDim;
+	int kernelSize2 = kernelSize * kernelSize;
+
+	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
+		int idx = tidx + threadIdx.x;
+		if (idx < preSize2) {
+			int i = idx / preDim;
+			int j = idx % preDim;
+			double val = 0.0;
+
+			for(int c = 0; c < cfm; c++){
+				int ik = (ok + c) % preAmount;
+				double *preDelta = _preDelta + ik * preArea + sp * preSize2;
+				double *w = ws[ok] + c * kernelSize2;
+				double *curDelta = _curDelta + ok * curArea + sp * curSize2;
+
+				for (int x = 0; x < kernelSize; x++) {
+					for (int y = 0; y < kernelSize; y++) {
+						int cx = i + x - (kernelSize >> 1);
+						int cy = j + y - (kernelSize >> 1);
+						int wx = kernelSize - x - 1;
+						int wy = kernelSize - y - 1;
+						cx -= ((kernelSize >> 1) - padding);
+						cy -= ((kernelSize >> 1) - padding);
+						if(cx >= 0 && cx < curDim && cy >= 0 && cy < curDim){
+							val += curDelta[cx * curDim + cy] * w[wx * kernelSize + wy];
 						}
 					}
 				}
+				atomicAdd(preDelta + idx, val);
 			}
-			cv2[idx] = val + b;
+			//atomicAdd(preDelta + idx, val);
 		}
 	}
 }
 
 
 /*
-* blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels())
-* threads : dim3(threadidx)
+dim3 block = dim3(cfm, outputAmount);
+dim3 thread= min(kernelSize * kernelSize * batch, 512);
 */
-__global__ void g_ConvCFM_backpropagation(
-	double* _convDelta,
-	double**_w,
-	double* _poolDelta,
-	int     _convOutputSize,
-	int     _poolOutputSize,
-	int     _kernelAmount1,
-	int     _kernelAmount2,
-	int     _kernelSize,
-	int     _padding,
-	int     _convDeltaArea,
-	int     _poolDeltaArea,
-	int numOfCFM)
-{
-	int curSize = _convOutputSize;
-	int wSize = _kernelSize;
-	int nxtSize = _poolOutputSize;
-	int k2 = blockIdx.y % _kernelAmount2;
-	int k1 = blockIdx.y / _kernelAmount2;
 
-	cuAssert(k1 < numOfCFM);
-
-	int kk1= (k1 + k2) % _kernelAmount1;
-
-	int s = blockIdx.x;
-	int c = blockIdx.z;
-	int curSize2 = curSize * curSize;
-	int nxtSize2 = nxtSize * nxtSize;
-	double* curDelta = _convDelta + c * _convDeltaArea
-		+ curSize2 * (s * _kernelAmount2 + k2);
-	double* nxtDelta = _poolDelta + c * _poolDeltaArea
-		+ nxtSize2 * (s * _kernelAmount1 + kk1);
-
-
-	double* w = _w[k2] + c * _kernelSize * _kernelSize;
-
-	for (int tidx = 0; tidx < nxtSize2; tidx += blockDim.x) {
-		int idx = tidx + threadIdx.x;
-		if (idx < nxtSize2) {
-			int i = idx / nxtSize;
-			int j = idx % nxtSize;
-			double val = 0.0;
-			for (int x = 0; x < wSize; x++) {
-				for (int y = 0; y < wSize; y++) {
-					int cx = i + x - (wSize >> 1);
-					int cy = j + y - (wSize >> 1);
-					int wx = wSize - x - 1;
-					int wy = wSize - y - 1;
-					cx -= ((wSize >> 1) - _padding);
-					cy -= ((wSize >> 1) - _padding);
-					if(cx >= 0 && cx < curSize && cy >= 0 && cy < curSize){
-						val += curDelta[cx * curSize + cy] * w[wx * wSize + wy];
-					}
-				}
-			}
-			atomicAdd(nxtDelta + idx, val);
-		}
-	}
-}
-
-
-/*
-* blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
-* threads : dim3(threadidx)
-*/
-__global__ void g_ConvCFM_wgrad_2(double* pool,
-	double* convDelta,
-	double* WgradTmp,
-	int poolOutputSize,
-	int convOutputSize,
-	int kernelAmount1,
-	int kernelAmount2,
+__global__ void g_ConvCFM_wgrad_2(double* _inputs,
+	double* _curDelta,
+	double** _wgrad,
+	double** w,
+	int inputDim,
+	int curDeltaDim,
 	int kernelSize,
+
+	int inputAmount,
+	int outputAmount,
 	int padding,
-	int poolArea,
-	int convDeltaArea,
-	int wgradTmpArea,
-	int numOfCMF)
+
+	int inputArea,
+	int curDeltaArea,
+	int batch,
+	double lambda)
 {
-	int c  = blockIdx.z;
-	int s  = blockIdx.x;
-	int k2 = blockIdx.y % kernelAmount2;
-	int k1 = blockIdx.y / kernelAmount2;
+	int c  = blockIdx.x;
+	int ok = blockIdx.y;
+	int ik = (ok + c) % inputAmount;
 
-	cuAssert(k1 < numOfCMF);
+	int inputSize2    = inputDim * inputDim;
+	int curDeltaSize2 = curDeltaDim * curDeltaDim;
+	int kernelSize2   = kernelSize * kernelSize;
 
-	int kk1= (k1 + k2) % kernelAmount1;
+	double* wgrad   = _wgrad[ok] + 
+		+ c * kernelSize2;
 
-	int curSize = poolOutputSize;
-	int wSize   = convOutputSize;
-	int nxtSize = kernelSize;
-	int curSize2 = curSize * curSize;
-	int wSize2   = wSize   * wSize;
-	int nxtSize2 = nxtSize * nxtSize;
-	double* cur   = pool
-		+ c * poolArea
-		+ curSize2 * (s * kernelAmount1 + kk1);
-	double* w     = convDelta
-		+ c * convDeltaArea
-		+ wSize2 * (s * kernelAmount2 + k2);
-	double* nxt   = WgradTmp
-		+ c * wgradTmpArea
-		+ nxtSize2 * (s * numOfCMF * kernelAmount2 + k1 * kernelAmount2 + k2);
+	int cfm = gridDim.x;
+	int len = kernelSize2 * cfm;
+	for(int i = 0; i < len; i += blockDim.x){
+		int idx = i + threadIdx.x;
+		if(idx < len){
+			_wgrad[ok][idx] = 0;
+		}
+	}
 
-	for(int tidx = 0; tidx < nxtSize2; tidx += blockDim.x)
+	__syncthreads();
+
+	len = kernelSize2 * batch;
+	for(int tidx = 0; tidx < len; tidx += blockDim.x)
 	{
 		int idx = tidx + threadIdx.x;
-		if(idx < nxtSize2)
+		if(idx < len)
 		{
-			int i = idx / nxtSize;
-			int j = idx % nxtSize;
+			int b = idx / kernelSize2;
+			int t = idx % kernelSize2;
+			int i = t   / kernelSize;
+			int j = t   % kernelSize;
 			double val = 0.0;
-			for(int x = 0; x < wSize; x++)
-			{
-				for(int y = 0; y < wSize; y++)
+
+			double* input    = _inputs   + ik * inputArea    + b * inputSize2;
+			double* curDelta = _curDelta + ok * curDeltaArea + b * curDeltaSize2;
+
+			for(int x = 0; x < curDeltaDim; x++){
+				int cx = i + x - padding;
+				for(int y = 0; y < curDeltaDim; y++)
 				{
-					int cx = i + x - padding;
 					int cy = j + y - padding;
-					if(cx >= 0 && cy >= 0 && cx < curSize && cy < curSize)
-						val += cur[cx * curSize + cy] * w[x * wSize + y];
+					if(cx >= 0 &&  cy >= 0 && cx < inputDim && cy < inputDim)
+						val += input[cx * inputDim + cy] * curDelta[x * curDeltaDim + y];
 				}
 			}
-			nxt[idx] = val;
+			atomicAdd(wgrad + t, val);
+		}
+	}
+
+	__syncthreads();
+	for(int i = 0; i < kernelSize2; i += blockDim.x){
+		int idx = i + threadIdx.x;
+		if(idx < kernelSize2){
+			wgrad[idx] = wgrad[idx] / batch + w[ok][c * kernelSize2 + idx] * lambda ;
 		}
 	}
 }
+
+
+
+
 /*
-* blocks  : dim3(kernelAmount2, kernelSize * kernelSize, Config::instance()->getChannels()),
+dim3 block = dim3(inputAmount, outputAmount, kernelSize * kernelSize);
+dim3 thread= min(batch, 256);
+
+g_ConvCFM_wgrad_2<<<block, thread>>>(inputs_2->getDev(),
+curDelta->getDev(),
+wgrad.m_devPoint,
+w.m_devPoint,
+inputDim,
+outputDim,
+kernelSize,
+inputAmount,
+outputAmount,
+padding,
+inputs->getArea(),
+curDelta->getArea(),
+batch,
+lambda);
+cudaDeviceSynchronize();
+*/
+
+__global__ void g_ConvCFM_wgrad__2(double* _inputs,
+	double* _curDelta,
+	double** _wgrad,
+	double** w,
+	int inputDim,
+	int curDeltaDim,
+	int kernelSize,
+
+	int inputAmount,
+	int outputAmount,
+	int padding,
+
+	int inputArea,
+	int curDeltaArea,
+	int batch,
+	double lambda)
+{
+	extern __shared__ double _sum[]; 
+	int ik  = blockIdx.x;
+	int ok  = blockIdx.y;
+	int idx = blockIdx.z;
+
+	int inputSize2    = inputDim * inputDim;
+	int curDeltaSize2 = curDeltaDim * curDeltaDim;
+	int kernelSize2   = kernelSize * kernelSize;
+
+	double* wgrad   = _wgrad[ok] + 
+		+ ik * kernelSize2;
+
+	int len = batch;
+	for(int tidx = 0; tidx < len; tidx += blockDim.x)
+	{
+		int b = tidx + threadIdx.x;
+		if(idx < len)
+		{
+			int i = idx / kernelSize;
+			int j = idx % kernelSize;
+			double val = 0.0;
+
+				double* input    = _inputs   + ik * inputArea    + b * inputSize2;
+				double* curDelta = _curDelta + ok * curDeltaArea + b * curDeltaSize2;
+
+				for(int x = 0; x < curDeltaDim; x++){
+					for(int y = 0; y < curDeltaDim; y++)
+					{
+						int cx = i + x - padding;
+						int cy = j + y - padding;
+						if(cx >= 0 &&  cy >= 0 && cx < inputDim && cy < inputDim)
+							val += input[cx * inputDim + cy] * curDelta[x * curDeltaDim + y];
+					}
+				}
+			_sum[b] = val;
+		}
+	}
+
+	__syncthreads();
+	len = batch;
+	while(len != 1)
+	{
+		__syncthreads();
+		int skip = (len + 1) >> 1;
+		if(threadIdx.x < (len >> 1))
+		{
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		}
+		len = (len + 1) >> 1;
+	}
+	__syncthreads();
+
+	if(threadIdx.x == 0){
+		wgrad[idx] = _sum[0] / batch + w[ok][ik * kernelSize2 + idx] * lambda;
+	}
+}
+/*
+* blocks  : dim3(kernelAmount2, kernelSize * kernelSize),
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
@@ -883,7 +1093,7 @@ __global__ void g_ConvCFM_wgradAdd_2(
 	}
 }
 /*
-* blocks  : dim3(kernelAmount2, Config::instance()->getChannels())
+* blocks  : dim3(kernelAmount2)
 * threads : dim3(256)
 * shared  : sizeof(double) * 256
 */
@@ -896,7 +1106,6 @@ __global__ void g_ConvCFM_Bgrad_2(double* delta,
 {
 	extern __shared__ double _sum[];
 	int k2 = blockIdx.x;
-	int c  = blockIdx.y;
 	_sum[threadIdx.x] = 0.0;
 	__syncthreads();
 	int deltaSize2 = deltaSize * deltaSize;
@@ -909,9 +1118,7 @@ __global__ void g_ConvCFM_Bgrad_2(double* delta,
 			int s  = idx / deltaSize2;//s,kernel1
 			int t2 = idx % deltaSize2;//x,y
 			int id =
-				c * deltaArea
-				+ deltaSize2 * (s * kernelAmount2 + k2)
-				+ t2;
+				deltaArea * k2 + s * deltaSize2 + t2;
 			_sum[threadIdx.x] += delta[id];
 		}
 	}
@@ -930,59 +1137,106 @@ __global__ void g_ConvCFM_Bgrad_2(double* delta,
 	__syncthreads();
 	if(threadIdx.x == 0)
 	{
-		bgrad[k2][c] = _sum[0] / batch;
+		bgrad[k2][0] = _sum[0] / batch;
 	}
 }
 /*
-* blocks  : dim3(batch, cuKernelScan[cl], Config::instance()->getChannels()),
-* threads : dim3(threadidx)
+
+g_ConvCFM_wgrad_1<<<block, thread>>>(
+double**_inputs,
+double* _curDelta,
+double* _wgrad,
+int inputDim,
+int curDeltaDim,
+int kernelSize,
+
+int inputAmount,
+int outputAmount,
+int padding,
+
+int inputArea,
+int curDeltaAea,
+int wgrapArea,
+int batch)
+dim3 block = dim3(cfm, outputAmount);
+dim3 thread= min(kernelSize * kernelSize * batch, 512);
 */
-__global__ void g_ConvCFM_wgrad_1(double** sArray,
-	double* convDelta,
-	double* WgradTmp,
-	int imgSize,
-	int convOutputSize,
-	int kernelAmount2,
+__global__ void g_ConvCFM_wgrad_1(
+	double**_inputs,
+	double* _curDelta,
+	double** _wgrad,
+	double** w,
+	int inputDim,
+	int curDeltaDim,
 	int kernelSize,
+
+	int inputAmount,
+	int outputAmount,
 	int padding,
-	int sArrayArea,
-	int convDeltaArea,
-	int wgrapTmpArea)
+
+	int inputArea,
+	int curDeltaAea,
+	int batch,
+	double lambda)
 {
-	int curSize = imgSize;
-	int wSize   = convOutputSize;
-	int nxtSize = kernelSize;
-	int s = blockIdx.x;
-	int k2= blockIdx.y;
-	int c = blockIdx.z;
-	int wSize2   = wSize * wSize;
-	int nxtSize2 = nxtSize * nxtSize;
-	double* cur  = sArray[s] + c * sArrayArea;
-	double* w     = convDelta
-		+ c * convDeltaArea
-		+ wSize2 * (s * kernelAmount2 + k2);
-	double* nxt   = WgradTmp
-		+ c * wgrapTmpArea
-		+ nxtSize2 * (s * kernelAmount2 + k2);
-	for(int tidx = 0; tidx < nxtSize2; tidx += blockDim.x)
+	int ok = blockIdx.y;
+	int ik = (blockIdx.x + ok) % inputAmount;
+	int c  = blockIdx.x;
+
+	int inputSize2    = inputDim * inputDim;
+	int curDeltaSize2 = curDeltaDim * curDeltaDim;
+	int kernelSize2   = kernelSize * kernelSize;
+
+	double* wgrad   = _wgrad[ok] + c * kernelSize2;
+
+	int cfm = gridDim.x;
+	int len = kernelSize2 * cfm;
+	for(int i = 0; i < len; i += blockDim.x){
+		int idx = i + threadIdx.x;
+		if(idx < len){
+			_wgrad[ok][idx] = 0;
+		}
+	}
+
+	__syncthreads();
+
+	len = kernelSize2 * batch;
+
+	for(int tidx = 0; tidx < len; tidx += blockDim.x)
 	{
 		int idx = tidx + threadIdx.x;
-		if(idx < nxtSize2)
+		if(idx < len)
 		{
-			int i = idx / nxtSize;
-			int j = idx % nxtSize;
+			int b = idx / kernelSize2;
+			int t = idx % kernelSize2;
+			int i = t   / kernelSize;
+			int j = t   % kernelSize;
 			double val = 0.0;
-			for(int x = 0; x < wSize; x++)
-			{
-				for(int y = 0; y < wSize; y++)
+
+			double* input    = _inputs[b]+ ik * inputSize2;
+			double* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
+
+			for(int x = 0; x < curDeltaDim; x++){
+				int cx = i + x - padding;
+				for(int y = 0; y < curDeltaDim; y++)
 				{
-					int cx = i + x - padding;
+
 					int cy = j + y - padding;
-					if(cx >= 0 &&  cy >= 0 && cx < curSize && cy < curSize)
-						val += cur[cx * curSize + cy] * w[x * wSize + y];
+					if(cx >= 0 &&  cy >= 0 && cx < inputDim && cy < inputDim)
+						val += input[cx * inputDim + cy] * curDelta[x * curDeltaDim + y];
 				}
 			}
-			nxt[idx] = val;
+
+			atomicAdd(wgrad + t, val);
+		}
+	}
+
+	__syncthreads();
+
+	for(int i = 0; i < kernelSize2; i += blockDim.x){
+		int idx = i + threadIdx.x;
+		if(idx < kernelSize2){
+			wgrad[idx] = wgrad[idx] / batch + w[ok][c * kernelSize2 + idx] * lambda ;
 		}
 	}
 }
@@ -1039,7 +1293,7 @@ __global__ void g_ConvCFM_wgradAdd_1(double* WgradTmp, double** Wgrad,
 	}
 }
 /*
-*blocks  : dim3(kernelAmount2, Config::instance()->getChannels())
+*blocks  : dim3(kernelAmount2)
 *threads : dim3(256)
 *shared  : sizeof(double) * 256
 */
@@ -1053,7 +1307,6 @@ __global__ void g_ConvCFM_Bgrad_1(double* delta,
 {
 	extern __shared__ double _sum[];
 	int k2 = blockIdx.x;
-	int c  = blockIdx.y;
 	_sum[threadIdx.x] = 0.0;
 	__syncthreads();
 	int deltaSize2 = deltaSize * deltaSize;
@@ -1066,9 +1319,7 @@ __global__ void g_ConvCFM_Bgrad_1(double* delta,
 			int s  = idx / (deltaSize2);//s
 			int t2 = idx % (deltaSize2);//x,y
 			int id =
-				deltaArea * c
-				+ deltaSize2 * (s * kernelAmount2 + k2)
-				+ t2;
+				deltaArea * k2 + s * deltaSize2 + t2;
 			_sum[threadIdx.x] += delta[id];
 		}
 	}
@@ -1087,6 +1338,6 @@ __global__ void g_ConvCFM_Bgrad_1(double* delta,
 	__syncthreads();
 	if(threadIdx.x == 0)
 	{
-		bgrad[k2][c] = _sum[0] / batch;
+		bgrad[k2][0] = _sum[0] / batch;
 	}
 }

@@ -299,16 +299,31 @@ void FullConnect::convert()
 void FullConnect::initRandom()
 {
 	srand(clock());
- 	double epsilon = Config::instance()->getLayerByName(m_name)->m_initW;
+	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
+
+	//initMatrix(w, epsilon);
+	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
+		double epsilon = initW;
+		for(int c = 0; c < w->channels; c++)
+		{
+			double r1 = 0.01 + 5 * (rand()) / RAND_MAX;
+			double r2 = 0.01 + 5 * (rand()) / RAND_MAX;
+			createGaussian(w->getHost() + c * w->getArea(), r1,r2,
+				w->rows, w->cols, w->channels,
+				epsilon);
+		}
+		w->toGpu();
+	}
+	else{
+		for(int j = 0; j < w->getLen(); j++){
+			w->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+			//printf("%lf ", w[i]->hostData[j]);
+		}//printf("\n");
+		w->toGpu();
+	}
 	//double epsilon = sqrt((double)6) / sqrt((double)(inputsize + outputsize));
- 	for(int c=0; c < w->channels; c++){
- 		for(int i=0; i < w->rows; i++){
- 			for(int j=0; j< w->cols; j++){
- 				w->set(i,j, c, 1.0 * rand() / RAND_MAX *  2.0 * epsilon - epsilon);
- 			}
- 		}
- 	}
- 	w->toGpu();
+
+	w->toGpu();
 }
 
 void FullConnect::initFromCheckpoint(FILE* file)

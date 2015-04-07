@@ -52,13 +52,20 @@ public:
 		return outputDim;
 	}
 
+	virtual void printParameter(){
+		printf("%s:\n",m_name.c_str());
+		w[0]->toCpu();
+		printf("weight:%lf, %lf, %lf;\n", w[0]->get(0,0,0), w[0]->get(0,1,0), w[0]->get(0, 2, 0));
+		b[0]->toCpu();
+		printf("bias  :%lf\n", b[0]->get(0,0,0));
+	}
+
 private:
 	cuMatrixVector<double>* inputs_1;
 	cuMatrix<double>* inputs_2;
 	cuMatrix<double>* preDelta;
 	cuMatrix<double>* outputs;
 	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
-	//int outputAmount;  outputAmount = inputAmount * amount
 	int kernelSize;
 	int padding;
 	int batch;
@@ -72,7 +79,6 @@ private:
 	cuMatrixVector<double> bgrad;
 	cuMatrixVector<double> momentum_w;
 	cuMatrixVector<double> momentum_b;
-	cuMatrix<double>* wgradTmp;
 };
 
 #endif 

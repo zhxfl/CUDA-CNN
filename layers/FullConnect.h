@@ -28,7 +28,13 @@ public:
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
-
+	virtual void printParameter(){
+		printf("%s:\n",m_name.c_str());
+		w->toCpu();
+		printf("weight:%lf, %lf;\n", w->get(0,0,0), w->get(0,1,0));
+		b->toCpu();
+		printf("bias  :%lf\n", b->get(0,0,0));
+	}
 
 	FullConnect(std::string name);
 

@@ -34,7 +34,7 @@ __global__ void g_feedforward(
 
 void Pooling::feedforward()
 {
-	dim3 block = dim3(batch, amount, Config::instance()->getChannels());
+	dim3 block = dim3(batch, outputAmount);
 	dim3 thread= dim3(512);
 	
 	g_feedforward<<<block, thread>>>(
@@ -49,7 +49,7 @@ void Pooling::feedforward()
 		inputs->getArea(),
 		outputs->getArea(),
 		batch,
-		amount);
+		outputAmount);
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("pooling feedforward");
 
@@ -119,19 +119,17 @@ Pooling::Pooling(std::string name)
 	
 	batch= Config::instance()->getBatchSize();
 	
-	int channels = inputs->channels;
-
-	outputs  = new cuMatrix<double>(batch, amount * outputDim * outputDim, channels);
-	pointX   = new cuMatrix<int>   (batch, amount * outputDim * outputDim, channels);
-	pointY   = new cuMatrix<int>   (batch, amount * outputDim * outputDim, channels);
-	curDelta = new cuMatrix<double>(batch, amount * outputDim * outputDim, channels);
+	outputs  = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
+	pointX   = new cuMatrix<int>   (batch, outputDim * outputDim, outputAmount);
+	pointY   = new cuMatrix<int>   (batch, outputDim * outputDim, outputAmount);
+	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
 	preDelta = preLayer->getCurDelta();
 
 	Layers::instance()->set(m_name, this);
 }
 
 /*
-*blocks : dim3(batch, cuKernelScan[0], Config::instance()->getChannels()),
+*blocks : dim3(batch, cuKernelScan[0]),
 *threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
 
@@ -151,13 +149,12 @@ __global__ void g_feedforward(
 {
 	int sp = blockIdx.x;
 	int k  = blockIdx.y;
-	int c  = blockIdx.z;
 
 	int convSize2  = convSize * convSize;
 	int poolSize2  = poolSize * poolSize;
 
-	int convSkip  = convArea * c + (sp * kAmount + k) * convSize2;
-	int poolSkip  = poolArea * c + (sp * kAmount + k) * poolSize2;
+	int convSkip  = convArea * k + sp * convSize2;
+	int poolSkip  = poolArea * k + sp * poolSize2;
 
 	double* curConv  = conv   + convSkip;
 	double* curPool  = pool   + poolSkip;

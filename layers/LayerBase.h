@@ -22,6 +22,8 @@ public:
 	virtual cuMatrix<double>* getPreDelta() = 0;
 	virtual cuMatrix<double>* getCurDelta() = 0;
 
+	virtual void printParameter() = 0;
+
 	std::string m_name;
 	std::vector<std::string> m_preLayer;
 };

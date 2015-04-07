@@ -20,7 +20,6 @@ public:
 	
 	LocalConnect(std::string name);
 
-
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
@@ -28,6 +27,7 @@ public:
 	~LocalConnect(){
 		delete outputs;
 	}
+
 	cuMatrix<double>* getOutputs(){
 		return outputs;
 	};
@@ -52,6 +52,13 @@ public:
 		return outputDim;
 	}
 
+	virtual void printParameter(){
+		printf("%s:\n",m_name.c_str());
+		w[0]->toCpu();
+		printf("weight:%lf, %lf;\n", w[0]->get(0,0,0), w[0]->get(0,1,0));
+		b[0]->toCpu();
+		printf("bias  :%lf\n", b[0]->get(0,0,0));
+	}
 private:
 	cuMatrixVector<double>* inputs_1;
 	cuMatrix<double>* inputs_2;
@@ -60,10 +67,8 @@ private:
 	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
 	//int outputAmount;  outputAmount = inputAmount * amount
 	int kernelSize;
-	int padding;
 	int batch;
 	int NON_LINEARITY;
-	int cfm;
 	double lambda;
 	int localKernelSize;
 private:
@@ -73,7 +78,7 @@ private:
 	cuMatrixVector<double> bgrad;
 	cuMatrixVector<double> momentum_w;
 	cuMatrixVector<double> momentum_b;
-	cuMatrix<double>* wgradTmp;
+	//cuMatrix<double>* wgradTmp;
 };
 
 #endif 

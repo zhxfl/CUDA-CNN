@@ -220,6 +220,7 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
 		}
 		len = (len + 1) >> 1;
 	}
+	__syncthreads();
 	if(threadIdx.x == 0)
 	{
 		bgrad[blockIdx.x] = _sum[0] / batch;
@@ -293,7 +294,7 @@ __global__ void g_getCost_2(double* cost,
 		int id = i + threadIdx.x;
 		if(id < len)
 		{
-			_sum[threadIdx.x] += weight[id] * weight[id];
+			_sum[threadIdx.x] += 0.5 * weight[id] * weight[id];
 		}
 	}
 	len = blockDim.x;
@@ -309,7 +310,7 @@ __global__ void g_getCost_2(double* cost,
 	}
 	if(threadIdx.x == 0)
 	{
-		cost[0] += _sum[0] * lambda * 0.5;
+		cost[0] += _sum[0] * lambda;
 	}
 }
 
