@@ -149,7 +149,7 @@ void outputPoints(cuMatrix<int>* p)
 				printf("%d ", p->get(i,j, c));
 			}printf("\n");
 		}
-		printf("%d\n");
+		printf("\n");
 	}
 }
 
@@ -546,11 +546,11 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			if(start + batch <= x.size() - batch)
 				getBatchImageWithStreams(x, batchImg[batchImgId], start + batch, stream1);
 			else{
-				/*ÕâÀïÊÇ×öÔ¤ÏÈ¿½±´£¬ÌØÊâ´¦Àí×îºóÒ»¸öepoch*/
+				/*ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¤ï¿½È¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â´¦ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½epoch*/
 				int tstart = x.size() - batch;
 				getBatchImageWithStreams(x, batchImg[batchImgId], tstart, stream1);
 			}
-			/*ÌØÊâ´¦Àí×îºóÒ»¸öepoch*/
+			/*ï¿½ï¿½ï¿½â´¦ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½epoch*/
 			if(start + batch > x.size()){
 				start = x.size() - batch;
 			}

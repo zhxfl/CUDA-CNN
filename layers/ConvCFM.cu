@@ -254,7 +254,7 @@ void ConvCFM::feedforward()
 			dim3 block = dim3(batch, div);
 			dim3 thread= dim3(min(outputDim * outputDim, 128), remain);
 			/*
-				最慢的kernel函数，由于outputDim = 4所以每个block只能分配到16个线程。
+				锟斤拷锟斤拷锟絢ernel锟斤拷锟斤拷锟斤拷锟斤拷outputDim = 4锟斤拷锟斤拷每锟斤拷block只锟杰凤拷锟戒到16锟斤拷锟竭程★拷
 			*/
 			g_ConvCFM_feedforward_2<<<block, thread>>>(inputs_2->getDev(),
 				w.m_devPoint,
@@ -636,7 +636,6 @@ __global__ void g_ConvCFM_feedforward_s_cmf1_1(
 
 	int outputSize2 = outputDim * outputDim;
 	int inputSize2  = inputDim  * inputDim;
-	int kernelSize2 = kernelSize* kernelSize;
 
 	double *w = ws[ok];
 	//__shared__ double w[5 * 5];
