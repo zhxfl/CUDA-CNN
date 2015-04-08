@@ -18,7 +18,6 @@ public:
 	void getCost(cuMatrix<double>*cost, int* y);
 
 	cuMatrix<double>* getOutputs();
-	cuMatrix<double>* getPreDelta();
 	cuMatrix<double>* getCurDelta() ;
 
 	void setPreDelta(cuMatrix<double>* _preDelta);

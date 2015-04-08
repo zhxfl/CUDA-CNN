@@ -20,7 +20,6 @@ public:
 	
 	ConvCFM(std::string name);
 
-
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
@@ -32,20 +31,12 @@ public:
 		return outputs;
 	};
 
-	cuMatrix<double>* getPreDelta(){
-		return preDelta;
-	}
-
 	cuMatrix<double>* getCurDelta(){
 		return curDelta;
 	}
 
 	int getOutputAmount(){
 		return outputAmount;
-	}
-
-	int getInputDim(){
-		return inputDim;
 	}
 
 	int getOutputDim(){
@@ -75,6 +66,7 @@ private:
 private:
 	cuMatrixVector<double> w;
 	cuMatrixVector<double> wgrad;
+	cuMatrixVector<double> wgradTmp;
 	cuMatrixVector<double> b;
 	cuMatrixVector<double> bgrad;
 	cuMatrixVector<double> momentum_w;

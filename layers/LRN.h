@@ -37,10 +37,6 @@ public:
 		return outputs;
 	};
 
-	cuMatrix<double>* getPreDelta(){
-		return preDelta;
-	}
-
 	cuMatrix<double>* getCurDelta(){
 		return curDelta;
 	}

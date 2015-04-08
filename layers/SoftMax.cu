@@ -208,11 +208,6 @@ cuMatrix<double>* SoftMax::getOutputs()
 	return outputs;
 }
 
-cuMatrix<double>* SoftMax::getPreDelta()
-{
-	return preDelta;
-}
-
 cuMatrix<double>* SoftMax::getCurDelta()
 {
 	return curDelta;

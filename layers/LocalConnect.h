@@ -32,20 +32,12 @@ public:
 		return outputs;
 	};
 
-	cuMatrix<double>* getPreDelta(){
-		return preDelta;
-	}
-
 	cuMatrix<double>* getCurDelta(){
 		return curDelta;
 	}
 
 	int getOutputAmount(){
 		return outputAmount;
-	}
-
-	int getInputDim(){
-		return inputDim;
 	}
 
 	int getOutputDim(){
@@ -60,12 +52,10 @@ public:
 		printf("bias  :%lf\n", b[0]->get(0,0,0));
 	}
 private:
-	cuMatrixVector<double>* inputs_1;
-	cuMatrix<double>* inputs_2;
+	cuMatrix<double>* inputs;
 	cuMatrix<double>* preDelta;
 	cuMatrix<double>* outputs;
-	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
-	//int outputAmount;  outputAmount = inputAmount * amount
+	cuMatrix<double>* curDelta;
 	int kernelSize;
 	int batch;
 	int NON_LINEARITY;
@@ -78,7 +68,7 @@ private:
 	cuMatrixVector<double> bgrad;
 	cuMatrixVector<double> momentum_w;
 	cuMatrixVector<double> momentum_b;
-	//cuMatrix<double>* wgradTmp;
+	cuMatrixVector<double> wgradTmp;
 };
 
 #endif 

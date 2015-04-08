@@ -20,7 +20,6 @@ public:
 	void drop(double rate);
 
 	cuMatrix<double>* getOutputs();
-	cuMatrix<double>* getPreDelta();
 	cuMatrix<double>* getCurDelta() ;
 
 	void setPreDelta(cuMatrix<double>* _preDelta);

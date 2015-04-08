@@ -19,7 +19,6 @@ public:
 
 
 	virtual cuMatrix<double>* getOutputs() = 0;
-	virtual cuMatrix<double>* getPreDelta() = 0;
 	virtual cuMatrix<double>* getCurDelta() = 0;
 
 	virtual void printParameter() = 0;

@@ -267,11 +267,6 @@ cuMatrix<double>* FullConnect::getOutputs()
 	return outputs;
 }
 
-cuMatrix<double>* FullConnect::getPreDelta()
-{
-	return preDelta;
-}
-
 cuMatrix<double>* FullConnect::getCurDelta()
 {
 	return curDelta;

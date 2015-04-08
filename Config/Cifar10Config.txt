@@ -106,7 +106,7 @@ initType = Gaussian;           #Gaussian, Bernoulli#
 [
 LAYER = FC;
 NAME  = fc1;
-INPUT = local2;
+INPUT = local3;
 NUM_FULLCONNECT_NEURONS = 512;
 WEIGHT_DECAY = 1e-6;
 DROPCONNECT_RATE = 0.0;
@@ -114,6 +114,8 @@ initW = 0.12;
 NON_LINEARITY = NL_RELU;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
+
+
 
 [
 LAYER = SOFTMAX;
