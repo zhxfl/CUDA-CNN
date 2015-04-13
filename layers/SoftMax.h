@@ -15,7 +15,7 @@ public:
 	void getGrad();
 	void updateWeight() ;
 	void clearMomentum();
-	void getCost(cuMatrix<double>*cost, int* y);
+	void calCost();
 
 	cuMatrix<double>* getOutputs();
 	cuMatrix<double>* getCurDelta() ;
@@ -26,13 +26,16 @@ public:
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
 
-
 	virtual void printParameter(){
 		printf("%s:\n",m_name.c_str());
 		w->toCpu();
 		printf("weight:%lf, %lf;\n", w->get(0,0,0), w->get(0,1,0));
 		b->toCpu();
 		printf("bias  :%lf\n", b->get(0,0,0));
+	}
+
+	void setPredict(int* p){
+		predict = p;
 	}
 
 	SoftMax(std::string name);
@@ -54,6 +57,7 @@ private:
 
 	cuMatrix<double>* momentum_w;
 	cuMatrix<double>* momentum_b;
+	int* predict;
 
 	int inputsize;
 	int outputsize; 

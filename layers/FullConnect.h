@@ -15,7 +15,7 @@ public:
 	void getGrad();
 	void updateWeight() ;
 	void clearMomentum();
-	void getCost(cuMatrix<double>*cost, int* y = NULL);
+	void calCost();
 	void drop();
 	void drop(double rate);
 

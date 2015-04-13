@@ -80,6 +80,7 @@ void showImg(cuMatrix<double>* x, double scala)
 
 void DebugPrintf(cuMatrix<double>*x)
 {
+	FILE *file = fopen("DEBUG.txt", "w+");
 	x->toCpu();
 	for(int c = 0; c < x->channels; c++)
 	{
@@ -87,8 +88,8 @@ void DebugPrintf(cuMatrix<double>*x)
 		{
 			for(int j = 0; j < x->cols; j++)
 			{
-				printf("%lf ", x->get(i, j, c));
-			}printf("\n");
+				fprintf(file, "%lf ", x->get(i, j, c));
+			}fprintf(file, "\n");
 		}
 	}
 }

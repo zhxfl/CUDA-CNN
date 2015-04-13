@@ -23,7 +23,7 @@ KERNEL_SIZE = 5;
 PADDING = 2;
 KERNEL_AMOUNT = 64;
 COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
-WEIGHT_DECAY = 1e-6;
+WEIGHT_DECAY = 1e-8;
 initW = 1.0;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
@@ -32,7 +32,7 @@ initType = Bernoulli;           #Gaussian, Bernoulli#
 LAYER = POOLING;
 NAME  = pooling1;
 INPUT = conv1;
-SIZE = 3;
+SIZE = 2;
 SKIP = 2;
 NON_LINEARITY = NL_RELU;
 ]
@@ -48,26 +48,21 @@ LRN_BALTA = 0.75;
 ]
 
 [  
-LAYER = LOCAL;
-NAME  = local1;
+LAYER = NIN;
+NAME  = nin1;
 INPUT = lrn1;
-KERNEL_SIZE = 1;
-KERNEL_AMOUNT = 64;
-WEIGHT_DECAY = 1e-6;
-initW = 1.0;
-initType = Gaussian;           #Gaussian, Bernoulli#
+WEIGHT_DECAY = 1e-8;
 ]
-
 
 [  
 LAYER = CONV;
 NAME  = conv2;
-INPUT = local1;
+INPUT = nin1;
 KERNEL_SIZE = 5;
 PADDING = 2;
 KERNEL_AMOUNT = 64;
 COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
-WEIGHT_DECAY = 1e-6;
+WEIGHT_DECAY = 1e-8;
 initW = 0.9;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
@@ -87,42 +82,45 @@ LRN_BALTA = 0.75;
 LAYER = POOLING;
 NAME  = pooling2;
 INPUT = lrn2;
-SIZE = 3;
+SIZE = 2;
 SKIP = 2;
 NON_LINEARITY = NL_RELU;
 ]
 
 [  
-LAYER = LOCAL;
-NAME  = local2;
+LAYER = NIN;
+NAME  = nin2;
 INPUT = pooling2;
-KERNEL_SIZE = 1;
-KERNEL_AMOUNT = 64;
-WEIGHT_DECAY = 1e-6;
-initW = 1.0;
-initType = Gaussian;           #Gaussian, Bernoulli#
+WEIGHT_DECAY = 1e-4;
 ]
+
 
 [
 LAYER = FC;
 NAME  = fc1;
-INPUT = local3;
+INPUT = nin2;
 NUM_FULLCONNECT_NEURONS = 512;
-WEIGHT_DECAY = 1e-6;
+WEIGHT_DECAY = 1e-4;
 DROPCONNECT_RATE = 0.0;
 initW = 0.12;
 NON_LINEARITY = NL_RELU;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
 
+[  
+LAYER = NIN;
+NAME  = nin3;
+INPUT = fc1;
+WEIGHT_DECAY = 1e-4;
+]
 
 
 [
 LAYER = SOFTMAX;
 NAME = softmax1;
-INPUT = fc1;
+INPUT = nin3;
 NUM_CLASSES = 10;
-WEIGHT_DECAY = 1e-6;
+WEIGHT_DECAY = 1e-4;
 initW = 0.1;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]

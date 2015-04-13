@@ -16,7 +16,7 @@ __global__ void g_LocalConnect_backpropagation_kernelSize1(
 	int localKernelSize);
 
 /*
- * block = dim3(outputAmount, kernelSize * kernelSize, cfm);
+ * block = dim3(outputAmount, kernelSize * kernelSize);
  * thread= dim3(batch);
 */
 __global__ void g_LocalConnect_wgrad_Add(
@@ -131,31 +131,10 @@ __global__ void g_LocalConnect_feedforward_2(
 	int localKernelSize);
 
 /*
- *dim3 block = dim3(batch, outputAmount);
- *dim3 thread= min(16, min(outputDim * outputDim, 32));
-*/
-__global__ void g_LocalConnect_wgrad_1(
-	double**_inputs,
-	double* _curDelta,
-	double** _wgrad,
-	double** _w,
-	int inputDim,
-	int curDeltaDim,
-	int kernelSize,
-
-	int inputAmount,
-	int outputAmount,
-
-	int inputArea,
-	int curDeltaAea,
-	int batch,
-	double lambda);
-
-/*
 * blocks  : dim3(batch, cuKernelScan[cl] * localKernelSize, Config::instance()->getChannels()),
 * threads : dim3(threadidx)
 */
-__global__ void g_LocalConnect_wgrad_2(
+__global__ void g_LocalConnect_wgrad(
 	double* _inputs,
 	double* _curDelta,
 	double** _wgrad,
@@ -190,7 +169,7 @@ __global__ void g_LocalConnect_wgrad_1(double** sArray,
  *thread= dim3(batch);
  *
 */
-__global__ void g_LocalConnect_Bgrad_1(double* delta,
+__global__ void g_LocalConnect_Bgrad(double* delta,
 	double** bgrad,
 	int deltaSize,
 	int kernelAmount2,
@@ -199,9 +178,10 @@ __global__ void g_LocalConnect_Bgrad_1(double* delta,
 	int localKernelSize);
 
 
-void LocalConnect::getCost(cuMatrix<double>*cost, int* y)
+void LocalConnect::calCost()
 {
-	g_getCost_3<<<dim3(amount), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
+	cost->gpuClear();
+	g_getCost_3<<<dim3(w.size()), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
 		w.m_devPoint, 
 		lambda,
 		kernelSize, 
@@ -213,31 +193,31 @@ void LocalConnect::getCost(cuMatrix<double>*cost, int* y)
 void LocalConnect::feedforward()
 {
 	if((kernelSize == 3 || kernelSize == 5) && inputDim >= 4 && inputDim <= 8){
-		dim3 block = dim3(batch, amount);
+		dim3 block = dim3(batch, outputAmount);
 		const int threads = 8;
 		dim3 thread= dim3(threads, outputDim * outputDim);
 		if(outputDim == 4){
 			g_LocalConnect_feedforward_s_2<16, threads><<<block, thread>>>(inputs->getDev(), w.m_devPoint, b.m_devPoint, outputs->getDev(), inputDim,
-				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, amount, localKernelSize);
+				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, outputAmount, localKernelSize);
 		}else if(outputDim == 5){
 			g_LocalConnect_feedforward_s_2<25, threads><<<block, thread>>>(inputs->getDev(), w.m_devPoint, b.m_devPoint, outputs->getDev(), inputDim,
-				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, amount, localKernelSize);
+				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, outputAmount, localKernelSize);
 		}else if(outputDim == 6){
 			g_LocalConnect_feedforward_s_2<36, threads><<<block, thread>>>(inputs->getDev(), w.m_devPoint, b.m_devPoint, outputs->getDev(), inputDim,
-				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, amount, localKernelSize);
+				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, outputAmount, localKernelSize);
 		}else if(outputDim == 7){
 			g_LocalConnect_feedforward_s_2<49, threads><<<block, thread>>>(inputs->getDev(), w.m_devPoint, b.m_devPoint, outputs->getDev(), inputDim,
-				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, amount, localKernelSize);
+				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, outputAmount, localKernelSize);
 		}else if(outputDim == 8){
 			g_LocalConnect_feedforward_s_2<64, threads><<<block, thread>>>(inputs->getDev(), w.m_devPoint,  b.m_devPoint, outputs->getDev(), inputDim,
-				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, amount, localKernelSize);
+				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, outputAmount, localKernelSize);
 		}
 
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("LocalConnect:g_LocalConnect_feedforward_s_2");
 	}
 	else if(kernelSize == 1){
-		dim3 block = dim3(batch, amount);
+		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(min(outputDim * outputDim, 512));
 
 		g_LocalConnect_feedforward_kernelSize1_2<<<block, thread>>>(
@@ -248,13 +228,13 @@ void LocalConnect::feedforward()
 			inputDim,
 			inputs->getArea(),
 			batch,
-			amount,
+			outputAmount,
 			localKernelSize);
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("LocalConnect:g_LocalConnect_feedforward_kernelSize1_2");
 	}
 	else {
-		dim3 block = dim3(batch, amount);
+		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(8, min(outputDim * outputDim, 64));
 		g_LocalConnect_feedforward_2<<<block, thread,
 			sizeof(double) * outputDim * outputDim>>>
@@ -268,7 +248,7 @@ void LocalConnect::feedforward()
 			inputs->getArea(),
 			outputs->getArea(),
 			batch,
-			amount,
+			outputAmount,
 			localKernelSize);
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("LocalConnect:g_LocalConnect_feedforward_2");
@@ -358,7 +338,7 @@ void LocalConnect::getGrad()
 	else{
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= min(9, min(outputDim * outputDim, 64));
-		g_LocalConnect_wgrad_2<<<block, thread, sizeof(double) * inputDim * inputDim>>>(
+		g_LocalConnect_wgrad<<<block, thread, sizeof(double) * inputDim * inputDim>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
 			wgradTmp.m_devPoint,
@@ -373,10 +353,10 @@ void LocalConnect::getGrad()
 			lambda);
 
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("g_LocalConnect_wgrad_1");
+		getLastCudaError("g_LocalConnect_wgrad");
 	}
 
-	dim3 block  = dim3(outputAmount, kernelSize * kernelSize);
+	dim3 block  = dim3(outputAmount * localKernelSize, kernelSize * kernelSize);
 	dim3 thread = dim3(batch);
 	g_LocalConnect_wgrad_Add<<<block, thread, sizeof(double) * batch>>>(
 		wgradTmp.m_devPoint,
@@ -391,9 +371,9 @@ void LocalConnect::getGrad()
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("g_LocalConnect_wgrad_Add");
 
-	block = dim3(localKernelSize, amount);
+	block = dim3(localKernelSize, outputAmount);
 	thread= dim3(batch);
-	g_LocalConnect_Bgrad_1<<<block,thread,sizeof(double) * batch>>>
+	g_LocalConnect_Bgrad<<<block,thread,sizeof(double) * batch>>>
 		(curDelta->getDev(),
 		bgrad.m_devPoint,
 		outputDim,
@@ -403,7 +383,7 @@ void LocalConnect::getGrad()
 		localKernelSize);
 
 	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("LocalConnect::getGrad::g_LocalConnect_Bgrad_1");
+	getLastCudaError("LocalConnect::getGrad::g_LocalConnect_Bgrad");
 }
 
 void LocalConnect::updateWeight()
@@ -425,8 +405,7 @@ LocalConnect::LocalConnect(std::string name)
 
 	inputs = preLayer->getOutputs();
 	inputAmount = preLayer->outputAmount;
-	amount = config->m_amount;
-	outputAmount = amount;
+	outputAmount = config->m_amount;
 	kernelSize = config->m_kernelSize;
 
 	inputDim  = preLayer->outputDim;
@@ -440,7 +419,7 @@ LocalConnect::LocalConnect(std::string name)
 	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
 	preDelta = preLayer->getCurDelta();
 
-	for(int i = 0; i < amount * localKernelSize; i++){
+	for(int i = 0; i < outputAmount * localKernelSize; i++){
 		w.push_back(new cuMatrix<double>(kernelSize, kernelSize, 1));
 		b.push_back(new cuMatrix<double>(1, 1, 1));
 		wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, 1));
@@ -454,12 +433,13 @@ LocalConnect::LocalConnect(std::string name)
 	bgrad.toGpu();
 	wgradTmp.toGpu();
 
-	for(int i = 0; i < amount * localKernelSize; i++){
+	for(int i = 0; i < outputAmount * localKernelSize; i++){
 		momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, 1));
 		momentum_b.push_back(new cuMatrix<double>(1, 1, 1));
 	}
 	momentum_w.toGpu();
 	momentum_b.toGpu();
+
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
 }
@@ -541,8 +521,12 @@ void LocalConnect::initFromCheckpoint(FILE* file)
 		}
 
 		for(int c = 0; c < b[a]->channels; c++){
-			fscanf(file, "%lf", &val);
-			b[a]->set(0, 0, c, val);
+			for(int i = 0; i < w[a]->rows; i++){
+				for(int j = 0; j < w[a]->cols; j++){
+					fscanf(file, "%lf", &val);
+					b[a]->set(i, j, c, val);
+				}
+			}
 		}
 		w[a]->toGpu();
 		b[a]->toGpu();
@@ -782,7 +766,6 @@ __global__ void g_LocalConnect_feedforward_s_2(
 		int id = i + threadIdx.x + threadIdx.y * blockDim.x;
 		if(id < inputSize2){
 			image[id] = curInput[id];
-			curOutput[id] = 0;
 		}
 	}
 	__syncthreads();
@@ -801,6 +784,7 @@ __global__ void g_LocalConnect_feedforward_s_2(
 			double val = 0.0;
 			double* w = arrayW[k * localKernelSize + tyid];
 			double* _convSum = convSum[threadIdx.y];
+			double  b = arrayB[k * localKernelSize + tyid][0];
 			_convSum[threadIdx.x] = 0;
 			
 
@@ -824,22 +808,9 @@ __global__ void g_LocalConnect_feedforward_s_2(
 				__syncthreads();
 			}
 			if(threadIdx.x == 0)
-				curOutput[tyid] += _convSum[0];
+				curOutput[tyid] = _convSum[0] + b;
 		}
 	}
-
-	__syncthreads();
-
-	for(int i = 0; i < outputSize2; i += blockDim.y * blockDim.x)
-	{
-		int id = i + threadIdx.y * blockDim.x + threadIdx.x;
-		if(id < outputSize2)
-		{
-			double  b = arrayB[k * localKernelSize + id][0];
-			curOutput[id] += b;
-		}
-	}
-	
 }
 
 
@@ -936,7 +907,6 @@ __global__ void g_LocalConnect_wgrad_kernelSize1(
 	double* _inputs,
 	double* _curDelta,
 	double** _wgradTmp,
-	/*double** _w,*/
 	int dim,
 	int area,
 	int batch,
@@ -966,7 +936,7 @@ __global__ void g_LocalConnect_wgrad_kernelSize1(
  *dim3 block = dim3(batch, outputAmount);
  *dim3 thread= min(9, min(outputDim * outputDim, 64));
 */
-__global__ void g_LocalConnect_wgrad_2(
+__global__ void g_LocalConnect_wgrad(
 	double* _inputs,
 	double* _curDelta,
 	double** _wgradTmp,
@@ -1006,6 +976,7 @@ __global__ void g_LocalConnect_wgrad_2(
 
 	double* curDelta = _curDelta + k * curDeltaAea + sp * curDeltaSize2;
 
+	int half = (kernelSize >> 1);
 	for(int y = 0; y < curDeltaSize2; y += blockDim.y){
 		int yid = y + threadIdx.y;
 		if(yid < curDeltaSize2){
@@ -1018,7 +989,7 @@ __global__ void g_LocalConnect_wgrad_2(
 				if(xid < kernelSize2){
 					int i = xid / kernelSize;
 					int j = xid % kernelSize;
-					int half = (kernelSize >> 1);
+				
 					int rox = ox + i - half;
 					int roy = oy + j - half;
 					if(rox >= 0 && rox < inputDim && roy >=0 && roy < inputDim){
@@ -1033,84 +1004,11 @@ __global__ void g_LocalConnect_wgrad_2(
 	}
 }
 
-
-/*
- *dim3 block = dim3(batch, outputAmount);
- *dim3 thread= min(16, min(outputDim * outputDim, 32));
-*/
-__global__ void g_LocalConnect_wgrad_1(
-	double**_inputs,
-	double* _curDelta,
-	double** _wgrad,
-	double** _w,
-	int inputDim,
-	int curDeltaDim,
-	int kernelSize,
-
-	int inputAmount,
-	int outputAmount,
-
-	int inputArea,
-	int curDeltaAea,
-	int batch,
-	double lambda)
-{
-	int sp = blockIdx.x;
-	int k  = blockIdx.y;
-	
-	extern __shared__ double image[];
-
-	int inputSize2    = inputDim * inputDim;
-	int curDeltaSize2 = curDeltaDim * curDeltaDim;
-	int kernelSize2   = kernelSize * kernelSize;
-
-	double* input = _inputs[sp] + k * inputSize2;
-	
-	
-	/*load the image to shared memory*/
-	for(int i = 0; i < inputSize2; i += blockDim.x * blockDim.y){
-		int id = i + threadIdx.x + threadIdx.y * blockDim.x;
-		if(id < inputSize2){
-			image[id] = input[id];
-		}
-	}
-	__syncthreads();
-
-	
-	double* curDelta = _curDelta + k * curDeltaAea + sp * curDeltaSize2;
-
-	for(int y = 0; y < curDeltaSize2; y += blockDim.y){
-		int yid = y + threadIdx.y;
-		if(yid < curDeltaSize2){
-			int ox = yid / curDeltaDim;
-			int oy = yid % curDeltaDim;
-			double* wgrad  = _wgrad[k * curDeltaSize2 + yid];
-			double* w      = _w[k * curDeltaSize2 + yid];
-			double  delta = curDelta[yid];
-			for(int x =  0; x < kernelSize2; x+= blockDim.x){
-				int xid = x + threadIdx.x;
-				if(xid < kernelSize2){
-					int i = xid / kernelSize;
-					int j = xid % kernelSize;
-					int half = (kernelSize >> 1);
-					int rox = ox + i - half;
-					int roy = oy + j - half;
-					if(rox >= 0 && rox < inputDim && roy >=0 && roy < inputDim){
-						double val  = image[rox * inputDim + roy] * delta;
-						wgrad[xid] = val / batch + w[xid];
-					}else{
-						wgrad[xid] = 0;
-					}
-				}
-			}
-		}
-	}
-}
 /*
  *block = dim3(localKernelSize, amount)
  *thread= dim3(batch)
 */
-__global__ void g_LocalConnect_Bgrad_1(double* _delta,
+__global__ void g_LocalConnect_Bgrad(double* _delta,
 	double** bgrad,
 	int deltaSize,
 	int kernelAmount2,
@@ -1149,7 +1047,7 @@ __global__ void g_LocalConnect_Bgrad_1(double* _delta,
 
 
 /*
- * block = dim3(outputAmount, kernelSize * kernelSize, cfm);
+ * block = dim3(outputAmount, kernelSize * kernelSize);
  * thread= dim3(batch);
 */
 __global__ void g_LocalConnect_wgrad_Add(
@@ -1164,8 +1062,8 @@ __global__ void g_LocalConnect_wgrad_Add(
 	int wArea)
 {
 	extern __shared__ double _sum[];
-	int ok = blockIdx.x;
-	int kid= blockIdx.y;
+	int ok  = blockIdx.x;
+	int kid = blockIdx.y;
 	int tid = threadIdx.x;
 	_sum[threadIdx.x] = 0;
 	__syncthreads();

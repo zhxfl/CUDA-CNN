@@ -19,7 +19,7 @@ public:
 	void updateWeight(){};
 	void clearMomentum(){};
 	Pooling(std::string name);
-	void getCost(cuMatrix<double>*cost, int* y = NULL);
+	void calCost(){};
 
 	void initFromCheckpoint(FILE* file){};
 	void save(FILE* file){};
@@ -43,7 +43,7 @@ public:
 	}
 
 	int getOutputAmount(){
-		return amount;
+		return outputAmount;
 	}
 
 	int getOutputDim(){

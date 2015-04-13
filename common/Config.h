@@ -19,6 +19,8 @@ private:
 	bool m_IsGradientChecking;
 };
 
+
+
 class ConfigImageShow
 {
 public:
@@ -174,8 +176,7 @@ public:
 		std::string type,
 		double k, int n, 
 		double alpha, double belta, 
-		int nonLinearity):
-	  m_k(k), m_n(n), m_alpha(alpha), m_belta(belta){
+		int nonLinearity):m_k(k), m_n(n), m_alpha(alpha), m_belta(belta){
 		  m_nonLinearity = nonLinearity;
 		  m_name  = name;
 		  m_input = input; 
@@ -236,6 +237,16 @@ public:
 	double m_weightDecay;
 };
 
+class ConfigNIN : public ConfigBase{
+public:
+	ConfigNIN(std::string name, std::string input, std::string type, double weightDecay){
+		m_name = name;
+		m_input= input;
+		m_type = type;
+		m_weightDecay = weightDecay;
+	}
+	double m_weightDecay;
+};
 
 class ConfigPooling : public ConfigBase
 {

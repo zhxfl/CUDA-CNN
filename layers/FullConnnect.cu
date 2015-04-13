@@ -125,13 +125,14 @@ void FullConnect::feedforward()
 		outputs->cols,
 		NON_LINEARITY);
 
-	cudaDeviceSynchronize();
+	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("g_FullConnectActi");
 }
 
 
-void FullConnect::getCost(cuMatrix<double>*cost, int* y)
+void FullConnect::calCost()
 {
+	cost->gpuClear();
 	if(fabs(lambda) >= 1e-10)
 	{
 		g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(),
@@ -229,6 +230,7 @@ void FullConnect::getGrad()
 		wgrad->getLen(),
 		lambda,
 		batch);
+
 	cudaDeviceSynchronize();
 	getLastCudaError("g_FullConnectWgrad");
 

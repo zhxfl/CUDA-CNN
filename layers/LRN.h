@@ -24,7 +24,7 @@ public:
 	void updateWeight(){};
 	void clearMomentum(){};
 
-	void getCost(cuMatrix<double>*cost, int* y = NULL){};
+	void calCost(){};
 	void initFromCheckpoint(FILE* file){};
 	void save(FILE* file){};
 
@@ -46,7 +46,7 @@ public:
 	}
 
 	int getOutputAmount(){
-		return amount;
+		return outputAmount;
 	}
 
 	int getOutputDim(){

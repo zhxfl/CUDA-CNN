@@ -6,6 +6,7 @@
 #include "../common/Config.h"
 #include "../common/cuBase.h"
 
+#define USE_DOUBLE float
 /*
 * int _min = (outputDim * outputDim + 15) / 16 * 16;
 * int remain = min(1024 / _min, outputAmount); //32
@@ -73,7 +74,7 @@ void LRN::feedforward()
 		inputs->getArea(),
 		outputs->getArea(),
 		batch,
-		amount,
+		outputAmount,
 		lrn_k,
 		lrn_n,
 		lrn_alpha,
@@ -129,7 +130,7 @@ void LRN::backpropagation()
 		inputs->getArea(),
 		outputs->getArea(),
 		batch,
-		amount,
+		outputAmount,
 		lrn_k,
 		lrn_n,
 		lrn_alpha,
@@ -140,6 +141,7 @@ void LRN::backpropagation()
 
 LRN::LRN(std::string name)
 {	
+	cost = NULL;
 	m_name = name;
 	ConfigLRN* config = (ConfigLRN*)Config::instance()->getLayerByName(m_name);
 	ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
@@ -147,9 +149,8 @@ LRN::LRN(std::string name)
 	inputs = preLayer->getOutputs();
 	inputDim = preLayer->outputDim;
 	outputDim = inputDim;
-	amount = preLayer->outputAmount;
-	inputAmount = amount;
-	outputAmount = amount;
+	outputAmount = preLayer->outputAmount;
+	inputAmount = outputAmount;
 	
 	NON_LINEARITY = config->m_nonLinearity;
 	batch = Config::instance()->getBatchSize();
@@ -223,7 +224,8 @@ __global__ void g_LRN_feedforward(
 				offset += InputArea;
 			}
 			u = u * lrn_alpha / (to - from + 1) + lrn_k;
-			u = (double)pow((float)u, (float)lrn_belta);
+			//u = (double)pow((float)u, (float)lrn_belta);
+			u = (double)pow((USE_DOUBLE)u, (USE_DOUBLE)lrn_belta);
 			outputs[koffset] = a / u;
 		}
 	}
@@ -290,7 +292,8 @@ __global__ void g_LRN_backpropagation(
 
 			//
 			u = u * lrn_alpha / (to - from + 1) + lrn_k;
-			double t1 = (double)pow((float)u, (float)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
+			//double t1 = (double)pow((float)u, (float)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
+			double t1 = (double)pow((USE_DOUBLE)u, (USE_DOUBLE)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
 			double t2 = t1 * u;                //pow(u, lrn_belta)
 			double t3 = t2 * t2;               //pow(u, 2.0 * lrn_belta)
 

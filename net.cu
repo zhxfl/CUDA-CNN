@@ -18,6 +18,7 @@
 #include "layers/LayerBase.h"
 #include "layers/LocalConnect.h"
 #include "layers/LRN.h"
+#include "layers/NIN.h"
 
 #include <queue>
 
@@ -26,7 +27,6 @@ cuMatrixVector<double>* cu_distortion_vector;
 int cuCurCorrect;
 cuMatrix<int>*cuCorrect = NULL;
 cuMatrix<int>*cuVote = NULL;
-cuMatrix<double>*cost = NULL;
 std::vector<ConfigBase*>que;
 
 /*batch size images*/
@@ -103,6 +103,8 @@ void cuInitCNNMemory(
 			new FullConnect(top->m_name);
 		}else if(top->m_type == std::string("SOFTMAX")){
 			new SoftMax(top->m_name);
+		}else if(top->m_type == std::string("NIN")){
+			new NIN(top->m_name);
 		}
 		else if(std::string("LRN") == top->m_type){
 			new LRN(top->m_name);
@@ -117,7 +119,6 @@ void cuInitCNNMemory(
 	{
 		cuCorrect = new cuMatrix<int>(1,1,1);
 		cuVote    = new cuMatrix<int>(testX.size(), Config::instance()->getClasses(), 1);
-		cost      = new cuMatrix<double>(1, 1, 1);
 	}
 
 	/*double buffer for batch images*/
@@ -188,6 +189,8 @@ void getNetworkCost(double** x,
 	cublasHandle_t handle)
 {
 	/*feedforward*/
+	SoftMax* sm = (SoftMax*)Layers::instance()->get("softmax1");
+	sm->setPredict(y);
 
 	for(int i = 0; i < que.size(); i++){
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
@@ -195,10 +198,11 @@ void getNetworkCost(double** x,
 	}
 
 	/*Cost*/
-	for(int i = que.size() - 1; i >= 0; i--){
-		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
-		layer->getCost(cost, y);
-	}
+// 	for(int i = que.size() - 1; i >= 0; i--){
+// 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+// 		layer->getCost(cost, y);
+// 	}
+
 
 	/*backpropagation*/
 	for(int i = que.size() - 1; i >=0; i--){
@@ -546,11 +550,9 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			if(start + batch <= x.size() - batch)
 				getBatchImageWithStreams(x, batchImg[batchImgId], start + batch, stream1);
 			else{
-				/*��������Ԥ�ȿ��������⴦�����һ��epoch*/
 				int tstart = x.size() - batch;
 				getBatchImageWithStreams(x, batchImg[batchImgId], tstart, stream1);
 			}
-			/*���⴦�����һ��epoch*/
 			if(start + batch > x.size()){
 				start = x.size() - batch;
 			}
@@ -588,13 +590,20 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 		}
 		checkCudaErrors(cudaStreamDestroy(stream1));
 
-		cost->toCpu();
+		double cost = 0.0;
+		for(int i = 0; i < que.size(); i++){
+			LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
+			layer->calCost();
+			layer->printCost();
+			cost += layer->getCost();
+		}
+
 		char str[512];
 
 		end = clock();
 		sprintf(str, "epoch=%d time=%.03lfs cost=%lf Momentum=%.06lf lrate=%.08lf",
 			epo, (double) (end - start) / CLOCKS_PER_SEC,
-			cost->get(0, 0, 0),
+			cost,
 			Config::instance()->getMomentum(), Config::instance()->getLrate());
 		printf("%s\n", str);
 		LOG(str, "Result/log.txt");

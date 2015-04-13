@@ -1,5 +1,5 @@
-#ifndef __LOCAL_CONNECT_CU_H__
-#define __LOCAL_CONNECT_CU_H__
+#ifndef __NET_IN_NET_CU_H__
+#define __NET_IN_NET_CU_H__
 
 #include "LayerBase.h"
 #include "../common/cuMatrix.h"
@@ -8,7 +8,7 @@
 #include "../common/cuMatrixVector.h"
 
 
-class LocalConnect: public ConvLayerBase
+class NIN: public ConvLayerBase
 {
 public:
 	void feedforward();
@@ -18,13 +18,13 @@ public:
 	void clearMomentum();
 	void calCost();
 	
-	LocalConnect(std::string name);
+	NIN(std::string name);
 
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
 
-	~LocalConnect(){
+	~NIN(){
 		delete outputs;
 	}
 
@@ -46,29 +46,25 @@ public:
 
 	virtual void printParameter(){
 		printf("%s:\n",m_name.c_str());
-		w[0]->toCpu();
-		printf("weight:%lf, %lf;\n", w[0]->get(0,0,0), w[0]->get(0,1,0));
-		b[0]->toCpu();
-		printf("bias  :%lf\n", b[0]->get(0,0,0));
+		w->toCpu();
+		printf("weight:%lf, %lf:\n", w->get(0,0,0), w->get(0,1,0));
+		b->toCpu();
+		printf("bias  :%lf, %lf:\n", b->get(0,0,0), b->get(0,1,0));
 	}
 private:
 	cuMatrix<double>* inputs;
 	cuMatrix<double>* preDelta;
 	cuMatrix<double>* outputs;
 	cuMatrix<double>* curDelta;
-	int kernelSize;
-	int batch;
-	int NON_LINEARITY;
 	double lambda;
-	int localKernelSize;
 private:
-	cuMatrixVector<double> w;
-	cuMatrixVector<double> wgrad;
-	cuMatrixVector<double> b;
-	cuMatrixVector<double> bgrad;
-	cuMatrixVector<double> momentum_w;
-	cuMatrixVector<double> momentum_b;
-	cuMatrixVector<double> wgradTmp;
+	cuMatrix<double>* w;
+	cuMatrix<double>* wgrad;
+	cuMatrix<double>* b;
+	cuMatrix<double>* bgrad;
+	cuMatrix<double>* momentum_w;
+	cuMatrix<double>* momentum_b;
+	cuMatrix<double>* wgradTmp;
 };
 
 #endif 

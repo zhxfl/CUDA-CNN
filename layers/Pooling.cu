@@ -96,13 +96,9 @@ void Pooling::backpropagation()
 }
 
 
-void Pooling::getCost(cuMatrix<double>*cost, int* y)
-{
-
-}
-
 Pooling::Pooling(std::string name)
 {	
+	cost = NULL;
 	m_name = name;
 	ConfigPooling* config = (ConfigPooling*)Config::instance()->getLayerByName(m_name);
 	ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
@@ -112,9 +108,8 @@ Pooling::Pooling(std::string name)
 	inputs = preLayer->getOutputs();
 	inputDim = preLayer->outputDim;
 	outputDim = (inputDim + skip - 1) / skip;
-	amount = preLayer->outputAmount;
-	inputAmount = amount;
-	outputAmount = amount;
+	inputAmount = preLayer->outputAmount;
+	outputAmount = inputAmount;
 	NON_LINEARITY = config->m_nonLinearity;
 	
 	batch= Config::instance()->getBatchSize();

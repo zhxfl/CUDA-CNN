@@ -136,6 +136,15 @@ void Config:: get_layers_config(string &str){
 			printf("initW         : %lf\n", initW);
 			printf("non_linearity : %s\n", non_linearity.c_str());
 		}
+		else if(type == string("NIN")){
+			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
+			layer = new ConfigNIN(name, input, type, wd);
+			
+			printf("\n\n********NIN layer********\n");
+			printf("NAME          : %s\n", name.c_str());
+			printf("INPUT         : %s\n", input.c_str());
+			printf("WEIGHT_DECAY  : %lf\n", wd);
+		}
 		else if(type == string("POOLING"))
 		{
 			int size = get_word_int(layers[i], "SIZE");

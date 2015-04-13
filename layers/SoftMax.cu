@@ -126,6 +126,11 @@ void SoftMax::feedforward()
 
 void SoftMax::backpropagation()
 {
+	g_getCost_1<<<dim3(1), dim3(256), sizeof(double) * 256>>>(outputs->getDev(), groudTruth->getDev(),
+		cost->getDev(), predict, outputs->rows, outputs->cols, batch);
+	cudaDeviceSynchronize();
+	getLastCudaError("g_getCost_1");
+
 	g_getSoftMaxDelta<<<dim3(1), dim3(256)>>>(curDelta->getDev(),
 		outputs->getDev(),
 		groudTruth->getDev(), curDelta->getLen());
@@ -190,13 +195,8 @@ void SoftMax::clearMomentum()
 	momentum_w->gpuClear();
 }
 
-void SoftMax::getCost(cuMatrix<double>*cost, int* y)
+void SoftMax::calCost()
 {
-	g_getCost_1<<<dim3(1), dim3(256), sizeof(double) * 256>>>(outputs->getDev(), groudTruth->getDev(),
-		cost->getDev(), y, outputs->rows, outputs->cols, batch);
-	cudaDeviceSynchronize();
-	getLastCudaError("g_getCost_1");
-
 	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(),  w->getDev(), lambda,
 		w->getLen());
 	cudaDeviceSynchronize();
@@ -224,28 +224,21 @@ void SoftMax::initRandom()
 	srand(clock());
 	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
-	//initMatrix(w, epsilon);
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
 		double epsilon = initW;
-		for(int c = 0; c < w->channels; c++)
-		{
+		for(int c = 0; c < w->channels; c++){
 			double r1 = 0.01 + 5 * (rand()) / RAND_MAX;
 			double r2 = 0.01 + 5 * (rand()) / RAND_MAX;
 			createGaussian(w->getHost() + c * w->getArea(), r1,r2,
 				w->rows, w->cols, w->channels,
 				epsilon);
 		}
-		w->toGpu();
 	}
 	else{
 		for(int j = 0; j < w->getLen(); j++){
 			w->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
-			//printf("%lf ", w[i]->hostData[j]);
-		}//printf("\n");
-		w->toGpu();
+		}
 	}
-	//double epsilon = sqrt((double)6) / sqrt((double)(inputsize + outputsize));
-
 	w->toGpu();
 }
 	

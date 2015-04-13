@@ -16,7 +16,7 @@ public:
 	void getGrad();
 	void updateWeight();
 	void clearMomentum();
-	void getCost(cuMatrix<double>*cost, int* y = NULL);
+	void calCost();
 	
 	ConvCFM(std::string name);
 
@@ -39,6 +39,10 @@ public:
 		return outputAmount;
 	}
 
+	int getInputDim(){
+		return inputDim;
+	}
+
 	int getOutputDim(){
 		return outputDim;
 	}
@@ -48,7 +52,8 @@ public:
 		w[0]->toCpu();
 		printf("weight:%lf, %lf, %lf;\n", w[0]->get(0,0,0), w[0]->get(0,1,0), w[0]->get(0, 2, 0));
 		b[0]->toCpu();
-		printf("bias  :%lf\n", b[0]->get(0,0,0));
+		b[1]->toCpu();
+		printf("bias  :%lf %lf\n", b[0]->get(0,0,0), b[1]->get(0, 0, 0));
 	}
 
 private:
