@@ -312,8 +312,9 @@ void FullConnect::initRandom()
 		w->toGpu();
 	}
 	else{
+		double epsilon = sqrt((double)6) / sqrt((double)(outputs->rows + outputs->cols));
 		for(int j = 0; j < w->getLen(); j++){
-			w->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+			w->getHost()[j] =  epsilon * initW * (2.0 * rand() / RAND_MAX - 1.0);
 			//printf("%lf ", w[i]->hostData[j]);
 		}//printf("\n");
 		w->toGpu();

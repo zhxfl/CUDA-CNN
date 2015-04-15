@@ -341,6 +341,7 @@ void predictTestDate(cuMatrixVector<double>&x,
 	int batch,
 	int ImgSize,
 	int nclasses,
+	bool vote,
 	cublasHandle_t handle) {
 		for(int i = 0; i < que.size(); i++){
 			if(que[i]->m_type == std::string("FC")){
@@ -352,43 +353,68 @@ void predictTestDate(cuMatrixVector<double>&x,
 		cuVote->gpuClear();
 		int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop()};
 		int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop()};
-	
+
+		double scalex[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
+		double scaley[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
+
+		double rotate[] = {0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
+// 		if(fabs(Config::instance()->getDistortion()) >= 0.1 || Config::instance()->getScale() >= 1 || Config::instance()->getRotation() >= 1)
+// 			cuApplyDistortion(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
+
 		cudaStream_t stream1;
 		checkCudaErrors(cudaStreamCreate(&stream1));
-		for (int h = 0; h < (Config::instance()->getHorizontal() == 1 ? 2 : 1); h++) {
-				for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : sizeof(cropc) / sizeof(int)); c++) {
-					int batchImgId = 1;
-					getBatchImageWithStreams(testX, batchImg[0], 0, stream1);
-					for (int p = 0; p < (testX.size() + batch - 1) / batch; p++) {
-						cudaStreamSynchronize(stream1);
-						printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
-						int tstart = p * batch;
-						if(tstart + batch <= testX.size() - batch)
-							getBatchImageWithStreams(testX, batchImg[batchImgId], tstart + batch, stream1);
-						else {
-							int start = testX.size() - batch;
-							getBatchImageWithStreams(testX, batchImg[batchImgId], start, stream1);
+
+		int hlen = Config::instance()->getHorizontal() == 1 ? 2 : 1;
+		int clen = Config::instance()->getCrop() == 0 ? 1 : sizeof(cropc) / sizeof(int);
+		int scaleLen = Config::instance()->getScale() == 0 ? 1 : sizeof(scalex) / sizeof(double);
+		int rotateLen = Config::instance()->getRotation() == 0 ? 1 : sizeof(rotate) / sizeof(double);
+		if(!vote) hlen = clen = scaleLen = rotateLen = 1;
+		
+		for(int sidx = 0; sidx < scaleLen; sidx++){
+			for(int sidy = 0; sidy < scaleLen; sidy++){
+				for(int rid = 0; rid < rotateLen; rid++){
+					cuApplyScaleAndRotate(batch, ImgSize, scalex[sidx], scaley[sidy], rotate[rid]);
+					for (int h = 0; h < hlen; h++) {
+						for (int c = 0; c < clen; c++) {
+							int batchImgId = 1;
+							getBatchImageWithStreams(testX, batchImg[0], 0, stream1);
+							for (int p = 0; p < (testX.size() + batch - 1) / batch; p++) {
+								cudaStreamSynchronize(stream1);
+								printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
+								int tstart = p * batch;
+								if(tstart + batch <= testX.size() - batch)
+									getBatchImageWithStreams(testX, batchImg[batchImgId], tstart + batch, stream1);
+								else {
+									int start = testX.size() - batch;
+									getBatchImageWithStreams(testX, batchImg[batchImgId], start, stream1);
+								}
+
+								if(tstart + batch > testX.size()){
+									tstart = testX.size() - batch;
+								}
+
+								//printf("start = %d\n", tstart);
+								batchImgId = 1 - batchImgId;
+								cuApplyCrop(batchImg[batchImgId].m_devPoint,
+									cu_distortion_vector->m_devPoint, batch, ImgSize,
+									cropr[c], cropc[c]);
+
+								cuApplyDistortion(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
+
+								if (h == 1)
+									cuApplyHorizontal(cu_distortion_vector->m_devPoint,
+									cu_distortion_vector->m_devPoint, batch, ImgSize, HORIZONTAL);
+								resultProdict(cu_distortion_vector->m_devPoint,
+									testY->getDev() + tstart,
+									cuVote->getDev() + tstart * nclasses,
+									batch, ImgSize, nclasses, p * batch - tstart,
+									handle);
+								printf("\b\b\b\b\b\b\b\b\b");
+							}
 						}
-						
-						if(tstart + batch > testX.size()){
-							tstart = testX.size() - batch;
-						}
-						//printf("start = %d\n", tstart);
-						batchImgId = 1 - batchImgId;
-						cuApplyCrop(batchImg[batchImgId].m_devPoint,
-							cu_distortion_vector->m_devPoint, batch, ImgSize,
-							cropr[c], cropc[c]);
-						if (h == 1)
-							cuApplyHorizontal(cu_distortion_vector->m_devPoint,
-							cu_distortion_vector->m_devPoint, batch, ImgSize, HORIZONTAL);
-						resultProdict(cu_distortion_vector->m_devPoint,
-							testY->getDev() + tstart,
-							cuVote->getDev() + tstart * nclasses,
-							batch, ImgSize, nclasses, p * batch - tstart,
-							handle);
-						printf("\b\b\b\b\b\b\b\b\b");
 					}
 				}
+			}
 		}
 		checkCudaErrors(cudaStreamDestroy(stream1));
 		cuCorrect->gpuClear();
@@ -508,7 +534,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 		gradientChecking(x.m_devPoint, y->getDev(), batch, ImgSize, nclasses, handle);
 
 
-	predictTestDate(x, y, testX, testY, batch, ImgSize, nclasses, handle);
+	predictTestDate(x, y, testX, testY, batch, ImgSize, nclasses, 0, handle);
 	printf("correct is %d\n", cuCorrect->get(0,0,0));
 
 	int epochs = 10000;
@@ -556,14 +582,13 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			if(start + batch > x.size()){
 				start = x.size() - batch;
 			}
-			//printf("start = %d\n", start);
 
 			batchImgId = 1 - batchImgId;
 			
 			cuApplyCropRandom(batchImg[batchImgId].m_devPoint,
 				cu_distortion_vector->m_devPoint, batch, ImgSize);
 
-			if(fabs(Config::instance()->getDistortion()) >= 0.1)
+			if(fabs(Config::instance()->getDistortion()) >= 0.1 || Config::instance()->getScale() >= 1 || Config::instance()->getRotation() >= 1)
 				cuApplyDistortion(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
 
 			if (Config::instance()->getHorizontal()) {
@@ -576,8 +601,8 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 			if (Config::instance()->getImageShow()) {
 				for (int ff = batch - 1; ff >= 0; ff--) {
-					showImg(batchImg[batchImgId][ff], 1);
-					showImg(cu_distortion_vector->m_vec[ff], 1);
+					showImg(batchImg[batchImgId][ff], 5);
+					showImg(cu_distortion_vector->m_vec[ff], 5);
 					cv::waitKey(0);
 				}
 			}
@@ -615,20 +640,33 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			}
 			id++;
 		}
-		 		
-		if(epo % Config::instance()->getTestEpoch() == 0){
+		
+
+		printf("===================weight value================\n");
+		for(int i = 0; i < que.size(); i++){
+			LayerBase* layer = Layers::instance()->get(que[i]->m_name);
+			layer->printParameter();
+		}
+
+		
+		printf("===================test Result================\n");
+		predictTestDate(x, y, testX, testY,
+			batch, ImgSize, nclasses, false, handle);
+		sprintf(str, "test %.2lf%%/%.2lf%%", 100.0 * cuCorrect->get(0, 0, 0) / testX.size(),
+			100.0 * cuCurCorrect / testX.size());
+		printf("%s\n",str);
+		LOG(str, "Result/log.txt");
+
+		if(epo && epo % Config::instance()->getTestEpoch() == 0){
 			predictTestDate(x, y, testX, testY,
-				batch, ImgSize, nclasses, handle);
-			sprintf(str, "correct %lf%%/%lf%%", 100.0 * cuCorrect->get(0, 0, 0) / testX.size(),
+				batch, ImgSize, nclasses, true, handle);
+			sprintf(str, "test voting correct %.2lf%%/%.2lf%%", 100.0 * cuCorrect->get(0, 0, 0) / testX.size(),
 				100.0 * cuCurCorrect / testX.size());
 			printf("%s\n",str);
 			LOG(str, "Result/log.txt");
-
-			for(int i = 0; i < que.size(); i++){
-				LayerBase* layer = Layers::instance()->get(que[i]->m_name);
-				layer->printParameter();
-			}
 		}
+
+		
 		if(epo == 0){
 			MemoryMonitor::instance()->printCpuMemory();
 			MemoryMonitor::instance()->printGpuMemory();

@@ -141,17 +141,17 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 
 __global__ void g_getCost_3(double* cost,
 	double** weight,
-	double lambda, int rows, int cols)
+	double lambda, int wlen)
 {
 	extern __shared__ double _sum[];
 	_sum[threadIdx.x] = 0;
 	__syncthreads();
 	double* w = weight[blockIdx.x];
 
-	for(int i = 0; i < rows * cols; i += blockDim.x)
+	for(int i = 0; i < wlen; i += blockDim.x)
 	{
 		int id = i + threadIdx.x;
-		if(id < rows * cols)
+		if(id < wlen)
 		{
 			_sum[threadIdx.x] += w[id] * w[id];
 		}

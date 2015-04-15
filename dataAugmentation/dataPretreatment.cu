@@ -108,7 +108,6 @@ void
 
 	aver->cpuClear();
 
-
 	for (int imgId = 0; imgId < testX.size(); imgId++) {
 		int len = testX[0]->getLen();
 		for (int i = 0; i < len; i++) {

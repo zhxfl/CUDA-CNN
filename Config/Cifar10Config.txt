@@ -12,7 +12,7 @@ ROTATION = 0.0;                 #angle#
 DISTORTION = 0.0;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = true;              #horizontal reflection#
-TEST_EPOCH = 10;                #the period to get the test dataset's error rate#
+TEST_EPOCH = 50;                 #the period to get the test dataset's error rate#
 WHITE_NOISE = 0.01;
 
 [
@@ -23,7 +23,7 @@ KERNEL_SIZE = 5;
 PADDING = 2;
 KERNEL_AMOUNT = 64;
 COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
-WEIGHT_DECAY = 1e-8;
+WEIGHT_DECAY = 1e-5;
 initW = 1.0;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
@@ -51,7 +51,7 @@ LRN_BALTA = 0.75;
 LAYER = NIN;
 NAME  = nin1;
 INPUT = lrn1;
-WEIGHT_DECAY = 1e-8;
+WEIGHT_DECAY = 1e-4;
 ]
 
 [  
@@ -62,8 +62,8 @@ KERNEL_SIZE = 5;
 PADDING = 2;
 KERNEL_AMOUNT = 64;
 COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
-WEIGHT_DECAY = 1e-8;
-initW = 0.9;
+WEIGHT_DECAY = 1e-5;
+initW = 1.0;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
 
@@ -100,9 +100,9 @@ LAYER = FC;
 NAME  = fc1;
 INPUT = nin2;
 NUM_FULLCONNECT_NEURONS = 512;
-WEIGHT_DECAY = 1e-4;
+WEIGHT_DECAY = 1e-8;
 DROPCONNECT_RATE = 0.0;
-initW = 0.12;
+initW = 1.0;
 NON_LINEARITY = NL_RELU;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]

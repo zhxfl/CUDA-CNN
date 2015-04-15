@@ -29,7 +29,7 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch);
 
 __global__ void g_getCost_3(double* cost,
 	double** weight,
-	double lambda, int rows, int cols);
+	double lambda, int wlen);
 
 __global__ void g_getCost_2(double* cost,
 	double* weight,

@@ -82,6 +82,45 @@ string Config::get_word_type(string &str, string name){
 		return content;
 }
 
+std::vector<string> Config::get_name_vector(string &str, string name){
+	std::vector<std::string>result;
+	
+	size_t pos = str.find(name);    
+	if(pos == str.npos){
+		return result;
+	}
+
+	int i = pos + 1;
+	int res = 0;
+	while(1){
+		if(i == str.length()) break;
+		if(str[i] == ';') break;
+		++ i;
+	}
+	string sub = str.substr(pos, i - pos + 1);
+	string content;
+	if(sub[sub.length() - 1] == ';'){
+		content = sub.substr(name.length() + 1, sub.length() - name.length() - 2);
+	}
+	str.erase(pos, i - pos + 1);
+
+	while(content.size()){
+		size_t pos = content.find(',');
+		if(pos == str.npos){
+			result.push_back(content);
+			break;
+		}else{
+			result.push_back(content.substr(0, pos));
+			content.erase(0, pos + 1);
+		}
+	}
+
+
+
+	return result;
+}
+
+
 void Config:: get_layers_config(string &str){
 	vector<string> layers;
 	if(str.empty()) return;
@@ -109,6 +148,8 @@ void Config:: get_layers_config(string &str){
 		string type = get_word_type(layers[i], "LAYER");
 		std::string name = get_word_type(layers[i], "NAME");
 		std::string input = get_word_type(layers[i], "INPUT");
+		std::string subInput = get_word_type(layers[i], "SUBINPUT");
+
 		ConfigBase* layer;
 		if(type == string("CONV")) {
 			int ks = get_word_int(layers[i], "KERNEL_SIZE");
@@ -122,12 +163,13 @@ void Config:: get_layers_config(string &str){
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigConv(name, input, type, ks, pd, ka, wd, cfm,
+			layer = new ConfigConv(name, input, subInput, type, ks, pd, ka, wd, cfm,
 				initW, initType, m_nonLinearity->getValue());
 
 			printf("\n\n********conv layer********\n");
 			printf("NAME          : %s\n", name.c_str());
 			printf("INPUT         : %s\n", input.c_str());
+			printf("SUBINPUT      : %s\n", subInput.c_str());
 			printf("KERNEL_SIZE   : %d\n", ks);
 			printf("KERNEL_AMOUNT : %d\n", ka);
 			printf("CFM           : %d\n", cfm);
@@ -136,13 +178,40 @@ void Config:: get_layers_config(string &str){
 			printf("initW         : %lf\n", initW);
 			printf("non_linearity : %s\n", non_linearity.c_str());
 		}
+		else if(type == string("BRANCHLAYER")){
+			std::vector<std::string>outputs = get_name_vector(layers[i], "OUTPUTS");
+			layer = new ConfigBranchLayer(name, input, subInput, type, outputs);
+
+			printf("\n\n********branch layer********\n");
+			printf("NAME          : %s\n", name.c_str());
+			printf("INPUT         : %s\n", input.c_str());
+			printf("SUBINPUT      : %s\n", subInput.c_str());
+			printf("OUTPUTS       :");
+			for(int i = 0; i < outputs.size(); i++){
+				printf("%s,", outputs[i].c_str());
+			}printf("\n");
+		}
+		else if(type == string("COMBINELAYER")){
+			std::vector<std::string>inputs = get_name_vector(layers[i], "SUBINPUTS");
+			layer = new ConfigCombineLayer(name, inputs, subInput, type);
+
+			printf("\n\n********combine Layer********\n");
+			printf("NAME          : %s\n", name.c_str());
+			printf("SUBINPUT      : %s\n", subInput.c_str());
+			printf("INPUTS        :");
+
+			for(int i = 0; i < inputs.size(); i++){
+				printf("%s,", inputs[i].c_str());
+			}printf("\n");
+		}
 		else if(type == string("NIN")){
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-			layer = new ConfigNIN(name, input, type, wd);
+			layer = new ConfigNIN(name, input, subInput, type, wd);
 			
 			printf("\n\n********NIN layer********\n");
 			printf("NAME          : %s\n", name.c_str());
 			printf("INPUT         : %s\n", input.c_str());
+			printf("SUBINPUT      : %s\n", subInput.c_str());
 			printf("WEIGHT_DECAY  : %lf\n", wd);
 		}
 		else if(type == string("POOLING"))
@@ -153,32 +222,32 @@ void Config:: get_layers_config(string &str){
 
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigPooling(name, input, type, size, skip, m_nonLinearity->getValue());
+			layer = new ConfigPooling(name, input, subInput, type, size, skip, m_nonLinearity->getValue());
 
 			printf("\n\n********pooling layer********\n");
 			printf("NAME          : %s\n", name.c_str());
 			printf("INPUT         : %s\n", input.c_str());
+			printf("SUBINPUT      : %s\n", subInput.c_str());
 			printf("size          : %d\n", size);
 			printf("skip          : %d\n", skip);
 			printf("non_linearity : %s\n", non_linearity.c_str());
 		}
 		else if(string("LOCAL") == type){
 			int ks = get_word_int(layers[i], "KERNEL_SIZE");
-			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
 			double initW = get_word_double(layers[i], "initW");
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			std::string initType = get_word_type(layers[i], "initType");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigLocal(name, input, type, ks, ka, wd,
+			layer = new ConfigLocal(name, input, subInput, type, ks, wd,
 				initW, initType, m_nonLinearity->getValue());
 
 			printf("\n\n********local connect layer********\n");
 			printf("NAME          : %s\n", name.c_str());
 			printf("INPUT         : %s\n", input.c_str());
+			printf("SUBINPUT      : %s\n", subInput.c_str());
 			printf("KERNEL_SIZE   : %d\n", ks);
-			printf("KERNEL_AMOUNT : %d\n", ka);
 			printf("WEIGHT_DECAY  : %lf\n", wd);
 			printf("initW         : %lf\n", initW);
 			printf("non_linearity : %s\n", non_linearity.c_str());
@@ -191,12 +260,13 @@ void Config:: get_layers_config(string &str){
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigLRN(name, input, type, lrn_k, lrn_n, lrn_alpha, lrn_belta, 
+			layer = new ConfigLRN(name, input, subInput, type, lrn_k, lrn_n, lrn_alpha, lrn_belta, 
 				m_nonLinearity->getValue());
 
 			printf("\n\n********local Response Normalization layer********\n");
 			printf("NAME          : %s\n", name.c_str());
 			printf("INPUT         : %s\n", input.c_str());
+			printf("SUBINPUT      : %s\n", subInput.c_str());
 			printf("lrn_k         : %lf\n", lrn_k);
 			printf("lrn_n         : %d\n",  lrn_n);
 			printf("lrn_alpha     : %lf\n", lrn_alpha);
@@ -213,12 +283,13 @@ void Config:: get_layers_config(string &str){
 			std::string initType = get_word_type(layers[i], "initType");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigFC(name, input, type, hn, wd,
+			layer = new ConfigFC(name, input, subInput, type, hn, wd,
 				drop, initW, initType, m_nonLinearity->getValue());
 
 			printf("\n\n********Full Connect Layer********\n");
 			printf("NAME                    : %s\n", name.c_str());
 			printf("INPUT                   : %s\n", input.c_str());
+			printf("SUBINPUT                : %s\n", subInput.c_str());
 			printf("NUM_FULLCONNECT_NEURONS : %d\n", hn);
 			printf("WEIGHT_DECAY            : %lf\n", wd);
 			printf("DROPCONNECT_RATE        : %lf\n", drop);
@@ -233,12 +304,13 @@ void Config:: get_layers_config(string &str){
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			std::string initType = get_word_type(layers[i], "initType");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
-			layer = new ConfigSoftMax(name, input, type, numClasses, weightDecay, 
+			layer = new ConfigSoftMax(name, input, subInput, type, numClasses, weightDecay, 
 				initW, initType, m_nonLinearity->getValue());
 			m_classes = numClasses;
 			printf("\n\n********SoftMax Layer********\n");
 			printf("NAME         : %s\n", name.c_str());
 			printf("INPUT        : %s\n", input.c_str());
+			printf("SUBINPUT     : %s\n", subInput.c_str());
 			printf("NUM_CLASSES  : %d\n", numClasses);
 			printf("WEIGHT_DECAY : %lf\n", weightDecay);
 			printf("initW        : %lf\n", initW);
@@ -250,8 +322,16 @@ void Config:: get_layers_config(string &str){
 			m_firstLayers.push_back(layer);
 		}
 		else{
-			ConfigBase* preLayer = getLayerByName(layer->m_input);
-			preLayer->m_next.push_back(layer);
+			if(layer->m_input == string("NULL")){
+				for(int i = 0; i < layer->m_inputs.size(); i++){
+					ConfigBase* preLayer = getLayerByName(layer->m_input[i]);
+					preLayer->m_next.push_back(layer);
+				}
+			}
+			else{
+				ConfigBase* preLayer = getLayerByName(layer->m_input);
+				preLayer->m_next.push_back(layer);
+			}
 		}
 	}
 }

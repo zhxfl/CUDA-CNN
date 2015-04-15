@@ -1,10 +1,12 @@
 #include "ConvCFM.h"
 #include "../common/cuBase.h"
 #include "../common/Config.h"
+
 /*
 *	blocks : dim3(batch, cuKernelScan[0]),
 *	threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
+
 __global__ void g_ConvCFM_feedforward_1(
 	double** inputs,
 	double** ws,
@@ -24,6 +26,7 @@ __global__ void g_ConvCFM_feedforward_1(
  * block = dim3(outputAmount, kernelSize * kernelSize, cfm);
  * thread= dim3(batch);
 */
+
 __global__ void g_ConvCFM_wgradAdd(
 	double** _WgradTmp,
 	double** Wgrad,
@@ -182,11 +185,10 @@ __global__ void g_ConvCFM_Bgrad(double* delta,
 void ConvCFM::calCost()
 {
 	cost->gpuClear();
-	g_getCost_3<<<dim3(outputAmount), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
+	g_getCost_3<<<dim3(w.size()), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
 		w.m_devPoint, 
 		lambda,
-		kernelSize, 
-		kernelSize);
+		w[0]->getLen());
 	cudaDeviceSynchronize();
 	getLastCudaError("ConvCFM:getCost");
 }
@@ -613,17 +615,17 @@ void ConvCFM::initRandom()
 	srand(clock());
 	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
-
 //  	for(int i = 0; i < w.size(); i++){
 //  		initMatrix(w[i], initW);
 //  	}
+
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
 		for(int i = 0; i < w.size(); i++){
 			double epsilon = initW;
 			for(int c = 0; c < w[i]->channels; c++)
 			{
-				double r1 = 0.01 + 5 * (rand()) / RAND_MAX;
-				double r2 = 0.01 + 5 * (rand()) / RAND_MAX;
+				double r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+				double r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
 				createGaussian(w[i]->getHost() + c * w[i]->getArea(), r1,r2,
 					kernelSize, kernelSize, w[i]->channels,
 					epsilon);
@@ -717,9 +719,7 @@ __global__ void g_ConvCFM_feedforward_s_cmf1_1(
 					int skipk = i  * kernelSize;
 				for(int j = 0; j < kernelSize;j++){
 					int yy = y + j - padding;
-
 					if(xx >= 0 && xx < inputDim && yy >= 0 && yy < inputDim){
-
 						val += curInput[skipx + yy] * w[skipk + j];
 					}
 				}
@@ -870,6 +870,7 @@ __global__ void g_ConvCFM_backpropagation(
 	int kernelSize2 = kernelSize * kernelSize;
 	double *curDelta = _curDelta + ok * curArea + sp * curSize2;
 
+	int half = kernelSize >> 1;
 	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
 		int idx = tidx + threadIdx.x;
 		if (idx < preSize2) {
@@ -883,12 +884,12 @@ __global__ void g_ConvCFM_backpropagation(
 				double val = 0.0;
 				for (int x = 0; x < kernelSize; x++) {
 					for (int y = 0; y < kernelSize; y++) {
-						int cx = i + x - (kernelSize >> 1);
-						int cy = j + y - (kernelSize >> 1);
+						int cx = i + x - half;
+						int cy = j + y - half;
 						int wx = kernelSize - x - 1;
 						int wy = kernelSize - y - 1;
-						cx -= ((kernelSize >> 1) - padding);
-						cy -= ((kernelSize >> 1) - padding);
+						cx -= (half - padding);
+						cy -= (half - padding);
 						if(cx >= 0 && cx < curDim && cy >= 0 && cy < curDim){
 							val += curDelta[cx * curDim + cy] * w[wx * kernelSize + wy];
 						}
@@ -1049,8 +1050,6 @@ __global__ void g_ConvCFM_wgrad_1(
 			int i = idx / kernelSize;
 			int j = idx % kernelSize;
 			double val = 0.0;
-
-			
 			for(int x = 0; x < curDeltaDim; x++){
 				int cx = i + x - padding;
 				for(int y = 0; y < curDeltaDim; y++){
@@ -1065,9 +1064,9 @@ __global__ void g_ConvCFM_wgrad_1(
 }
 
 /*
-*blocks  : dim3(kernelAmount2)
-*threads : dim3(256)
-*shared  : sizeof(double) * 256
+ * blocks  : dim3(kernelAmount2)
+ * threads : dim3(256)
+ * shared  : sizeof(double) * 256
 */
 __global__ void g_ConvCFM_Bgrad(double* delta,
 	double** bgrad,

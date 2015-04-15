@@ -145,6 +145,8 @@ private:
 	int m_nonLinearity;
 };
 
+
+
 class ConfigChannels
 {
 public:
@@ -159,6 +161,7 @@ class ConfigBase
 public:
 	std::string m_name;
 	std::string m_input;
+	std::string m_subInput;
 	std::vector<ConfigBase*> m_next;
 	std::string m_type;
 	double m_initW;
@@ -167,12 +170,16 @@ public:
 	bool isGaussian(){
 		return m_initType == std::string("Gaussian");
 	}
+	bool hasSubInput(){
+		return m_subInput != std::string("NULL");
+	}
 };
 
 class ConfigLRN : public ConfigBase{
 public:
 	ConfigLRN(std::string name, 
 		std::string input,
+		std::string subInput,
 		std::string type,
 		double k, int n, 
 		double alpha, double belta, 
@@ -180,6 +187,7 @@ public:
 		  m_nonLinearity = nonLinearity;
 		  m_name  = name;
 		  m_input = input; 
+		  m_subInput = subInput;
 		  m_type = type;
 	  }
 	double m_k;
@@ -188,10 +196,43 @@ public:
 	int m_n;
 };
 
+
+class ConfigBranchLayer: public ConfigBase{
+public:
+	ConfigBranchLayer(std::string name, 
+		std::string input,
+		std::string subInput,
+		std::string type,
+		std::vector<std::string>&outputs){
+			m_name = name;
+			m_input = input;
+			m_subInput = subInput;
+			m_type = type;
+			m_outputs = outputs;
+	}
+	std::vector<std::string>m_outputs;
+};
+
+
+class ConfigCombineLayer:public ConfigBase{
+public:
+	ConfigCombineLayer(std::string name, 
+		std::vector<std::string> inputs,
+		std::string subInput,
+		std::string type){
+			m_name = name;
+			m_inputs = inputs;
+			m_subInput = subInput;
+			m_type = type;
+	}
+	std::vector<std::string>m_inputs;
+};
+
 class ConfigConv : public ConfigBase
 {
 public:
-	ConfigConv(std::string name, std::string input, std::string type,
+	ConfigConv(std::string name, std::string input,
+		std::string subInput, std::string type,
 		int kernelSize, int padding, int amount,
 		double weightDecay, int cfm, double initW, std::string initType,
 		int non_linearity){
@@ -201,6 +242,8 @@ public:
 		m_weightDecay = weightDecay;
 		m_name = name;
 		m_input = input;
+		m_subInput = subInput;
+		m_subInput = input;
 		m_cfm = cfm;
 		m_type = type;
 		m_initW = initW;
@@ -218,30 +261,37 @@ public:
 class ConfigLocal : public ConfigBase
 {
 public:
-	ConfigLocal(std::string name, std::string input, std::string type,
-		int kernelSize, int amount,
+	ConfigLocal(std::string name,
+		std::string input,
+		std::string subInput,
+		std::string type,
+		int kernelSize,
 		double weightDecay, double initW, std::string initType,
 		int non_linearity){
 			m_kernelSize = kernelSize;
-			m_amount = amount;
 			m_weightDecay = weightDecay;
 			m_name = name;
 			m_input = input;
+			m_subInput = subInput;
 			m_type = type;
 			m_initW = initW;
 			m_nonLinearity = non_linearity;
 			m_initType = initType;
 	}
 	int m_kernelSize;
-	int m_amount;
 	double m_weightDecay;
 };
 
 class ConfigNIN : public ConfigBase{
 public:
-	ConfigNIN(std::string name, std::string input, std::string type, double weightDecay){
+	ConfigNIN(std::string name, 
+		std::string input, 
+		std::string subInput,
+		std::string type,
+		double weightDecay){
 		m_name = name;
 		m_input= input;
+		m_subInput = subInput;
 		m_type = type;
 		m_weightDecay = weightDecay;
 	}
@@ -251,12 +301,17 @@ public:
 class ConfigPooling : public ConfigBase
 {
 public:
-	ConfigPooling(std::string name, std::string input, std::string type, int size, int skip,
+	ConfigPooling(std::string name,
+		std::string input,
+		std::string subInput,
+		std::string type,
+		int size, int skip,
 		int non_linearity){
 		m_size = size;
 		m_skip = skip;
 		m_name = name;
 		m_input = input;
+		m_subInput = subInput;
 		m_type = type;
 		m_nonLinearity = non_linearity;
 	}
@@ -267,14 +322,23 @@ public:
 class ConfigFC : public ConfigBase
 {
 public:
-	ConfigFC(std::string name, std::string input, std::string type, int numFullConnectNeurons, double weightDecay,
-		double dropoutRate, double initW, std::string initType, int non_linearity)
+	ConfigFC(std::string name,
+		std::string input,
+		std::string subInput,
+		std::string type,
+		int numFullConnectNeurons,
+		double weightDecay,
+		double dropoutRate,
+		double initW, 
+		std::string initType, 
+		int non_linearity)
 	{
 		m_numFullConnectNeurons = numFullConnectNeurons;
 		m_weightDecay = weightDecay;
 		m_dropoutRate = dropoutRate;
 		m_name = name;
 		m_input = input;
+		m_subInput = subInput;
 		m_type = type;
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
@@ -290,13 +354,21 @@ class ConfigSoftMax : public ConfigBase
 public:
 	int m_numClasses;
 	double m_weightDecay;
-	ConfigSoftMax(std::string name, std::string input, std::string type, int numClasses, 
-		double weightDecay, double initW, std::string initType, int non_linearity)
+	ConfigSoftMax(std::string name,
+		std::string input,
+		std::string subInput,
+		std::string type, 
+		int numClasses, 
+		double weightDecay, 
+		double initW, 
+		std::string initType,
+		int non_linearity)
 	{
 		m_numClasses = numClasses;
 		m_weightDecay = weightDecay;
 		m_name = name;
 		m_input = input;
+		m_subInput = subInput;
 		m_type = type;
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
@@ -443,6 +515,7 @@ private:
 	int get_word_int(std::string &str, std::string name);
 	std::string read_2_string(std::string File_name);
 	void get_layers_config(std::string &str);
+	std::vector<std::string> get_name_vector(std::string &str, std::string name);
 
 	void init(std::string path);
 	std::string m_configStr;
@@ -450,6 +523,8 @@ private:
 
 	std::map<std::string, ConfigBase*>m_layerMaps;
 	std::vector<ConfigBase*>m_firstLayers;
+
+
 
 	ConfigNonLinearity       *m_nonLinearity;
 	ConfigGradient           *m_isGrandientChecking;

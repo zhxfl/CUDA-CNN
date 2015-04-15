@@ -184,8 +184,7 @@ void LocalConnect::calCost()
 	g_getCost_3<<<dim3(w.size()), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
 		w.m_devPoint, 
 		lambda,
-		kernelSize, 
-		kernelSize);
+		w[0]->getLen());
 	cudaDeviceSynchronize();
 	getLastCudaError("LocalConnect:getCost");
 }
@@ -405,7 +404,7 @@ LocalConnect::LocalConnect(std::string name)
 
 	inputs = preLayer->getOutputs();
 	inputAmount = preLayer->outputAmount;
-	outputAmount = config->m_amount;
+	outputAmount = inputAmount;
 	kernelSize = config->m_kernelSize;
 
 	inputDim  = preLayer->outputDim;
