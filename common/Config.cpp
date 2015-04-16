@@ -323,10 +323,10 @@ void Config:: get_layers_config(string &str){
 		}
 		else{
 			if(layer->m_input == string("NULL")){
-				for(int i = 0; i < layer->m_inputs.size(); i++){
-					ConfigBase* preLayer = getLayerByName(layer->m_input[i]);
-					preLayer->m_next.push_back(layer);
-				}
+				//for(int i = 0; i < layer->m_inputs.size(); i++){
+				//	ConfigBase* preLayer = getLayerByName(layer->m_input[i]);
+				//	preLayer->m_next.push_back(layer);
+				//}
 			}
 			else{
 				ConfigBase* preLayer = getLayerByName(layer->m_input);
