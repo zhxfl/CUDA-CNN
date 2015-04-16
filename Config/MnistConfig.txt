@@ -56,21 +56,11 @@ SIZE = 2;
 SKIP = 2;
 ]
 
-[  
-LAYER = LOCAL;
-NAME  = local1;
-INPUT = pooling2;
-KERNEL_SIZE = 3;
-WEIGHT_DECAY = 1e-5;
-initW = 1.0;
-initType = Gaussian;           #Gaussian, Bernoulli#
-]
-
 [
 LAYER = FC;
 NAME  = fc1;
-INPUT =	local1;
-NUM_FULLCONNECT_NEURONS = 256;
+INPUT =	pooling2;
+NUM_FULLCONNECT_NEURONS = 1024;
 WEIGHT_DECAY = 1e-8;
 DROPCONNECT_RATE = 0.0;
 initW = 1.0;
