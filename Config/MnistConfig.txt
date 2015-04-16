@@ -9,7 +9,7 @@ ROTATION = 12.0;                #angle#
 DISTORTION = 3.4;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = false;             #horizontal reflection#
-TEST_EPOCH = 1;                 #the period to get the test dataset's error rate#
+TEST_EPOCH = 100;                 #the period to get the test dataset's error rate#
 WHITE_NOISE = 0.01;   
 
 [
@@ -18,7 +18,7 @@ NAME  = conv1;
 INPUT = data;
 KERNEL_SIZE = 5;
 PADDING = 0;
-KERNEL_AMOUNT = 32;
+KERNEL_AMOUNT = 64;
 COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
 WEIGHT_DECAY = 1e-5;
 initW = 1.0;
@@ -34,21 +34,10 @@ SIZE = 2;
 SKIP = 2;
 ]
 
-
-[
-LAYER = BRANCHLAYER;
-NAME  = branchlayer1;
-INPUT = pooling1;
-OUTPUTS = b1a,b1b;
-]
-
-#=========Branch1 start===========#
-
 [  
 LAYER = CONV;
 NAME  = conv2;
-INPUT = branchlayer1;
-SUBINPUT = b1a;
+INPUT = pooling1;
 KERNEL_SIZE = 5;
 PADDING = 0;
 KERNEL_AMOUNT = 64;
@@ -67,10 +56,20 @@ SIZE = 2;
 SKIP = 2;
 ]
 
+[  
+LAYER = LOCAL;
+NAME  = local1;
+INPUT = pooling2;
+KERNEL_SIZE = 3;
+WEIGHT_DECAY = 1e-5;
+initW = 1.0;
+initType = Gaussian;           #Gaussian, Bernoulli#
+]
+
 [
 LAYER = FC;
 NAME  = fc1;
-INPUT =	pooling2;
+INPUT =	local1;
 NUM_FULLCONNECT_NEURONS = 256;
 WEIGHT_DECAY = 1e-8;
 DROPCONNECT_RATE = 0.0;
@@ -78,59 +77,11 @@ initW = 1.0;
 NON_LINEARITY = NL_RELU;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
-
-#===========Branch1 end===============#
-
-#===================Branch2 start===================#
-
-[
-LAYER = CONV;
-NAME  = conv3;
-INPUT = branchlayer1;
-SUBINPUT = b1b;
-KERNEL_SIZE = 3;
-PADDING = 0;
-KERNEL_AMOUNT = 64;
-COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
-WEIGHT_DECAY = 1e-5;
-initW = 1.0;
-NON_LINEARITY = NL_RELU;
-initType = Gaussian;            #Gaussian, Bernoulli#
-]
-
-[
-LAYER = POOLING;
-NAME  = pooling3;
-INPUT = conv3;
-SIZE = 2;
-SKIP = 2;
-]
-
-[
-LAYER = FC;
-NAME  = fc2;
-INPUT =	pooling3;
-NUM_FULLCONNECT_NEURONS = 256;
-WEIGHT_DECAY = 1e-8;
-DROPCONNECT_RATE = 0.0;
-initW = 1.0;
-NON_LINEARITY = NL_RELU;
-initType = Bernoulli;           #Gaussian, Bernoulli#
-]
-
-#=============Branch1 end========================#
-
-[
-LAYER = COMBINELAYER;
-NAME  = combineLayer1;
-SUBINPUTS= fc1, fc2;
-]
-
 
 [
 LAYER = SOFTMAX;
 NAME = softmax1;
-INPUT = combineLayer1;
+INPUT = fc1;
 NUM_CLASSES = 10;
 WEIGHT_DECAY = 1e-5;
 initW = 0.1;
