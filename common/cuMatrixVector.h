@@ -24,12 +24,12 @@ public:
 	}
 	cuMatrix<T>* operator[](size_t index){
 		if(index >= m_vec.size()){
+			//Assert(true);
 			printf("cuMatrix Vector operator[] error\n");
 			exit(0);
 		}
 		return m_vec[index];
 	}
-
 	size_t size(){return m_vec.size();}
 
 	void push_back(cuMatrix<T>* m){m_vec.push_back(m);}
@@ -88,5 +88,4 @@ public:
 	T** m_hstPoint;
 	T** m_devPoint;
 };
-
 #endif

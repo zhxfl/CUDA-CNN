@@ -71,7 +71,7 @@ void readChineseData(cuMatrixVector<double> &trainX,
 				trainSet.push_back(Path + string(ptr->d_name));
 				trainLabel.push_back(i);
 
-				printf("%s\n", trainSet[trainSet.size() - 1].c_str());
+				sprintf(logStr, "%s\n", trainSet[trainSet.size() - 1].c_str());
 			}
 		}
 		closedir(dir);
@@ -88,7 +88,7 @@ void readChineseData(cuMatrixVector<double> &trainX,
 			if (strcmp(ptr->d_name, ".") && strcmp(ptr->d_name, "..")) {
 				testSet.push_back(Path + string(ptr->d_name));
 				testLabel.push_back(i);
-				printf("%s\n", testSet[testSet.size() - 1].c_str());
+				sprintf(logStr, "%s\n", testSet[testSet.size() - 1].c_str());
 			}
 		}
 		closedir(dir);
@@ -109,10 +109,10 @@ void readChineseData(cuMatrixVector<double> &trainX,
 		swap(testLabel[x], testLabel[y]);
 	}
 
-	printf("\n\n****************Read Data Set****************\n");
-	printf("train dataset size = %d\n", trainSet.size());
-	printf("test  dataset size = %d\n", testSet.size());
-	printf("*********************************************\n\n\n");
+	sprintf(logStr, "\n\n****************Read Data Set****************\n");
+	sprintf(logStr, "train dataset size = %d\n", trainSet.size());
+	sprintf(logStr, "test  dataset size = %d\n", testSet.size());
+	sprintf(logStr, "*********************************************\n\n\n");
 
 	trainY = new cuMatrix<int>(trainLabel.size(), 1, 1);
 	testY  = new cuMatrix<int>(testLabel.size(), 1, 1);

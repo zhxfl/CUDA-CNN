@@ -21,14 +21,3 @@ void Layers::set(std::string name, LayerBase* layer)
 		printf("layers:set %s exit\n", name.c_str());
 	}
 }
-
-
-void Layers::setInputs(cuMatrixVector<double>*inputs)
-{
-	m_inputs = inputs;
-}
-
-cuMatrixVector<double>* Layers:: getInputs()
-{
-	return m_inputs;
-}

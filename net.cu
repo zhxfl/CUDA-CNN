@@ -19,22 +19,17 @@
 #include "layers/LocalConnect.h"
 #include "layers/LRN.h"
 #include "layers/NIN.h"
+#include "layers/BrachLayer.h"
+#include "layers/CombineLayer.h"
+#include "layers/DataLayer.h"
 
 #include <queue>
-
-cuMatrixVector<double>* cu_distortion_vector;
+#include <set>
 
 int cuCurCorrect;
 cuMatrix<int>*cuCorrect = NULL;
 cuMatrix<int>*cuVote = NULL;
 std::vector<ConfigBase*>que;
-
-/*batch size images*/
-cuMatrixVector<double>batchImg[2];
-
-void getBatchImageWithStreams(cuMatrixVector<double>&x, cuMatrixVector<double>&batchImg, int start, cudaStream_t stream1);
-void outputMatrix(cuMatrix<double>* m);
-
 
 void cuSaveConvNet()
 {	
@@ -64,28 +59,19 @@ void cuReadConvNet(
 	fclose(pIn);
 };
 
-void cuInitCNNMemory(
-	int batch,
-	cuMatrixVector<double>& trainX, 
-	cuMatrixVector<double>& testX,
-	int ImgSize,
-	int nclasses)
+void buildNetWork(int trainLen, int testLen)
 {
-	/*Transformation*/
-	cu_distortion_vector = new cuMatrixVector<double>();
-	for(int i = 0; i < batch; i++){
-		cu_distortion_vector->push_back(new cuMatrix<double>(ImgSize, ImgSize, Config::instance()->getChannels()));
-	}
-	cu_distortion_vector->toGpu();
-	Layers::instance()->setInputs(cu_distortion_vector);
-
-
 	/*BFS*/
 	std::queue<ConfigBase*>qqq;
+	std::set<ConfigBase*> inque;
 	for(int i = 0; i < Config::instance()->getFirstLayers().size(); i++){
 		qqq.push(Config::instance()->getFirstLayers()[i]);
+		inque.insert(Config::instance()->getFirstLayers()[i]);
 	}
 
+	char logStr[1024];
+	sprintf(logStr, "\n\n******************layer nexts start********************\n");
+	LOG(logStr, "Result/log.txt");
 	while(!qqq.empty()){
 		ConfigBase* top = qqq.front();
 		qqq.pop();
@@ -96,8 +82,11 @@ void cuInitCNNMemory(
 			new ConvCFM(conv->m_name);
 		}else if(top->m_type == std::string("LOCAL")){
 			 new LocalConnect(top->m_name);
-		}
-		else if(top->m_type == std::string("POOLING")){
+		}else if(top->m_type == std::string("BRANCHLAYER")){
+			new BrachLayer(top->m_name);
+		}else if(top->m_type == std::string("COMBINELAYER")){
+			new CombineLayer(top->m_name);
+		}else if(top->m_type == std::string("POOLING")){
 			new Pooling(top->m_name);
 		}else if(top->m_type == std::string("FC")){
 			new FullConnect(top->m_name);
@@ -105,29 +94,32 @@ void cuInitCNNMemory(
 			new SoftMax(top->m_name);
 		}else if(top->m_type == std::string("NIN")){
 			new NIN(top->m_name);
-		}
-		else if(std::string("LRN") == top->m_type){
+		}else if(std::string("LRN") == top->m_type){
 			new LRN(top->m_name);
+		}else if(std::string("DATA") == top->m_type){
+			new DataLayer(top->m_name);
 		}
+
+		sprintf(logStr, "layer %10s:", top->m_name.c_str());
+		LOG(logStr, "Result/log.txt");
 		for(int n = 0; n < top->m_next.size(); n++){
-			qqq.push(top->m_next[n]);
-		}
+			if(inque.find(top->m_next[n]) == inque.end()){
+				qqq.push(top->m_next[n]);
+				inque.insert(top->m_next[n]);
+			}
+			sprintf(logStr, "%s ", top->m_next[n]->m_name.c_str());
+			LOG(logStr, "Result/log.txt");
+		}sprintf(logStr, "\n");
+		LOG(logStr, "Result/log.txt");
 	}
 
+	sprintf(logStr, "\n\n******************layer nexts end********************\n");
+	LOG(logStr, "Result/log.txt");
 	/*correct and cuVote*/
 	if(cuCorrect == NULL)
 	{
 		cuCorrect = new cuMatrix<int>(1,1,1);
-		cuVote    = new cuMatrix<int>(testX.size(), Config::instance()->getClasses(), 1);
-	}
-
-	/*double buffer for batch images*/
-	int crop = Config::instance()->getCrop();
-	for(int i = 0; i < 2; i ++){
-		for(int j = 0; j < batch; j++){
-			batchImg[i].push_back(new cuMatrix<double>(ImgSize + crop, ImgSize + crop, Config::instance()->getChannels()));
-		}
-		batchImg[i].toGpu();
+		cuVote    = new cuMatrix<int>(testLen, Config::instance()->getClasses(), 1);
 	}
 }
 
@@ -136,41 +128,9 @@ void cuFreeCNNMemory(
 	cuMatrixVector<double>&trainX, 
 	cuMatrixVector<double>&testX)
 {
-	delete cu_distortion_vector;
 }
 
-void outputPoints(cuMatrix<int>* p)
-{
-	p->toCpu();
-	for(int c = 0; c < p->channels; c++){
-		for(int i = 0; i < p->rows; i++)
-		{
-			for(int j = 0; j < p->cols; j++)
-			{
-				printf("%d ", p->get(i,j, c));
-			}printf("\n");
-		}
-		printf("\n");
-	}
-}
-
-void outputMatrix(cuMatrix<double>* m)
-{
-	m->toCpu();
-	for(int c = 0; c < m->channels; c++){
-		for(int i = 0; i < m->rows; i++){
-			for(int j = 0; j < m->cols; j++){
-				printf("%.10lf ", m->get(i,j, c));
-			}printf("\n");
-		}
-		printf("\n");
-	}
-}
-
-void updataWB(
-	double lrate,
-	double momentum,
-	int batch)
+void updataWB()
 {
 	/*updateWb*/
 	for(int i = 0; i < que.size(); i++){
@@ -181,12 +141,7 @@ void updataWB(
 	getLastCudaError("updateWB");
 }
 
-void getNetworkCost(double** x, 
-	int* y, 
-	int batch,
-	int ImgSize, 
-	int nclasses,
-	cublasHandle_t handle)
+void getNetworkCost(int* y)
 {
 	/*feedforward*/
 	SoftMax* sm = (SoftMax*)Layers::instance()->get("softmax1");
@@ -196,13 +151,6 @@ void getNetworkCost(double** x,
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->feedforward();
 	}
-
-	/*Cost*/
-// 	for(int i = que.size() - 1; i >= 0; i--){
-// 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
-// 		layer->getCost(cost, y);
-// 	}
-
 
 	/*backpropagation*/
 	for(int i = que.size() - 1; i >=0; i--){
@@ -237,9 +185,7 @@ __global__ void g_getCorrect(double* softMaxP, int cols,  int start, int* vote)
 	votep[r]++;
 }
 
-void resultProdict(double** testX, int*testY,
-	int* vote,
-	 int batch, int ImgSize, int nclasses, int start, cublasHandle_t handle)
+void resultProdict(int* vote,int start)
 {
 	/*feedforward*/
 
@@ -248,7 +194,7 @@ void resultProdict(double** testX, int*testY,
 		layer->feedforward();
 	}
 
-	g_getCorrect<<<dim3(1), batch>>>(
+	g_getCorrect<<<dim3(1), Config::instance()->getBatchSize()>>>(
 		Layers::instance()->get("softmax1")->getOutputs()->getDev(),
 		Layers::instance()->get("softmax1")->getOutputs()->cols,
 		start,
@@ -269,7 +215,7 @@ void gradientChecking(double**x,
 	{
 		for(int b = 0; b < CLayers[a].layer.size(); b++)
 		{
-			printf("====%d %d\n",a, b);
+			sprintf(logStr, "====%d %d\n",a, b);
 			getNetworkCost(x,
 				y,
 				CLayers, hLayers,
@@ -305,6 +251,7 @@ void gradientChecking(double**x,
 		}
 	}*/
 }
+
 /*
 */
 void __global__ g_getVotingResult(int* voting, int* y, int* correct, int len, int nclasses)
@@ -350,7 +297,7 @@ void predictTestDate(cuMatrixVector<double>&x,
 			}
 		}
 
-		cuVote->gpuClear();
+	
 		int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop()};
 		int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop()};
 
@@ -358,11 +305,6 @@ void predictTestDate(cuMatrixVector<double>&x,
 		double scaley[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
 
 		double rotate[] = {0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
-// 		if(fabs(Config::instance()->getDistortion()) >= 0.1 || Config::instance()->getScale() >= 1 || Config::instance()->getRotation() >= 1)
-// 			cuApplyDistortion(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
-
-		cudaStream_t stream1;
-		checkCudaErrors(cudaStreamCreate(&stream1));
 
 		int hlen = Config::instance()->getHorizontal() == 1 ? 2 : 1;
 		int clen = Config::instance()->getCrop() == 0 ? 1 : sizeof(cropc) / sizeof(int);
@@ -370,45 +312,37 @@ void predictTestDate(cuMatrixVector<double>&x,
 		int rotateLen = Config::instance()->getRotation() == 0 ? 1 : sizeof(rotate) / sizeof(double);
 		if(!vote) hlen = clen = scaleLen = rotateLen = 1;
 		
+		DataLayer *dl = static_cast<DataLayer*>(Layers::instance()->get("data"));
+		dl->getBatchImageWithStreams(x, 0);
+
+		char logStr[1024];
+		cuVote->gpuClear();
 		for(int sidx = 0; sidx < scaleLen; sidx++){
 			for(int sidy = 0; sidy < scaleLen; sidy++){
 				for(int rid = 0; rid < rotateLen; rid++){
-					cuApplyScaleAndRotate(batch, ImgSize, scalex[sidx], scaley[sidy], rotate[rid]);
 					for (int h = 0; h < hlen; h++) {
 						for (int c = 0; c < clen; c++) {
-							int batchImgId = 1;
-							getBatchImageWithStreams(testX, batchImg[0], 0, stream1);
+							dl->getBatchImageWithStreams(testX, 0);
 							for (int p = 0; p < (testX.size() + batch - 1) / batch; p++) {
-								cudaStreamSynchronize(stream1);
+								dl->synchronize();
 								printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
 								int tstart = p * batch;
 								if(tstart + batch <= testX.size() - batch)
-									getBatchImageWithStreams(testX, batchImg[batchImgId], tstart + batch, stream1);
+									dl->getBatchImageWithStreams(testX, tstart + batch);
 								else {
 									int start = testX.size() - batch;
-									getBatchImageWithStreams(testX, batchImg[batchImgId], start, stream1);
+									dl->getBatchImageWithStreams(testX, start);
 								}
 
 								if(tstart + batch > testX.size()){
 									tstart = testX.size() - batch;
 								}
 
-								//printf("start = %d\n", tstart);
-								batchImgId = 1 - batchImgId;
-								cuApplyCrop(batchImg[batchImgId].m_devPoint,
-									cu_distortion_vector->m_devPoint, batch, ImgSize,
-									cropr[c], cropc[c]);
+								dl->testData(cropr[c], cropc[c], rotate[rid], scalex[sidx], scaley[sidy], h);
 
-								cuApplyDistortion(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
-
-								if (h == 1)
-									cuApplyHorizontal(cu_distortion_vector->m_devPoint,
-									cu_distortion_vector->m_devPoint, batch, ImgSize, HORIZONTAL);
-								resultProdict(cu_distortion_vector->m_devPoint,
-									testY->getDev() + tstart,
-									cuVote->getDev() + tstart * nclasses,
-									batch, ImgSize, nclasses, p * batch - tstart,
-									handle);
+								resultProdict(cuVote->getDev() + tstart * nclasses,
+									p * batch - tstart);
+								
 								printf("\b\b\b\b\b\b\b\b\b");
 							}
 						}
@@ -416,7 +350,6 @@ void predictTestDate(cuMatrixVector<double>&x,
 				}
 			}
 		}
-		checkCudaErrors(cudaStreamDestroy(stream1));
 		cuCorrect->gpuClear();
 		g_getVotingResult<<<dim3((testX.size() + batch - 1) / batch), dim3(batch)>>>(
 			cuVote->getDev(),
@@ -434,83 +367,27 @@ void predictTestDate(cuMatrixVector<double>&x,
 }
 
 
-int voteTestDate(
-	cuMatrixVector<double>&testX,
-	cuMatrix<int>* testY,
-	cuMatrix<int>*& vote,
-	int batch,
-	int ImgSize,
-	int nclasses,
- 	cublasHandle_t handle) {
 
-		for(int i = 0; i < que.size(); i++){
-			if(que[i]->m_type == std::string("FC")){
-				FullConnect* layer = (FullConnect*)Layers::instance()->get(que[i]->m_name);
-				layer->drop(0.0);
-			}
-		}
-
-		cuVote->gpuClear();
-		int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop()};
-		int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop()};
-
-		cudaStream_t stream1;
-		checkCudaErrors(cudaStreamCreate(&stream1));
-		for (int h = 0; h < (Config::instance()->getHorizontal() == 1 ? 2 : 1); h++) {
-			for (int c = 0; c < (Config::instance()->getCrop() == 0 ? 1 : sizeof(cropc) / sizeof(int)); c++) {
-				int batchImgId = 1;
-				getBatchImageWithStreams(testX, batchImg[0], 0, stream1);
-				for (int p = 0; p < (testX.size() + batch - 1) / batch; p++) {
-					cudaStreamSynchronize(stream1);
-					printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
-					int tstart = p * batch;
-					if(tstart + batch <= testX.size() - batch)
-						getBatchImageWithStreams(testX, batchImg[batchImgId], tstart + batch, stream1);
-					else {
-						int start = testX.size() - batch;
-						getBatchImageWithStreams(testX, batchImg[batchImgId], start, stream1);
-					}
-
-					if(tstart + batch > testX.size()){
-						tstart = testX.size() - batch;
-					}
-					batchImgId = 1 - batchImgId;
-					cuApplyCrop(batchImg[batchImgId].m_devPoint,
-						cu_distortion_vector->m_devPoint, batch, ImgSize,
-						cropr[c], cropc[c]);
-					if (h == 1)
-						cuApplyHorizontal(cu_distortion_vector->m_devPoint,
-						cu_distortion_vector->m_devPoint, batch, ImgSize, HORIZONTAL);
-					resultProdict(cu_distortion_vector->m_devPoint,
-						testY->getDev() + tstart,
-						cuVote->getDev() + tstart * nclasses,
-						batch, ImgSize, nclasses, p * batch - tstart,
-						handle);
-					printf("\b\b\b\b\b\b\b\b\b");
-				}
-			}
-		}
-		cuCorrect->gpuClear();
-		g_getVotingResult<<<dim3((testX.size() + batch - 1) / batch), dim3(batch)>>>(
-			vote->getDev(),
-			testY->getDev(),
-			cuCorrect->getDev(),
-			testX.size(),
-			nclasses);
-		cudaDeviceSynchronize();
-		getLastCudaError("g_getVotingResult");
-		cuCorrect->toCpu();
-		return cuCorrect->get(0,0,0);
-}
-
-
-void getBatchImageWithStreams(cuMatrixVector<double>&x, cuMatrixVector<double>&batchImg, int start, cudaStream_t stream1){
+void getBatchImageWithStreams(cuMatrixVector<double>&x,
+	cuMatrixVector<double>&batchImg, 
+	int start, 
+	cudaStream_t stream1){
 	 for(int i = 0; i < batchImg.size(); i++){
 		 memcpy(batchImg[i]->getHost(), x[i + start]->getHost(), sizeof(double) * batchImg[i]->getLen());
 		 batchImg[i]->toGpu(stream1);
 	 }
 }
 
+double getCost(){
+	double cost = 0.0;
+	for(int i = 0; i < que.size(); i++){
+		LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
+		layer->calCost();
+		layer->printCost();
+		cost += layer->getCost();
+	}
+	return cost;
+}
 
 void cuTrainNetwork(cuMatrixVector<double>&x,
 	cuMatrix<int>*y,
@@ -524,6 +401,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 	std::vector<int>&epoCount,
 	cublasHandle_t handle)
 {
+	char logStr[1024];
 	if(nlrate.size() != nMomentum.size() || nMomentum.size() != epoCount.size() || nlrate.size() != epoCount.size())
 	{
 		printf("nlrate, nMomentum, epoCount size not equal\n");
@@ -535,7 +413,8 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 
 	predictTestDate(x, y, testX, testY, batch, ImgSize, nclasses, 0, handle);
-	printf("correct is %d\n", cuCorrect->get(0,0,0));
+	sprintf(logStr, "correct is %d\n", cuCorrect->get(0,0,0));
+	LOG(logStr, "Result/log.txt");
 
 	int epochs = 10000;
 
@@ -563,107 +442,71 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 		x.shuffle(5000, y);
 
-		cudaStream_t stream1;
-		checkCudaErrors(cudaStreamCreate(&stream1));
 
-		getBatchImageWithStreams(x, batchImg[0], 0, stream1);
-		int batchImgId = 1;
+		DataLayer *dl = static_cast<DataLayer*>(Layers::instance()->get("data"));
+		dl->getBatchImageWithStreams(x, 0);
+
 		for (int k = 0; k < (x.size() + batch - 1) / batch; k ++) {
-			cudaStreamSynchronize(stream1);
+			dl->synchronize();
 			int start = k * batch;
 			printf("train %2d%%", 100 * start / ((x.size() + batch - 1)));
 			
 			if(start + batch <= x.size() - batch)
-				getBatchImageWithStreams(x, batchImg[batchImgId], start + batch, stream1);
+				dl->getBatchImageWithStreams(x, start + batch);
 			else{
 				int tstart = x.size() - batch;
-				getBatchImageWithStreams(x, batchImg[batchImgId], tstart, stream1);
+				dl->getBatchImageWithStreams(x, tstart);
 			}
 			if(start + batch > x.size()){
 				start = x.size() - batch;
 			}
 
-			batchImgId = 1 - batchImgId;
-			
-			cuApplyCropRandom(batchImg[batchImgId].m_devPoint,
-				cu_distortion_vector->m_devPoint, batch, ImgSize);
-
-			if(fabs(Config::instance()->getDistortion()) >= 0.1 || Config::instance()->getScale() >= 1 || Config::instance()->getRotation() >= 1)
-				cuApplyDistortion(cu_distortion_vector->m_devPoint, cu_distortion_vector->m_devPoint, batch, ImgSize);
-
-			if (Config::instance()->getHorizontal()) {
-				cuApplyHorizontal(cu_distortion_vector->m_devPoint,
-					cu_distortion_vector->m_devPoint, batch, ImgSize, RANDOM_HORIZONTAL);
-			}
-			
-			cuApplyWhiteNoise(cu_distortion_vector->m_devPoint,
-				cu_distortion_vector->m_devPoint, batch, ImgSize, Config::instance()->getWhiteNoise());
-
-			if (Config::instance()->getImageShow()) {
-				for (int ff = batch - 1; ff >= 0; ff--) {
-					showImg(batchImg[batchImgId][ff], 5);
-					showImg(cu_distortion_vector->m_vec[ff], 5);
-					cv::waitKey(0);
-				}
-			}
-
-			getNetworkCost(cu_distortion_vector->m_devPoint, y->getDev() + start,
-				batch, ImgSize, nclasses,
-				handle);
-			updataWB(lrate, Momentum, batch);
+			dl->trainData();
+			getNetworkCost(y->getDev() + start);
+			updataWB();
 			printf("\b\b\b\b\b\b\b\b\b");
 		}
-		checkCudaErrors(cudaStreamDestroy(stream1));
 
-		double cost = 0.0;
-		for(int i = 0; i < que.size(); i++){
-			LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
-			layer->calCost();
-			layer->printCost();
-			cost += layer->getCost();
-		}
-
-		char str[512];
+		double cost = getCost();
 
 		end = clock();
-		sprintf(str, "epoch=%d time=%.03lfs cost=%lf Momentum=%.06lf lrate=%.08lf",
+		sprintf(logStr, "epoch=%d time=%.03lfs cost=%lf Momentum=%.06lf lrate=%.08lf\n",
 			epo, (double) (end - start) / CLOCKS_PER_SEC,
 			cost,
 			Config::instance()->getMomentum(), Config::instance()->getLrate());
-		printf("%s\n", str);
-		LOG(str, "Result/log.txt");
+		LOG(logStr, "Result/log.txt");
 
 		if (epo && epo % epoCount[id] == 0) {
-			for(int i = 0; i < que.size(); i++){
-				LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
-				layer->clearMomentum();
-			}
+// 			for(int i = 0; i < que.size(); i++){
+// 				LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
+// 				layer->clearMomentum();
+// 			}
 			id++;
 		}
 		
 
-		printf("===================weight value================\n");
+		sprintf(logStr, "===================weight value================\n");
+		LOG(logStr, "Result/log.txt");
 		for(int i = 0; i < que.size(); i++){
 			LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 			layer->printParameter();
 		}
 
 		
-		printf("===================test Result================\n");
+		sprintf(logStr, "===================test Result================\n");
+		LOG(logStr, "Result/log.txt");
 		predictTestDate(x, y, testX, testY,
 			batch, ImgSize, nclasses, false, handle);
-		sprintf(str, "test %.2lf%%/%.2lf%%", 100.0 * cuCorrect->get(0, 0, 0) / testX.size(),
+		sprintf(logStr, "test %.2lf%%/%.2lf%%\n", 100.0 * cuCorrect->get(0, 0, 0) / testX.size(),
 			100.0 * cuCurCorrect / testX.size());
-		printf("%s\n",str);
-		LOG(str, "Result/log.txt");
+		LOG(logStr, "Result/log.txt");
 
 		if(epo && epo % Config::instance()->getTestEpoch() == 0){
 			predictTestDate(x, y, testX, testY,
 				batch, ImgSize, nclasses, true, handle);
-			sprintf(str, "test voting correct %.2lf%%/%.2lf%%", 100.0 * cuCorrect->get(0, 0, 0) / testX.size(),
+			sprintf(logStr, "test voting correct %.2lf%%/%.2lf%%\n", 100.0 * cuCorrect->get(0, 0, 0) / testX.size(),
 				100.0 * cuCurCorrect / testX.size());
-			printf("%s\n",str);
-			LOG(str, "Result/log.txt");
+			LOG(logStr, "Result/log.txt");
 		}
 
 		

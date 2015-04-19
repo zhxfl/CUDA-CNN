@@ -89,7 +89,7 @@ void matrixMulTA(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 		z->cols);
 	cudaDeviceSynchronize();
 	if(stat != CUBLAS_STATUS_SUCCESS) {
-		printf("matrixMulTA cublasSgemm error\n");
+		printf( "matrixMulTA cublasSgemm error\n");
 		exit(0);
 	}
 }

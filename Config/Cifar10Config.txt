@@ -15,6 +15,12 @@ HORIZONTAL = true;              #horizontal reflection#
 TEST_EPOCH = 50;                 #the period to get the test dataset's error rate#
 WHITE_NOISE = 0.01;
 
+
+[
+LAYER = DATA;
+NAME  = data;
+]
+ 
 [
 LAYER = CONV;
 NAME  = conv1;
@@ -32,6 +38,7 @@ initType = Bernoulli;           #Gaussian, Bernoulli#
 LAYER = POOLING;
 NAME  = pooling1;
 INPUT = conv1;
+POOLINGTYPE = max;
 SIZE = 2;
 SKIP = 2;
 NON_LINEARITY = NL_RELU;
@@ -60,7 +67,7 @@ NAME  = conv2;
 INPUT = nin1;
 KERNEL_SIZE = 5;
 PADDING = 2;
-KERNEL_AMOUNT = 64;
+KERNEL_AMOUNT = 128;
 COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
 WEIGHT_DECAY = 1e-5;
 initW = 1.0;
@@ -82,6 +89,7 @@ LRN_BALTA = 0.75;
 LAYER = POOLING;
 NAME  = pooling2;
 INPUT = lrn2;
+POOLINGTYPE = avr;
 SIZE = 2;
 SKIP = 2;
 NON_LINEARITY = NL_RELU;
@@ -95,30 +103,21 @@ WEIGHT_DECAY = 1e-4;
 ]
 
 
-[
-LAYER = FC;
-NAME  = fc1;
-INPUT = nin2;
-NUM_FULLCONNECT_NEURONS = 512;
-WEIGHT_DECAY = 1e-8;
-DROPCONNECT_RATE = 0.0;
-initW = 1.0;
-NON_LINEARITY = NL_RELU;
-initType = Bernoulli;           #Gaussian, Bernoulli#
-]
-
 [  
-LAYER = NIN;
-NAME  = nin3;
-INPUT = fc1;
-WEIGHT_DECAY = 1e-4;
+LAYER = LOCAL;
+NAME  = local1;
+INPUT = nin2;
+KERNEL_SIZE = 3;
+WEIGHT_DECAY = 1e-5;
+initW = 1.0;
+initType = Gaussian;           #Gaussian, Bernoulli#
 ]
 
 
 [
 LAYER = SOFTMAX;
 NAME = softmax1;
-INPUT = nin3;
+INPUT = local1;
 NUM_CLASSES = 10;
 WEIGHT_DECAY = 1e-4;
 initW = 0.1;

@@ -1,6 +1,7 @@
 #include "NIN.h"
 #include "../common/cuBase.h"
 #include "../common/Config.h"
+#include "../layers/BrachLayer.h"
 
 
 /*
@@ -115,7 +116,7 @@ void NIN::backpropagation()
 // 	preDelta->toCpu();
 // 	for(int i = 0; i < curDelta->getLen(); i++){
 // 		if(curDelta->getHost()[i] != preDelta->getHost()[i]){
-// 			printf("%d %lf %lf\n", i, curDelta->getHost()[i], preDelta->getHost()[i]);
+// 			sprintf(logStr, "%d %lf %lf\n", i, curDelta->getHost()[i], preDelta->getHost()[i]);
 // 		}
 // 	}
 // 	exit(0);
@@ -239,8 +240,17 @@ NIN::NIN(std::string name)
 	ConfigNIN *config = (ConfigNIN *) Config::instance()->getLayerByName(m_name);
 	ConvLayerBase* preLayer = (ConvLayerBase*) Layers::instance()->get(config->m_input);
 
-	inputs     = preLayer->getOutputs();
-	preDelta   = preLayer->getCurDelta();
+	inputs = preLayer->getOutputs();
+	if(inputs == NULL){
+		/*inputs = NULL the type must be BranchLayers*/
+		Assert(Config::instance()->getLayerByName(config->m_input)->isBranchLayer());
+		Assert(config->m_subInput != std::string("NULL"));
+		BrachLayer* bl = static_cast<BrachLayer*>(preLayer);
+		inputs = bl->getSubOutput(config->m_subInput);
+		preDelta = bl->getSubCurDelta(config->m_subInput);
+	}else{
+		preDelta = preLayer->getCurDelta();
+	}
 
 	inputDim = preLayer->outputDim;
 	outputDim= inputDim;
@@ -350,7 +360,7 @@ __global__ void g_NIN_feedforward(
 	double* inputs = _inputs + skip;
 	double* outputs= _outputs+ skip;
 // 	if(threadIdx.x == 0)
-// 		printf("block(%d %d) skip = %d\n", blockIdx.x, blockIdx.y, skip);
+// 		sprintf(logStr, "block(%d %d) skip = %d\n", blockIdx.x, blockIdx.y, skip);
 	double* w = _w + channel * cols;
 	double* b = _b + channel * cols;
 

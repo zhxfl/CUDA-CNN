@@ -112,7 +112,8 @@ void DebugPrintf(double* data, int len, int dim)
 void LOG(char* str, char* file)
 {
 	FILE* f = fopen(file,"a");
-	fprintf(f,"%s\n",str);
+	printf("%s", str);
+	fprintf(f,"%s",str);
 	fclose(f);
 }
 
@@ -148,10 +149,10 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 			//val = val * 2.0 - 0.5;
 			//val = val * epsilon;
 			gaussian[row * cols + col] = val * epsilon;
-			printf("%lf ", val * epsilon);
-		}printf("\n");
+			//printf("%lf ", val * epsilon);
+		}//printf("\n");
 	}
-	printf("\n\n");
+	//printf("\n\n");
 }
 
 

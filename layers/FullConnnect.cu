@@ -2,6 +2,8 @@
 #include "../common/cuBase.h"
 #include "../common/cuMatrix.h"
 #include "../common/Config.h"
+#include "../layers/BrachLayer.h"
+
 #include <math.h>
 
 
@@ -151,6 +153,17 @@ FullConnect::FullConnect(std::string name)
 	LayerBase * preLayer = (LayerBase*)Layers::instance()->get(config->m_input);
 
 	inputs = preLayer->getOutputs();
+	if(inputs == NULL){
+		/*inputs = NULL the type must be BranchLayers*/
+		Assert(Config::instance()->getLayerByName(config->m_input)->isBranchLayer());
+		Assert(config->m_subInput != std::string("NULL"));
+		BrachLayer* bl = static_cast<BrachLayer*>(preLayer);
+		inputs = bl->getSubOutput(config->m_subInput);
+		preDelta = bl->getSubCurDelta(config->m_subInput);
+	}else{
+		preDelta = preLayer->getCurDelta();
+	}
+
 	batch = Config::instance()->getBatchSize();
 	lambda = config->m_weightDecay;
 	inputsize = inputs->cols * inputs->channels;
@@ -162,7 +175,7 @@ FullConnect::FullConnect(std::string name)
 	inputs_format = new cuMatrix<double>(inputs->rows, inputs->cols * inputs->channels, 1);
 	outputs       = new cuMatrix<double>(batch, outputsize, 1);
 	curDelta      = new cuMatrix<double>(batch, outputsize, 1);
-	this->setPreDelta(preLayer->getCurDelta());
+	this->setPreDelta(preDelta);
 
 	w          = new cuMatrix<double>(outputsize, inputsize, 1);
 	wgrad      = new cuMatrix<double>(outputsize, inputsize, 1);

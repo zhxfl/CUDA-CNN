@@ -6,7 +6,7 @@ using namespace std;
 
 
 bool Config::get_word_bool(string &str, string name){
-	size_t pos = str.find(name);    
+	size_t pos = str.find(name+"=");   
 	int i = pos + 1;
 	bool res = true;
 	while(1){
@@ -43,7 +43,7 @@ int Config::get_word_int(string &str, string name){
 }
 
 double Config::get_word_double(string &str, string name){
-		size_t pos = str.find(name);    
+		size_t pos = str.find(name+"=");  
 		int i = pos + 1;
 		double res = 0.0;
 		while(1){
@@ -61,7 +61,7 @@ double Config::get_word_double(string &str, string name){
 }
 
 string Config::get_word_type(string &str, string name){
-		size_t pos = str.find(name);    
+		size_t pos = str.find(name+"=");    
 		if(pos == str.npos){
 			return "NULL";
 		}
@@ -85,7 +85,7 @@ string Config::get_word_type(string &str, string name){
 std::vector<string> Config::get_name_vector(string &str, string name){
 	std::vector<std::string>result;
 	
-	size_t pos = str.find(name);    
+	size_t pos = str.find(name+"=");    
 	if(pos == str.npos){
 		return result;
 	}
@@ -114,8 +114,6 @@ std::vector<string> Config::get_name_vector(string &str, string name){
 			content.erase(0, pos + 1);
 		}
 	}
-
-
 
 	return result;
 }
@@ -165,72 +163,83 @@ void Config:: get_layers_config(string &str){
 
 			layer = new ConfigConv(name, input, subInput, type, ks, pd, ka, wd, cfm,
 				initW, initType, m_nonLinearity->getValue());
-
-			printf("\n\n********conv layer********\n");
-			printf("NAME          : %s\n", name.c_str());
-			printf("INPUT         : %s\n", input.c_str());
-			printf("SUBINPUT      : %s\n", subInput.c_str());
-			printf("KERNEL_SIZE   : %d\n", ks);
-			printf("KERNEL_AMOUNT : %d\n", ka);
-			printf("CFM           : %d\n", cfm);
-			printf("PADDING       : %d\n", pd);
-			printf("WEIGHT_DECAY  : %lf\n", wd);
-			printf("initW         : %lf\n", initW);
-			printf("non_linearity : %s\n", non_linearity.c_str());
+			char logStr[256];
+			sprintf(logStr,"\n\n********conv layer********\n");        LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());     LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());    LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str()); LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "KERNEL_SIZE   : %d\n", ks);               LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "KERNEL_AMOUNT : %d\n", ka);               LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "CFM           : %d\n", cfm);              LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "PADDING       : %d\n", pd);               LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);              LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %lf\n", initW);           LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str()); LOG(logStr, "Result/log.txt");
+		}
+		else if(type == string("DATA")){
+			layer = new ConfigData(name, type);
+			char logStr[256];
+			sprintf(logStr, "\n\n********data Layer********\n"); LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str()); LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("BRANCHLAYER")){
 			std::vector<std::string>outputs = get_name_vector(layers[i], "OUTPUTS");
 			layer = new ConfigBranchLayer(name, input, subInput, type, outputs);
 
-			printf("\n\n********branch layer********\n");
-			printf("NAME          : %s\n", name.c_str());
-			printf("INPUT         : %s\n", input.c_str());
-			printf("SUBINPUT      : %s\n", subInput.c_str());
-			printf("OUTPUTS       :");
+			char logStr[256];
+			sprintf(logStr, "\n\n********branch layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "OUTPUTS       :");LOG(logStr, "Result/log.txt");
 			for(int i = 0; i < outputs.size(); i++){
-				printf("%s,", outputs[i].c_str());
-			}printf("\n");
+				sprintf(logStr, "%s,", outputs[i].c_str());LOG(logStr, "Result/log.txt");
+			}sprintf(logStr, "\n");LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("COMBINELAYER")){
-			std::vector<std::string>inputs = get_name_vector(layers[i], "SUBINPUTS");
+			std::vector<std::string>inputs = get_name_vector(layers[i], "INPUTS");
 			layer = new ConfigCombineLayer(name, inputs, subInput, type);
 
-			printf("\n\n********combine Layer********\n");
-			printf("NAME          : %s\n", name.c_str());
-			printf("SUBINPUT      : %s\n", subInput.c_str());
-			printf("INPUTS        :");
+			char logStr[256];
+			sprintf(logStr, "\n\n********combine Layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUTS        :");LOG(logStr, "Result/log.txt");
 
 			for(int i = 0; i < inputs.size(); i++){
-				printf("%s,", inputs[i].c_str());
-			}printf("\n");
+				sprintf(logStr, "%s,", inputs[i].c_str());LOG(logStr, "Result/log.txt");
+			}sprintf(logStr, "\n");LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("NIN")){
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
 			layer = new ConfigNIN(name, input, subInput, type, wd);
 			
-			printf("\n\n********NIN layer********\n");
-			printf("NAME          : %s\n", name.c_str());
-			printf("INPUT         : %s\n", input.c_str());
-			printf("SUBINPUT      : %s\n", subInput.c_str());
-			printf("WEIGHT_DECAY  : %lf\n", wd);
+			char logStr[256];
+			sprintf(logStr, "\n\n********NIN layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("POOLING"))
 		{
 			int size = get_word_int(layers[i], "SIZE");
 			int skip = get_word_int(layers[i], "SKIP");
+			std::string poolingType = get_word_type(layers[i], "POOLINGTYPE");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigPooling(name, input, subInput, type, size, skip, m_nonLinearity->getValue());
-
-			printf("\n\n********pooling layer********\n");
-			printf("NAME          : %s\n", name.c_str());
-			printf("INPUT         : %s\n", input.c_str());
-			printf("SUBINPUT      : %s\n", subInput.c_str());
-			printf("size          : %d\n", size);
-			printf("skip          : %d\n", skip);
-			printf("non_linearity : %s\n", non_linearity.c_str());
+			layer = new ConfigPooling(name, input, subInput, type, poolingType, size, skip, m_nonLinearity->getValue());
+			char logStr[256];
+			sprintf(logStr, "\n\n********pooling layer********\n"); LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "POOLINGTYPE   : %s\n", poolingType.c_str()); LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "size          : %d\n", size);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "skip          : %d\n", skip);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(string("LOCAL") == type){
 			int ks = get_word_int(layers[i], "KERNEL_SIZE");
@@ -242,15 +251,16 @@ void Config:: get_layers_config(string &str){
 
 			layer = new ConfigLocal(name, input, subInput, type, ks, wd,
 				initW, initType, m_nonLinearity->getValue());
-
-			printf("\n\n********local connect layer********\n");
-			printf("NAME          : %s\n", name.c_str());
-			printf("INPUT         : %s\n", input.c_str());
-			printf("SUBINPUT      : %s\n", subInput.c_str());
-			printf("KERNEL_SIZE   : %d\n", ks);
-			printf("WEIGHT_DECAY  : %lf\n", wd);
-			printf("initW         : %lf\n", initW);
-			printf("non_linearity : %s\n", non_linearity.c_str());
+			
+			char logStr[256];
+			sprintf(logStr, "\n\n********local connect layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "KERNEL_SIZE   : %d\n", ks);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %lf\n", initW);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(string("LRN") == type){
 			double lrn_k     = get_word_double(layers[i], "LRN_K");
@@ -263,15 +273,16 @@ void Config:: get_layers_config(string &str){
 			layer = new ConfigLRN(name, input, subInput, type, lrn_k, lrn_n, lrn_alpha, lrn_belta, 
 				m_nonLinearity->getValue());
 
-			printf("\n\n********local Response Normalization layer********\n");
-			printf("NAME          : %s\n", name.c_str());
-			printf("INPUT         : %s\n", input.c_str());
-			printf("SUBINPUT      : %s\n", subInput.c_str());
-			printf("lrn_k         : %lf\n", lrn_k);
-			printf("lrn_n         : %d\n",  lrn_n);
-			printf("lrn_alpha     : %lf\n", lrn_alpha);
-			printf("lrn_belta     : %lf\n", lrn_belta);
-			printf("non_linearity : %s\n", non_linearity.c_str());
+			char logStr[256];
+			sprintf(logStr, "\n\n********local Response Normalization layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "lrn_k         : %lf\n", lrn_k);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "lrn_n         : %d\n",  lrn_n);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "lrn_alpha     : %lf\n", lrn_alpha);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "lrn_belta     : %lf\n", lrn_belta);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("FC"))
 		{
@@ -286,15 +297,16 @@ void Config:: get_layers_config(string &str){
 			layer = new ConfigFC(name, input, subInput, type, hn, wd,
 				drop, initW, initType, m_nonLinearity->getValue());
 
-			printf("\n\n********Full Connect Layer********\n");
-			printf("NAME                    : %s\n", name.c_str());
-			printf("INPUT                   : %s\n", input.c_str());
-			printf("SUBINPUT                : %s\n", subInput.c_str());
-			printf("NUM_FULLCONNECT_NEURONS : %d\n", hn);
-			printf("WEIGHT_DECAY            : %lf\n", wd);
-			printf("DROPCONNECT_RATE        : %lf\n", drop);
-			printf("initW                   : %lf\n", initW);
-			printf("non_linearity           : %s\n", non_linearity.c_str());
+			char logStr[256];
+			sprintf(logStr, "\n\n********Full Connect Layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME                    : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT                   : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT                : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NUM_FULLCONNECT_NEURONS : %d\n", hn);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY            : %lf\n", wd);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "DROPCONNECT_RATE        : %lf\n", drop);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW                   : %lf\n", initW);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity           : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("SOFTMAX"))
 		{
@@ -307,26 +319,29 @@ void Config:: get_layers_config(string &str){
 			layer = new ConfigSoftMax(name, input, subInput, type, numClasses, weightDecay, 
 				initW, initType, m_nonLinearity->getValue());
 			m_classes = numClasses;
-			printf("\n\n********SoftMax Layer********\n");
-			printf("NAME         : %s\n", name.c_str());
-			printf("INPUT        : %s\n", input.c_str());
-			printf("SUBINPUT     : %s\n", subInput.c_str());
-			printf("NUM_CLASSES  : %d\n", numClasses);
-			printf("WEIGHT_DECAY : %lf\n", weightDecay);
-			printf("initW        : %lf\n", initW);
-			printf("non_linearity: %s\n", non_linearity.c_str());
+
+			char logStr[256];
+			sprintf(logStr, "\n\n********SoftMax Layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME         : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT        : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT     : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NUM_CLASSES  : %d\n", numClasses);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY : %lf\n", weightDecay);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW        : %lf\n", initW);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity: %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 
 		insertLayerByName(name, layer);
-		if(input == std::string("data")){
+		if(type == std::string("DATA")){
 			m_firstLayers.push_back(layer);
 		}
 		else{
-			if(layer->m_input == string("NULL")){
-				//for(int i = 0; i < layer->m_inputs.size(); i++){
-				//	ConfigBase* preLayer = getLayerByName(layer->m_input[i]);
-				//	preLayer->m_next.push_back(layer);
-				//}
+			if(layer->m_type == string("COMBINELAYER")){
+				ConfigCombineLayer *cl = static_cast<ConfigCombineLayer*>(layer);
+				for(int i = 0; i < cl->m_inputs.size(); i++){
+					ConfigBase* preLayer = getLayerByName(cl->m_inputs[i]);
+					preLayer->m_next.push_back(layer);
+				}
 			}
 			else{
 				ConfigBase* preLayer = getLayerByName(layer->m_input);
@@ -338,7 +353,10 @@ void Config:: get_layers_config(string &str){
 
 void Config::init(std::string path)
 {
-	printf("\n\n*******************CONFIG*******************\n");
+	char logStr[256];
+	sprintf(logStr, "\n\n*******************CONFIG*******************\n");
+	LOG(logStr, "Result/log.txt");
+
 	/*read the string from file "Config.txt"*/
 	/*delete the comment and spaces*/
 	m_configStr = read_2_string(path);
@@ -348,61 +366,73 @@ void Config::init(std::string path)
 	/*IS_GRADIENT_CHECKING*/
 	bool is_gradient_checking = get_word_bool(m_configStr, "IS_GRADIENT_CHECKING");
 	m_isGrandientChecking = new ConfigGradient(is_gradient_checking);
-	printf("Is Grandient Checking : %d\n", is_gradient_checking);
+	sprintf(logStr, "Is Grandient Checking : %d\n", is_gradient_checking);
+	LOG(logStr, "Result/log.txt");
 
 	/*BATCH_SIZE*/
 	int batch_size = get_word_int(m_configStr, "BATCH_SIZE");
 	m_batchSize = new ConfigBatchSize(batch_size);
-	printf("batch Size            : %d\n", batch_size);
+	sprintf(logStr, "batch Size            : %d\n", batch_size);
+	LOG(logStr, "Result/log.txt");
 
 	/*CHANNELS*/
 	int channels = get_word_int(m_configStr, "CHANNELS");
 	m_channels = new ConfigChannels(channels);
-	printf("channels              : %d\n", channels);
+	sprintf(logStr, "channels              : %d\n", channels);
+	LOG(logStr, "Result/log.txt");
 
 	/*crop*/
 	int crop = get_word_int(m_configStr, "CROP");
 	m_crop = new ConfigCrop(crop);
-	printf("crop                  : %d\n", crop);
+	sprintf(logStr, "crop                  : %d\n", crop);
+	LOG(logStr, "Result/log.txt");
 
 	/*scale*/
 	double scale = get_word_double(m_configStr, "SCALE");
 	m_scale = new ConfigScale(scale);
-	printf("scale                 : %lf\n", scale);
+	sprintf(logStr, "scale                 : %lf\n", scale);
+	LOG(logStr, "Result/log.txt");
 
 	/*rotation*/
 	double rotation = get_word_double(m_configStr, "ROTATION");
 	m_rotation = new ConfigRotation(rotation);
-	printf("rotation              : %lf\n", rotation);
+	sprintf(logStr, "rotation              : %lf\n", rotation);
+	LOG(logStr, "Result/log.txt");
 
 	/*distortion*/
 	double distortion = get_word_double(m_configStr, "DISTORTION");
 	m_distortion = new ConfigDistortion(distortion);
-	printf("distortion            : %lf\n", distortion);
+	sprintf(logStr, "distortion            : %lf\n", distortion);
+	LOG(logStr, "Result/log.txt");
 
 	/*ImageShow*/
 	bool imageShow = get_word_bool(m_configStr, "SHOWIMAGE");
 	m_imageShow = new ConfigImageShow(imageShow);
-	printf("imageShow             : %d\n", imageShow);
+	sprintf(logStr, "imageShow             : %d\n", imageShow);
+	LOG(logStr, "Result/log.txt");
 
 	/*Horizontal*/
 	bool horizontal = get_word_bool(m_configStr, "HORIZONTAL");
 	m_horizontal = new ConfigHorizontal(horizontal);
-	printf("HORIZONTAL            : %d\n", horizontal);
+	sprintf(logStr, "HORIZONTAL            : %d\n", horizontal);
+	LOG(logStr, "Result/log.txt");
 
 	/*Test Epoch*/
 	int test_epoch = get_word_int(m_configStr, "TEST_EPOCH");
 	m_test_epoch = new ConfigTestEpoch(test_epoch);
-	printf("Test_Epoch            : %d\n", test_epoch);
+	sprintf(logStr, "Test_Epoch            : %d\n", test_epoch);
+	LOG(logStr, "Result/log.txt");
 
 	/*WHITE_NOISE*/
 	double stdev = get_word_double(m_configStr, "WHITE_NOISE");
 	m_white_noise = new ConfigWhiteNoise(stdev);
-	printf("White Noise           : %f\n", stdev);
-	
+	sprintf(logStr, "White Noise           : %f\n", stdev);
+	LOG(logStr, "Result/log.txt");
+
 	/*Layers*/
 	get_layers_config(m_configStr);
-	printf("\n\n\n");
+	sprintf(logStr, "\n\n\n");
+	LOG(logStr, "Result/log.txt");
 }
 
 void Config::deleteSpace()
@@ -435,8 +465,9 @@ string
 	Config::read_2_string(string File_name){
 		char *pBuf;
 		FILE *pFile = NULL;   
+		char logStr[1025];
 		if(!(pFile = fopen(File_name.c_str(),"r"))){
-			printf("Can not find this file.");
+			sprintf(logStr, "Can not find this file.");
 			return 0;
 		}
 		//move pointer to the end of the file

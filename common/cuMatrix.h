@@ -64,7 +64,7 @@ public:
 		cudaStat = cudaMemcpy (devData, hostData, sizeof(*devData) * cols * rows * channels, cudaMemcpyHostToDevice);
 
 		if(cudaStat != cudaSuccess) {
-			printf ("cuMatrix::toGPU data upload failed\n");
+			printf("cuMatrix::toGPU data upload failed\n");
 			MemoryMonitor::instance()->freeGpuMemory(devData);
 			exit(0);
 		}
@@ -82,7 +82,7 @@ public:
 		cudaError_t cudaStat;
 		cudaStat = cudaMemset(devData,0,sizeof(*devData) * cols * rows * channels);
 		if(cudaStat != cudaSuccess) {
-			printf ("device memory cudaMemset failed\n");
+			printf("device memory cudaMemset failed\n");
 			exit(0);
 		}
 	}
@@ -156,13 +156,13 @@ private:
 			/*malloc device data*/
 			cudaStat = MemoryMonitor::instance()->gpuMalloc((void**)&devData, cols * rows * channels * sizeof(*devData));
 			if(cudaStat != cudaSuccess) {
-				printf ("cuMatrix::cuMatrix device memory allocation failed\n");
+				printf("cuMatrix::cuMatrix device memory allocation failed\n");
 				exit(0);
 			}
 
 			cudaStat = cudaMemset(devData, 0, sizeof(*devData) * cols * rows * channels);
 			if(cudaStat != cudaSuccess) {
-				printf ("cuMatrix::cuMatrix device memory cudaMemset failed\n");
+				printf("cuMatrix::cuMatrix device memory cudaMemset failed\n");
 				exit(0);
 			}
 		}

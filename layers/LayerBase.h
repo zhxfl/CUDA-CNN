@@ -3,7 +3,7 @@
 
 #include "../common/cuMatrix.h"
 #include "../common/cuMatrixVector.h"
-
+#include "../common/util.h"
 
 class LayerBase
 {
@@ -33,7 +33,9 @@ public:
 	void printCost(){
 		if(cost != NULL){
 			cost->toCpu();
-			printf("%10s cost = %lf\n", m_name.c_str(), cost->get(0, 0, 0));
+			char logStr[1024];
+			sprintf(logStr, "%10s cost = %lf\n", m_name.c_str(), cost->get(0, 0, 0));
+			LOG(logStr, "Result/log.txt");
 		}
 	}
 	~LayerBase(){
@@ -63,11 +65,7 @@ public:
 	LayerBase* get(std::string name);
 	void set(std::string name, LayerBase* layer);
 
-	void setInputs(cuMatrixVector<double>*m_inputs);
-	cuMatrixVector<double>* getInputs();
-
 private:
 	std::map<std::string, LayerBase*>m_maps;
-	cuMatrixVector<double>*m_inputs;
 };
 #endif

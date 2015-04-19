@@ -37,12 +37,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 	std::vector<int>&epoCount,
 	cublasHandle_t handle);
 
-void cuInitCNNMemory(
-	int batch,
-	cuMatrixVector<double>& trainX, 
-	cuMatrixVector<double>& testX,
-	int ImgSize,
-	int nclasses);
+void buildNetWork(int trainLen, int testLen);
 
 void cuFreeConvNet();
 
@@ -50,20 +45,6 @@ void cuFreeCNNMemory(
 	int batch,
 	cuMatrixVector<double>&trainX, 
 	cuMatrixVector<double>&testX);
-
-
-/*
-*	get one network's vote result
-*/
-
-int voteTestDate(
-	cuMatrixVector<double>&testX,
-	cuMatrix<int>* testY,
-	cuMatrix<int>*& vote,
-	int batch,
-	int ImgSize,
-	int nclasses,
-	cublasHandle_t handle);
 
 int cuVoteAdd(cuMatrix<int>*& voteSum, 
 	cuMatrix<int>*& predict,

@@ -5,6 +5,7 @@
 #include <math.h>
 #include "../common/Config.h"
 #include "../common/cuBase.h"
+#include "../layers/BrachLayer.h"
 
 #define USE_DOUBLE float
 /*
@@ -147,6 +148,17 @@ LRN::LRN(std::string name)
 	ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
 
 	inputs = preLayer->getOutputs();
+	if(inputs == NULL){
+		/*inputs = NULL the type must be BranchLayers*/
+		Assert(Config::instance()->getLayerByName(config->m_input)->isBranchLayer());
+		Assert(config->m_subInput != std::string("NULL"));
+		BrachLayer* bl = static_cast<BrachLayer*>(preLayer);
+		inputs = bl->getSubOutput(config->m_subInput);
+		preDelta = bl->getSubCurDelta(config->m_subInput);
+	}else{
+		preDelta = preLayer->getCurDelta();
+	}
+
 	inputDim = preLayer->outputDim;
 	outputDim = inputDim;
 	outputAmount = preLayer->outputAmount;
@@ -163,7 +175,6 @@ LRN::LRN(std::string name)
 
 	outputs  = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
 	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
-	preDelta = preLayer->getCurDelta();
 
 	Layers::instance()->set(m_name, this);
 }

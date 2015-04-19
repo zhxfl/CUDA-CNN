@@ -1,6 +1,8 @@
 #include "LocalConnect.h"
 #include "../common/cuBase.h"
 #include "../common/Config.h"
+#include "../layers/BrachLayer.h"
+
 
 
 /*
@@ -403,6 +405,17 @@ LocalConnect::LocalConnect(std::string name)
 	ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
 
 	inputs = preLayer->getOutputs();
+	if(inputs == NULL){
+		/*inputs = NULL the type must be BranchLayers*/
+		Assert(Config::instance()->getLayerByName(config->m_input)->isBranchLayer());
+		Assert(config->m_subInput != std::string("NULL"));
+		BrachLayer* bl = static_cast<BrachLayer*>(preLayer);
+		inputs = bl->getSubOutput(config->m_subInput);
+		preDelta = bl->getSubCurDelta(config->m_subInput);
+	}else{
+		preDelta = preLayer->getCurDelta();
+	}
+
 	inputAmount = preLayer->outputAmount;
 	outputAmount = inputAmount;
 	kernelSize = config->m_kernelSize;
@@ -416,7 +429,6 @@ LocalConnect::LocalConnect(std::string name)
 	localKernelSize = outputDim * outputDim;
 	outputs = new cuMatrix<double> (batch, outputDim * outputDim, outputAmount);
 	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
-	preDelta = preLayer->getCurDelta();
 
 	for(int i = 0; i < outputAmount * localKernelSize; i++){
 		w.push_back(new cuMatrix<double>(kernelSize, kernelSize, 1));

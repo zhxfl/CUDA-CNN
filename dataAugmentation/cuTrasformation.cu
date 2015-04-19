@@ -12,7 +12,8 @@
 #include "../common/cuBase.h"
 
 
-#define GAUSSIAN_FIELD_SIZE (21) /* strictly odd number */
+#define GAUSSIAN_FIELD_SIZE (15) /* strictly odd number */
+#define constDistortion (3.0)
 curandGenerator_t rand_generator_device;
 const curandRngType_t generator_type = CURAND_RNG_PSEUDO_DEFAULT;
 
@@ -53,7 +54,9 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 	cuGaussianKernel = new cuMatrix<double>(GAUSSIAN_FIELD_SIZE, GAUSSIAN_FIELD_SIZE, 1);
 	if(GAUSSIAN_FIELD_SIZE * GAUSSIAN_FIELD_SIZE > MAX_THREADS)
 	{
-		printf("g_createGaussianKernel > MAX_THREADS\n");
+		char logStr[1024];
+		sprintf(logStr, "g_createGaussianKernel > MAX_THREADS\n");
+		LOG(logStr, "Result/log.txt");
 		exit(0);
 	}
 	g_createGaussianKernel<<<dim3(1),dim3(GAUSSIAN_FIELD_SIZE * GAUSSIAN_FIELD_SIZE)>>>(
@@ -74,7 +77,9 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 	cu_h_randomNum = (double*)MemoryMonitor::instance()->cpuMalloc(sizeof(double) * getRandomNumLen(batch, ImgSize));
 	if(!cu_h_randomNum)
 	{
-		printf("malloc cu_h_randomNum fail\n");
+		char logStr[1024];
+		sprintf(logStr, "malloc cu_h_randomNum fail\n");
+		LOG(logStr, "Result/log.txt");
 		exit(0);
 	}
 
@@ -82,7 +87,9 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 	curandstatus = curandCreateGenerator(&rand_generator_device, generator_type);
 	if(curandstatus != CURAND_STATUS_SUCCESS)
 	{
-		printf("curandCreateGenerator fail\n");
+		char logStr[1024];
+		sprintf(logStr, "curandCreateGenerator fail\n");
+		LOG(logStr, "Result/log.txt");
 		exit(0);
 	}
 
@@ -161,8 +168,8 @@ __global__ void g_generateDistortionMap(
 						}
 
 
-						fConvolvedH += fSampleH * gaussianKernel[yyy * GAUSSIAN_FIELD_SIZE + xxx];
-						fConvolvedV += fSampleV * gaussianKernel[yyy * GAUSSIAN_FIELD_SIZE + xxx];
+						fConvolvedH += fSampleH * gaussianKernel[yyy * GAUSSIAN_FIELD_SIZE + xxx] * constDistortion;
+						fConvolvedV += fSampleV * gaussianKernel[yyy * GAUSSIAN_FIELD_SIZE + xxx] * constDistortion;
 					}
 				}
 
@@ -404,11 +411,14 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 	curandStatus = curandSetPseudoRandomGeneratorSeed(rand_generator_device, seed);
 	if(curandStatus != CURAND_STATUS_SUCCESS)
 	{
-		printf("curandSetPseudoRandomGeneratorSeed fail\n");
+		char logStr[1024];
+		sprintf(logStr, "curandSetPseudoRandomGeneratorSeed fail\n");
+		LOG(logStr, "Result/log.txt");
 		exit(0);
 	}
 
 	curandGenerateUniform(rand_generator_device, cu_d_randonNumf, getRandomNumLen(batch, ImgSize));
+
 	g_getRandomUniform<<<dim3(256),dim3(256)>>>(cu_d_randonNumf, cu_d_randomNum, getRandomNumLen(batch, ImgSize));
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getRandomUniform");
@@ -480,7 +490,7 @@ __global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* ran
 	if(sx < 0) sx = 0;
 	if(sy < 0) sy = 0;
 // 	if(threadIdx.x == 0)
-// 		printf("%d %d\n", sx, sy);
+// 		sprintf(logStr, "%d %d\n", sx, sy);
 
 	for(int is = 0; is < outputImgSize2; is += blockDim.x)
 	{
@@ -641,8 +651,8 @@ __global__ void g_applyWhiteNoise(
 				int idx = i + threadIdx.x;
 				if(idx < ImgSize2){
 					double val = input[idx] + stdev * rand[idx];
-					if(val < -1.0) val = -1.0;
-					if(val >  1.0) val = 1.0;
+// 					if(val < -1.0) val = -1.0;
+// 					if(val >  1.0) val = 1.0;
 					output[idx] = val;
 				}
 			}

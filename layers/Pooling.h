@@ -62,6 +62,7 @@ private:
 	int size;
 	int skip;
 	int batch;
+	std::string type;/*MAX AVR*/
 	int NON_LINEARITY;
 };
 #endif

@@ -45,11 +45,15 @@ public:
 	}
 
 	virtual void printParameter(){
-		printf("%s:\n",m_name.c_str());
+		char logStr[1024];
+		sprintf(logStr, "%s:\n",m_name.c_str());
+		LOG(logStr, "Result/log.txt");
 		w->toCpu();
-		printf("weight:%lf, %lf:\n", w->get(0,0,0), w->get(0,1,0));
+		sprintf(logStr, "weight:%lf, %lf:\n", w->get(0,0,0), w->get(0,1,0));
+		LOG(logStr, "Result/log.txt");
 		b->toCpu();
-		printf("bias  :%lf, %lf:\n", b->get(0,0,0), b->get(0,1,0));
+		sprintf(logStr, "bias  :%lf, %lf:\n", b->get(0,0,0), b->get(0,1,0));
+		LOG(logStr, "Result/log.txt");
 	}
 private:
 	cuMatrix<double>* inputs;

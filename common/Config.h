@@ -173,6 +173,9 @@ public:
 	bool hasSubInput(){
 		return m_subInput != std::string("NULL");
 	}
+	bool isBranchLayer(){
+		return m_type == std::string("BRANCHLAYER");
+	}
 };
 
 class ConfigLRN : public ConfigBase{
@@ -224,8 +227,20 @@ public:
 			m_inputs = inputs;
 			m_subInput = subInput;
 			m_type = type;
+			m_input = std::string("NULL");
 	}
 	std::vector<std::string>m_inputs;
+};
+
+
+class ConfigData:public ConfigBase{
+public:
+	ConfigData(std::string name,
+		std::string type){
+		m_name = name;
+		m_type = type;
+		m_input = std::string("NULL");
+	}
 };
 
 class ConfigConv : public ConfigBase
@@ -243,7 +258,6 @@ public:
 		m_name = name;
 		m_input = input;
 		m_subInput = subInput;
-		m_subInput = input;
 		m_cfm = cfm;
 		m_type = type;
 		m_initW = initW;
@@ -305,6 +319,7 @@ public:
 		std::string input,
 		std::string subInput,
 		std::string type,
+		std::string poolingType,
 		int size, int skip,
 		int non_linearity){
 		m_size = size;
@@ -314,9 +329,11 @@ public:
 		m_subInput = subInput;
 		m_type = type;
 		m_nonLinearity = non_linearity;
+		m_poolingType = poolingType;
 	}
 	int m_size;
 	int m_skip;
+	std::string m_poolingType;
 };
 
 class ConfigFC : public ConfigBase
@@ -472,7 +489,9 @@ public:
 			return m_layerMaps[name];
 		}
 		else{
-			printf("layer %s does not exit\n", name.c_str());
+			char logStr[1024];
+			sprintf(logStr, "layer %s does not exit\n", name.c_str());
+			LOG(logStr, "Result/log.txt");
 			exit(0);
 		}
 	}
@@ -482,7 +501,8 @@ public:
 			m_layerMaps[name] = layer;
 		}
 		else {
-			printf("layer %s exit\n", name.c_str());
+			char logStr[1024];
+			sprintf(logStr, "layer %s exit\n", name.c_str());LOG(logStr, "Result/log.txt");
 			exit(0);
 		}
 	}
