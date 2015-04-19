@@ -81,7 +81,7 @@ void runChinese() {
 	double start, end;
 	int cmd;
 	cuInitDistortionMemery(batch, ImgSize - crop);
-	sprintf(
+	printf(
 			"1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
 
 	if(g_argv.size() >= 2)

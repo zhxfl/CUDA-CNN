@@ -50,7 +50,7 @@ public:
 	void printParameter(){};
 	void synchronize();
 
-	void DataLayer::getBatchImageWithStreams(cuMatrixVector<double>& inputs, int start);
+	void getBatchImageWithStreams(cuMatrixVector<double>& inputs, int start);
 private:
 	cuMatrix<double>* outputs;
 	cuMatrixVector<double>cropOutputs;
