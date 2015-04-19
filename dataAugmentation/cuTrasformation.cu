@@ -12,8 +12,8 @@
 #include "../common/cuBase.h"
 
 
-#define GAUSSIAN_FIELD_SIZE (15) /* strictly odd number */
-#define constDistortion (3.0)
+#define GAUSSIAN_FIELD_SIZE (21) /* strictly odd number */
+#define constDistortion (1.5)
 curandGenerator_t rand_generator_device;
 const curandRngType_t generator_type = CURAND_RNG_PSEUDO_DEFAULT;
 
