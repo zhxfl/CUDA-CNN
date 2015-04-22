@@ -203,6 +203,8 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, i
 
 
 /*
+dim3(curDelta->cols), dim3(curDelta->rows), 
+sizeof(double) * curDelta->rows
 */
 __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
 {
@@ -308,6 +310,7 @@ __global__ void g_getCost_2(double* cost,
 		}
 		len = (len + 1) >> 1;
 	}
+	__syncthreads();
 	if(threadIdx.x == 0)
 	{
 		cost[0] += _sum[0] * lambda;
@@ -320,15 +323,12 @@ function: g_preDeltaFormat
 threads : <<<dim3(batch), dim3(512)>>> 
 */
 __global__ void g_preDeltaFormat(double* cuPoolFlDelta, 
-	double* cuPoolDelta, int batch, int size, int channels)
-{
+	double* cuPoolDelta, int batch, int size, int channels){
 	int b = blockIdx.x;
 	int len = size * channels;
-	for(int i = 0; i < len; i += blockDim.x)
-	{
+	for(int i = 0; i < len; i += blockDim.x){
 		int id = i + threadIdx.x;
-		if(id < len)
-		{
+		if(id < len){
 			int s = id / channels;
 			int c = id % channels;
 			cuPoolDelta[c * batch * size + b * size + s] = cuPoolFlDelta[b * size * channels + size * c + s];
@@ -342,15 +342,12 @@ __global__ void g_preDeltaFormat(double* cuPoolFlDelta,
 * blocks  : dim3(batch)
 * threads : dim3(min(512, cuPool[poolidx]->cols))
 */
-__global__ void g_convert(double* cuPool, double*cuPoolToFlActi, int batch, int size, int channel)
-{
+__global__ void g_convert(double* cuPool, double*cuPoolToFlActi, int batch, int size, int channel){
 	int b   = blockIdx.x;
 	int len = size * channel;
-	for(int i = 0; i < len; i+=blockDim.x)
-	{
+	for(int i = 0; i < len; i+=blockDim.x){
 		int id = i + threadIdx.x;
-		if(id < len)
-		{
+		if(id < len){
 			int s = id / channel;
 			int c = id % channel;
 			cuPoolToFlActi[b * size * channel + size * c + s] = cuPool[c * batch * size + b * size + s];

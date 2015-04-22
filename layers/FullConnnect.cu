@@ -7,7 +7,7 @@
 #include <math.h>
 
 
-__global__ void g_FullConnectDropW(double * w, 
+__global__ void g_FullConnectDropout(double * w, 
 	double * dropW,
 	double* afterDropW,
 	int len);
@@ -24,7 +24,7 @@ __global__ void g_FullConnectActi(double* acti,
 
 __global__ void g_FullConnectWgrad(double* wgrad, 
 	double* w, 
-	double* dropM,
+	/*double* dropM,*/
 	int len, 
 	double lambda, 
 	int batch);
@@ -44,7 +44,7 @@ __global__ void g_FullConnectActi(double* acti, double* b, int NumofNeurons, int
 	}
 }
 
-__global__ void g_FullConnectWgrad(double* wgrad, double* w, double* dropM, int len, double lambda, int batch)
+__global__ void g_FullConnectWgrad(double* wgrad, double* w, int len, double lambda, int batch)
 {
 	for(int i = 0; i < len; i += blockDim.x * gridDim.x)
 	{
@@ -52,9 +52,9 @@ __global__ void g_FullConnectWgrad(double* wgrad, double* w, double* dropM, int 
 		if(id < len)
 		{
 			if(fabs(lambda) < 1e-10)
-				wgrad[id] = wgrad[id] / batch * dropM[id];
+				wgrad[id] = wgrad[id] / batch /** dropM[id]*/;
 			else
-				wgrad[id] = (wgrad[id] / batch + lambda * w[id]) * dropM[id];
+				wgrad[id] = (wgrad[id] / batch + lambda * w[id]) /** dropM[id]*/;
 		}
 	}
 }
@@ -79,14 +79,14 @@ __global__ void g_FullConnectFeedforward(double* acti, double* b, int NumofNeuro
 	}
 }
 
-__global__ void g_FullConnectDropW(double * w, double * dropW, double* afterDropW, int len)
+__global__ void g_FullConnectDropout(double * outputs, double * drop, int len)
 {
 	for(int i = 0; i < len; i += blockDim.x * gridDim.x)
 	{
 		int id = i + blockIdx.x * blockDim.x + threadIdx.x;
 		if(id < len)
 		{
-			afterDropW[id] = dropW[id] * w[id];
+			outputs[id] = outputs[id] * drop[id];
 		}
 	}
 }
@@ -107,17 +107,8 @@ void FullConnect::feedforward()
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("g_convert");
 
-	//drop w
-	thread = min(512, w->getLen());
-	block  = min(512, (w->getLen() + thread.x - 1) / thread.x);
-	g_FullConnectDropW<<<block, thread>>>(w->getDev(),
-		dropW->getDev(), afterDropW->getDev(),
-		afterDropW->getLen());
 
-	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("g_FullConnectDropW");
-
- 	matrixMulTB(inputs_format, afterDropW,
+ 	matrixMulTB(inputs_format, w,
  		outputs);
 
 	thread = min(512, outputs->cols);
@@ -129,6 +120,28 @@ void FullConnect::feedforward()
 
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("g_FullConnectActi");
+
+	if(!Config::instance()->isTraining()){
+		//printf("testing no dropout\n");
+	}
+	else if(dropRate > 0.0){
+		static int dropId = 0;
+		if(dropId % 5 == 0){
+			dropOut();
+			dropId++;
+			if(dropId >= 5) dropId = 1;
+		}
+		
+		thread = min(512, w->getLen());
+		block  = min(512, (w->getLen() + thread.x - 1) / thread.x);
+		g_FullConnectDropout<<<block, thread>>>(outputs->getDev(), drop->getDev(), drop->getLen());
+
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("g_FullConnectDropout");
+		//printf("training dropout\n");
+	}else{
+		//printf("training no dropout\n");
+	}
 }
 
 
@@ -175,12 +188,14 @@ FullConnect::FullConnect(std::string name)
 	inputs_format = new cuMatrix<double>(inputs->rows, inputs->cols * inputs->channels, 1);
 	outputs       = new cuMatrix<double>(batch, outputsize, 1);
 	curDelta      = new cuMatrix<double>(batch, outputsize, 1);
+	if(fabs(dropRate) < 0.0001) drop = NULL;
+	else drop = new cuMatrix<double>(batch, outputsize, 1);
+	
+
 	this->setPreDelta(preDelta);
 
 	w          = new cuMatrix<double>(outputsize, inputsize, 1);
 	wgrad      = new cuMatrix<double>(outputsize, inputsize, 1);
-	dropW      = new cuMatrix<double>(outputsize, inputsize, 1);
-	afterDropW = new cuMatrix<double>(outputsize, inputsize, 1);
 	
 	b     = new cuMatrix<double>(outputsize, 1, 1);
 	bgrad = new cuMatrix<double>(outputsize, 1, 1);
@@ -188,23 +203,15 @@ FullConnect::FullConnect(std::string name)
 	momentum_w = new cuMatrix<double>(outputsize, inputsize, 1);
 	momentum_b = new cuMatrix<double>(outputsize, 1, 1);
 
-	dropDelta(dropW, dropRate);
-
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
 }
 
-void FullConnect::drop()
-{
-	//if(fabs(dropRate) >= 0)
-	dropDelta(dropW, dropRate);
-}
 
-void FullConnect::drop(double rate)
-{
-	//if(fabs(dropRate) >= 0)
-	dropDelta(dropW, rate);
-}
+ void FullConnect::dropOut()
+ {
+	 dropDelta(drop, dropRate);
+ }
 
 
 
@@ -218,7 +225,7 @@ void FullConnect::backpropagation()
 	}
 
 	//preDelta 
-	matrixMul(curDelta, afterDropW, preDelta_format);
+	matrixMul(curDelta, w, preDelta_format);
 	dim3 block = batch;
 	dim3 thread= min(512, preDelta->channels * preDelta->cols);
 	g_preDeltaFormat<<<block, thread>>>(
@@ -239,7 +246,7 @@ void FullConnect::getGrad()
 
 	g_FullConnectWgrad<<<dim3(256), dim3(256)>>>(wgrad->getDev(),
 		w->getDev(),
-		dropW->getDev(),
+		/*dropW->getDev(),*/
 		wgrad->getLen(),
 		lambda,
 		batch);
@@ -325,9 +332,9 @@ void FullConnect::initRandom()
 		w->toGpu();
 	}
 	else{
-		double epsilon = sqrt((double)6) / sqrt((double)(outputs->rows + outputs->cols));
+		//double epsilon = sqrt((double)6) / sqrt((double)(outputs->rows + outputs->cols));
 		for(int j = 0; j < w->getLen(); j++){
-			w->getHost()[j] =  epsilon * initW * (2.0 * rand() / RAND_MAX - 1.0);
+			w->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
 			//printf("%lf ", w[i]->hostData[j]);
 		}//printf("\n");
 		w->toGpu();

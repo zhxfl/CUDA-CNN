@@ -189,6 +189,7 @@ void runCifar100(){
 		(end - start) / CLOCKS_PER_SEC / 3600);
 	LOG(logStr, "Result/log.txt");
 }
+
 void runCifar10()
 {
 	/*state and cublas handle*/
@@ -233,18 +234,18 @@ void runCifar10()
 	std::vector<double>nMomentum;
 	std::vector<int>epoCount;
 
-	nlrate.push_back(0.05);   nMomentum.push_back(0.90);  epoCount.push_back(50);
-	nlrate.push_back(0.04);   nMomentum.push_back(0.91);  epoCount.push_back(50);
-	nlrate.push_back(0.03);   nMomentum.push_back(0.92);  epoCount.push_back(50);
-	nlrate.push_back(0.02);   nMomentum.push_back(0.93);  epoCount.push_back(50);
-	nlrate.push_back(0.01);   nMomentum.push_back(0.94);  epoCount.push_back(50);
-	nlrate.push_back(0.008);  nMomentum.push_back(0.942); epoCount.push_back(50);
-	nlrate.push_back(0.006);  nMomentum.push_back(0.944); epoCount.push_back(50);
-	nlrate.push_back(0.001);  nMomentum.push_back(0.95);  epoCount.push_back(50);
-	nlrate.push_back(0.0009); nMomentum.push_back(0.96);  epoCount.push_back(50);
-	nlrate.push_back(0.0008); nMomentum.push_back(0.97);  epoCount.push_back(50);
-	nlrate.push_back(0.0007); nMomentum.push_back(0.995); epoCount.push_back(50);
-	nlrate.push_back(0.0006); nMomentum.push_back(0.90);  epoCount.push_back(50);
+	nlrate.push_back(0.05);   nMomentum.push_back(0.90);  epoCount.push_back(30);
+	nlrate.push_back(0.04);   nMomentum.push_back(0.91);  epoCount.push_back(30);
+	nlrate.push_back(0.03);   nMomentum.push_back(0.92);  epoCount.push_back(30);
+	nlrate.push_back(0.02);   nMomentum.push_back(0.93);  epoCount.push_back(30);
+	nlrate.push_back(0.01);   nMomentum.push_back(0.94);  epoCount.push_back(30);
+	nlrate.push_back(0.009);  nMomentum.push_back(0.942); epoCount.push_back(30);
+	nlrate.push_back(0.007);  nMomentum.push_back(0.944); epoCount.push_back(30);
+	nlrate.push_back(0.005);  nMomentum.push_back(0.95);  epoCount.push_back(30);
+	nlrate.push_back(0.003);  nMomentum.push_back(0.96);  epoCount.push_back(30);
+	nlrate.push_back(0.001);  nMomentum.push_back(0.97);  epoCount.push_back(30);
+	nlrate.push_back(0.0009); nMomentum.push_back(0.995); epoCount.push_back(30);
+	nlrate.push_back(0.0007); nMomentum.push_back(0.90);  epoCount.push_back(30);
 
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
@@ -312,14 +313,18 @@ void runMnist(){
 	std::vector<double>nlrate;
 	std::vector<double>nMomentum;
 	std::vector<int>epoCount;
-	nlrate.push_back(0.05);   nMomentum.push_back(0.90);  epoCount.push_back(100);
-	nlrate.push_back(0.01);   nMomentum.push_back(0.90);  epoCount.push_back(250);
-	nlrate.push_back(0.005);  nMomentum.push_back(0.90);  epoCount.push_back(250);
-	nlrate.push_back(0.001);  nMomentum.push_back(0.90);  epoCount.push_back(250);
-	//nlrate.push_back(0.0009); nMomentum.push_back(0.90);  epoCount.push_back(10);
-	//nlrate.push_back(0.0008); nMomentum.push_back(0.90);  epoCount.push_back(10);
-	//nlrate.push_back(0.0007); nMomentum.push_back(0.90);  epoCount.push_back(10);
-	//nlrate.push_back(0.0006); nMomentum.push_back(0.90);  epoCount.push_back(10);
+	nlrate.push_back(0.05);   nMomentum.push_back(0.90);  epoCount.push_back(15);
+	nlrate.push_back(0.04);   nMomentum.push_back(0.91);  epoCount.push_back(15);
+	nlrate.push_back(0.03);   nMomentum.push_back(0.92);  epoCount.push_back(15);
+	nlrate.push_back(0.02);   nMomentum.push_back(0.93);  epoCount.push_back(15);
+	nlrate.push_back(0.01);   nMomentum.push_back(0.94);  epoCount.push_back(20);
+	nlrate.push_back(0.008);  nMomentum.push_back(0.942); epoCount.push_back(20);
+	nlrate.push_back(0.006);  nMomentum.push_back(0.944); epoCount.push_back(20);
+	nlrate.push_back(0.001);  nMomentum.push_back(0.95);  epoCount.push_back(20);
+	nlrate.push_back(0.0009); nMomentum.push_back(0.96);  epoCount.push_back(20);
+	nlrate.push_back(0.0008); nMomentum.push_back(0.97);  epoCount.push_back(20);
+	nlrate.push_back(0.0007); nMomentum.push_back(0.995); epoCount.push_back(20);
+	nlrate.push_back(0.0006); nMomentum.push_back(0.90);  epoCount.push_back(20);
 
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);

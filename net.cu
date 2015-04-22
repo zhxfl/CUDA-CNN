@@ -72,9 +72,11 @@ void buildNetWork(int trainLen, int testLen)
 	char logStr[1024];
 	sprintf(logStr, "\n\n******************layer nexts start********************\n");
 	LOG(logStr, "Result/log.txt");
+	std::set<ConfigBase*>finish;
 	while(!qqq.empty()){
 		ConfigBase* top = qqq.front();
 		qqq.pop();
+		finish.insert(top);
 		que.push_back(top);
 
 		if(top->m_type == std::string("CONV")){
@@ -85,7 +87,19 @@ void buildNetWork(int trainLen, int testLen)
 		}else if(top->m_type == std::string("BRANCHLAYER")){
 			new BrachLayer(top->m_name);
 		}else if(top->m_type == std::string("COMBINELAYER")){
-			new CombineLayer(top->m_name);
+			ConfigCombineLayer *bl = static_cast<ConfigCombineLayer*>(top);
+			bool flag = true;
+			for(int i = 0; i < bl->m_inputs.size(); i++){
+				ConfigBase* cb = Config::instance()->getLayerByName(bl->m_inputs[i]);
+				if(finish.find(cb) == finish.end()){
+					qqq.push(top);
+					flag = false;
+					finish.erase(top);
+					break;
+				}
+			}
+			if(flag == false) continue;
+			else new CombineLayer(top->m_name);
 		}else if(top->m_type == std::string("POOLING")){
 			new Pooling(top->m_name);
 		}else if(top->m_type == std::string("FC")){
@@ -144,8 +158,13 @@ void updataWB()
 void getNetworkCost(int* y)
 {
 	/*feedforward*/
-	SoftMax* sm = (SoftMax*)Layers::instance()->get("softmax1");
-	sm->setPredict(y);
+	for(int i = 0; i < que.size(); i++){
+		if(que[i]->m_type == std::string("SOFTMAX")){
+			SoftMax* sm = (SoftMax*)Layers::instance()->get(que[i]->m_name);
+			sm->setPredict(y);
+		}
+	}
+	
 
 	for(int i = 0; i < que.size(); i++){
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
@@ -194,12 +213,16 @@ void resultProdict(int* vote,int start)
 		layer->feedforward();
 	}
 
-	g_getCorrect<<<dim3(1), Config::instance()->getBatchSize()>>>(
-		Layers::instance()->get("softmax1")->getOutputs()->getDev(),
-		Layers::instance()->get("softmax1")->getOutputs()->cols,
-		start,
-		vote);
-	cudaDeviceSynchronize();
+	for(int i = 0; i < que.size(); i++){
+		if(que[i]->m_type == std::string("SOFTMAX")){
+			g_getCorrect<<<dim3(1), Config::instance()->getBatchSize()>>>(
+				Layers::instance()->get(que[i]->m_name)->getOutputs()->getDev(),
+				Layers::instance()->get(que[i]->m_name)->getOutputs()->cols,
+				start,
+				vote);
+			cudaDeviceSynchronize();
+		}
+	}
 }
 
 void gradientChecking(double**x, 
@@ -290,20 +313,13 @@ void predictTestDate(cuMatrixVector<double>&x,
 	int nclasses,
 	bool vote,
 	cublasHandle_t handle) {
-		for(int i = 0; i < que.size(); i++){
-			if(que[i]->m_type == std::string("FC")){
-				FullConnect* layer = (FullConnect*)Layers::instance()->get(que[i]->m_name);
-				layer->drop(0.0);
-			}
-		}
-
+		Config::instance()->setTraining(false);
 	
 		int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop()};
 		int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop()};
 
 		double scalex[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
 		double scaley[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
-
 		double rotate[] = {0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
 
 		int hlen = Config::instance()->getHorizontal() == 1 ? 2 : 1;
@@ -315,7 +331,6 @@ void predictTestDate(cuMatrixVector<double>&x,
 		DataLayer *dl = static_cast<DataLayer*>(Layers::instance()->get("data"));
 		dl->getBatchImageWithStreams(x, 0);
 
-		char logStr[1024];
 		cuVote->gpuClear();
 		for(int sidx = 0; sidx < scaleLen; sidx++){
 			for(int sidy = 0; sidy < scaleLen; sidy++){
@@ -432,13 +447,8 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 		double start, end;
 		start = clock();
 		cuApplyRandom(batch, clock(), ImgSize);
-		
-		for(int i = 0; i < que.size(); i++){
-			if(que[i]->m_type == std::string("FC")){
-				FullConnect* layer = (FullConnect*)Layers::instance()->get(que[i]->m_name);
-				layer->drop();
-			}
-		}
+
+		Config::instance()->setTraining(true);
 
 		x.shuffle(5000, y);
 

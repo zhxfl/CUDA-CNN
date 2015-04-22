@@ -1,0 +1,171 @@
+#Comment#
+#NON_LINEARITY = NL_SIGMOID , NL_TANH , NL_RELU#
+IS_GRADIENT_CHECKING = false;   #is true when debug#
+BATCH_SIZE = 256;               #test image size should be divided with no remainder#
+CHANNELS = 1;                   #1, 3, 4#
+CROP = 0;                       #0<= crop <=imgSize#
+SCALE = 12.0;                   #13% of ImgSize#
+ROTATION = 12.0;                #angle#
+DISTORTION = 3.4;               #just for mnist#
+SHOWIMAGE = false;              #show the images after transformation#
+HORIZONTAL = false;             #horizontal reflection#
+TEST_EPOCH = 10000;                 #the period to get the test dataset's error rate#
+WHITE_NOISE = 0.0;   
+
+[
+LAYER = CONV;
+NAME  = conv1;
+INPUT = data;
+KERNEL_SIZE = 5;
+PADDING = 0;
+KERNEL_AMOUNT = 64;
+COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
+WEIGHT_DECAY = 1e-5;
+initW = 1.0;
+NON_LINEARITY = NL_RELU;
+initType = Gaussian;           #Gaussian, Bernoulli#
+]
+
+[
+LAYER = POOLING;
+NAME  = pooling1;
+INPUT = conv1;
+SIZE = 2;
+SKIP = 2;
+]
+
+
+[
+LAYER = BRANCHLAYER;
+NAME  = branchlayer1;
+INPUT = pooling1;
+OUTPUTS = b1a,b1b,b1c;
+]
+
+#=========branchlayer1->b1a start===========#
+
+[  
+LAYER = CONV;
+NAME  = conv2;
+INPUT = branchlayer1;
+SUBINPUT = b1a;
+KERNEL_SIZE = 5;
+PADDING = 0;
+KERNEL_AMOUNT = 64;
+COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
+WEIGHT_DECAY = 1e-5;
+initW = 1.0;
+NON_LINEARITY = NL_RELU;
+initType = Gaussian;            #Gaussian, Bernoulli#
+]
+
+[
+LAYER = POOLING;
+NAME  = pooling2;
+INPUT = conv2;
+SIZE = 2;
+SKIP = 2;
+]
+
+[
+LAYER = FC;
+NAME  = fc1;
+INPUT =	pooling2;
+NUM_FULLCONNECT_NEURONS = 256;
+WEIGHT_DECAY = 0.0;
+DROPCONNECT_RATE = 0.0;
+initW = 1.0;
+NON_LINEARITY = NL_RELU;
+initType = Bernoulli;           #Gaussian, Bernoulli#
+]
+
+
+#===================branchlayer1->b1b start===================#
+
+[
+LAYER = CONV;
+NAME  = conv3;
+INPUT = branchlayer1;
+SUBINPUT = b1b;
+KERNEL_SIZE = 7;
+PADDING = 1;
+KERNEL_AMOUNT = 64;
+COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neural NetWorks#
+WEIGHT_DECAY = 1e-5;
+initW = 1.0;
+NON_LINEARITY = NL_RELU;
+initType = Gaussian;            #Gaussian, Bernoulli#
+]
+
+[
+LAYER = POOLING;
+NAME  = pooling3;
+INPUT = conv3;
+SIZE = 2;
+SKIP = 2;
+]
+
+[
+LAYER = FC;
+NAME  = fc2;
+INPUT =	pooling3;
+NUM_FULLCONNECT_NEURONS = 128;
+WEIGHT_DECAY = 0.0;
+DROPCONNECT_RATE = 0.0;
+initW = 1.0;
+NON_LINEARITY = NL_RELU;
+initType = Bernoulli;           #Gaussian, Bernoulli#
+]
+
+#===================branchlayer1->b1c start===================#
+
+[
+LAYER = LOCAL;
+NAME  = local1;
+INPUT = branchlayer1;
+SUBINPUT = b1c;
+KERNEL_SIZE = 3;
+WEIGHT_DECAY = 1e-5;
+initW = 1.0;
+NON_LINEARITY = NL_RELU;
+initType = Gaussian;            #Gaussian, Bernoulli#
+]
+
+[
+LAYER = POOLING;
+NAME  = pooling4;
+INPUT = local1;
+SIZE = 4;
+SKIP = 3;
+]
+
+[
+LAYER = FC;
+NAME  = fc3;
+INPUT =	pooling4;
+NUM_FULLCONNECT_NEURONS = 128;
+WEIGHT_DECAY = 0.0;
+DROPCONNECT_RATE = 0.0;
+initW = 1.0;
+NON_LINEARITY = NL_RELU;
+initType = Bernoulli;           #Gaussian, Bernoulli#
+]
+
+#===============combineLayer1====================#
+
+[
+LAYER = COMBINELAYER;
+NAME  = combineLayer1;
+INPUTS= fc1, fc2, fc3;
+]
+
+
+[
+LAYER = SOFTMAX;
+NAME = softmax1;
+INPUT = combineLayer1;
+NUM_CLASSES = 10;
+WEIGHT_DECAY = 1e-5;
+initW = 0.1;
+initType = Bernoulli;           #Gaussian, Bernoulli#
+]

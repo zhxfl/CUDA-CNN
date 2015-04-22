@@ -73,6 +73,7 @@ void Pooling::feedforward()
 			outputAmount);
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("pooling feedforward");
+		//printf("max\n");
 	}else{
 		g_feedforward_avr<<<block, thread>>>(
 			inputs->getDev(),
@@ -87,6 +88,7 @@ void Pooling::feedforward()
 			outputAmount);
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("pooling feedforward avr");
+		//printf("avr\n");
 	}
 	
 

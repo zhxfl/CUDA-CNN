@@ -4,20 +4,18 @@
 #include "../layers/BrachLayer.h"
 
 
-__global__ void g_ConvCFM_wgrad__2(double* _inputs,
-	double* _curDelta,
-	double** _wgrad,
-	double** w,
-	int inputDim,
-	int curDeltaDim,
-	int kernelSize,
-	int inputAmount,
-	int outputAmount,
-	int padding,
-	int inputArea,
-	int curDeltaArea,
-	int batch,
-	double lambda);
+/*
+ * dim3 block = dim3(batch, inputAmount);
+ * dim3 thread= min(inputDim * inputDim, 512);
+*/
+__global__ void g_ConvCFM_backpropagationAdd(
+	double* _preDelta,
+	double** _preDeltaTmp,
+	int     preDim,
+	int     preAmount,
+	int     curAmount,
+	int     preArea,
+	int     cfm);
 
 /*
 *	blocks : dim3(batch, cuKernelScan[0]),
@@ -45,7 +43,7 @@ __global__ void g_ConvCFM_feedforward(
 __global__ void g_ConvCFM_backpropagation(
 	double* _curDelta,
 	double**ws,
-	double* _preDelta,
+	double** _preDeltaTmp,
 	int     curDim,
 	int     preDim,
 	int     curAmount,
@@ -128,7 +126,6 @@ void ConvCFM::feedforward()
 		cfm);
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("convCFM::g_ConvCFM_feedforward_2");
-	
 
 
 	if(NON_LINEARITY >= 0){
@@ -145,6 +142,7 @@ void ConvCFM::feedforward()
 
 void ConvCFM::backpropagation()
 {
+
 	if(NON_LINEARITY >= 0){
 		dim3 thread = dim3(min(256, outputs->getLen()));
 		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
@@ -158,28 +156,42 @@ void ConvCFM::backpropagation()
 	
 	if(Config::instance()->getLayerByName(m_name)->m_input == std::string("data"))
 		return;
-	if(inputs){
-		dim3 block = dim3(batch, outputAmount);
-		dim3 thread= min(inputDim * inputDim, 512);
 
-		preDelta->gpuClear();
+	dim3 block = dim3(batch, outputAmount * cfm);
+	dim3 thread= min(inputDim * inputDim, 512);
 
-		g_ConvCFM_backpropagation<<<block, thread>>>(
-			curDelta->getDev(),
-			w.m_devPoint,
-			preDelta->getDev(),
-			outputDim,
-			inputDim,
-			inputAmount,
-			outputAmount,
-			kernelSize,
-			padding,
-			curDelta->getArea(),
-			preDelta->getArea(),
-			cfm);
-		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("ConvCFM::g_ConvCFM_backpropagation");
-	}
+	g_ConvCFM_backpropagation<<<block, thread>>>(
+		curDelta->getDev(),
+		w.m_devPoint,
+		preDeltaTmp.m_devPoint,
+		outputDim,
+		inputDim,
+		inputAmount,
+		outputAmount,
+		kernelSize,
+		padding,
+		curDelta->getArea(),
+		preDelta->getArea(),
+		cfm);
+	checkCudaErrors(cudaDeviceSynchronize());
+	getLastCudaError("ConvCFM::g_ConvCFM_backpropagation");
+
+	block = dim3(batch, inputAmount);
+	thread= min(inputDim * inputDim, 512);
+
+	//preDelta->gpuClear();
+	
+	g_ConvCFM_backpropagationAdd<<<block, thread>>>(
+		preDelta->getDev(),
+		preDeltaTmp.m_devPoint,
+		inputDim,
+		inputAmount,
+		outputAmount,
+		preDelta->getArea(),
+		cfm);
+
+	checkCudaErrors(cudaDeviceSynchronize());
+	getLastCudaError("ConvCFM::g_ConvCFM_backpropagationAdd");
 }
 
 /*
@@ -341,6 +353,8 @@ ConvCFM::ConvCFM(std::string name)
 		wgrad.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
 		bgrad.push_back(new cuMatrix<double>(1, 1, 1));
 		wgradTmp.push_back(new cuMatrix<double>(batch, kernelSize * kernelSize, cfm));
+		if(preDelta) 
+			preDeltaTmp.push_back(new cuMatrix<double>(preDelta->rows, preDelta->cols, cfm));
 	}
 
 	w.toGpu();
@@ -348,6 +362,7 @@ ConvCFM::ConvCFM(std::string name)
 	wgrad.toGpu();
 	bgrad.toGpu();
 	wgradTmp.toGpu();
+	if(preDelta) preDeltaTmp.toGpu();
 
 	for(int i = 0; i < outputAmount; i++){
 		momentum_w.push_back(new cuMatrix<double>(kernelSize, kernelSize, cfm));
@@ -523,7 +538,7 @@ __global__ void g_ConvCFM_feedforward(
 __global__ void g_ConvCFM_backpropagation(
 	double* _curDelta,
 	double**ws,
-	double* _preDelta,
+	double** _preDeltaTmp,
 	int     curDim,
 	int     preDim,
 	int     preAmount,
@@ -535,40 +550,78 @@ __global__ void g_ConvCFM_backpropagation(
 	int     cfm)
 {
 	int sp = blockIdx.x;
-	int ok = blockIdx.y;
+	int ok = blockIdx.y / cfm;
+	int c  = blockIdx.y % cfm;
 
 	int curSize2    = curDim     * curDim;
 	int preSize2    = preDim     * preDim;
 	int kernelSize2 = kernelSize * kernelSize;
 	double *curDelta = _curDelta + ok * curArea + sp * curSize2;
+	double *preDelta = _preDeltaTmp[ok] + c * preArea + sp * preSize2;
+	double *w = ws[ok] + c * kernelSize2;
 
-	int half = kernelSize >> 1;
 	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
 		int idx = tidx + threadIdx.x;
 		if (idx < preSize2) {
 			int i = idx / preDim;
 			int j = idx % preDim;
-			for(int c = 0; c < cfm; c++){
-				int ik = (ok + c) % preAmount;
-				double *preDelta = _preDelta + ik * preArea + sp * preSize2;
-				double *w = ws[ok] + c * kernelSize2;
-
-				double val = 0.0;
-				for (int x = 0; x < kernelSize; x++) {
-					for (int y = 0; y < kernelSize; y++) {
-						int cx = i + x - half;
-						int cy = j + y - half;
-						int wx = kernelSize - x - 1;
-						int wy = kernelSize - y - 1;
-						cx -= (half - padding);
-						cy -= (half - padding);
-						if(cx >= 0 && cx < curDim && cy >= 0 && cy < curDim){
-							val += curDelta[cx * curDim + cy] * w[wx * kernelSize + wy];
-						}
+			double val = 0.0;
+			for (int x = 0; x < kernelSize; x++) {
+				for (int y = 0; y < kernelSize; y++) {
+					int cx = i - x + padding;
+					int cy = j - y + padding;
+					if(cx >= 0 && cx < curDim && cy >= 0 && cy < curDim){
+						val += curDelta[cx * curDim + cy] * w[x * kernelSize + y];
 					}
 				}
-				atomicAdd(preDelta + idx, val);
 			}
+			preDelta[idx] = val;
+		}
+	}
+}
+
+
+
+/*
+ * dim3 block = dim3(batch, inputAmount);
+ * dim3 thread= min(inputDim * inputDim, 512);
+*/
+__global__ void g_ConvCFM_backpropagationAdd(
+	double* _preDelta,
+	double** _preDeltaTmp,
+/*	int     curDim,*/
+	int     preDim,
+	int     preAmount,
+	int     curAmount,
+/*	int     curArea,*/
+	int     preArea,
+	int     cfm)
+{
+	int sp = blockIdx.x;
+	int ik = blockIdx.y;
+
+	/*int curSize2  = curDim * curDim;*/
+	int preSize2  = preDim * preDim;
+	
+	double* preDelta = _preDelta + ik * preArea + sp * preSize2;
+	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
+		int idx = tidx + threadIdx.x;
+		if (idx < preSize2) {
+// 			int i = idx / preDim;
+// 			int j = idx % preDim;
+			double val = 0.0;
+			for(int c = 0; c < cfm; c++){
+				int ok = ik - c;
+				int skip = c * preArea + sp * preSize2;
+				while(ok < 0) ok += preAmount;
+				while(ok < curAmount){
+					double *preDeltaTmp = _preDeltaTmp[ok] + skip;
+					val += preDeltaTmp[idx];
+					ok += preAmount;
+				}
+			}
+
+			preDelta[idx] = val;
 		}
 	}
 }
@@ -606,6 +659,9 @@ __global__ void g_ConvCFM_wgrad(double*_inputs,
 
 	double* wgrad = wgradTmp[ok] + c * wgradTmpArea + b * kernelSize2;
 
+	double* input    = _inputs + inputArea * ik + b * inputSize2;
+	double* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
+
 	for(int tidx = 0; tidx < kernelSize2; tidx += blockDim.x)
 	{
 		int idx = tidx + threadIdx.x;
@@ -614,9 +670,6 @@ __global__ void g_ConvCFM_wgrad(double*_inputs,
 			int i = idx / kernelSize;
 			int j = idx % kernelSize;
 			double val = 0.0;
-
-			double* input    = _inputs + inputArea * ik + b * inputSize2;
-			double* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
 
 			for(int x = 0; x < curDeltaDim; x++){
 				int cx = i + x - padding;

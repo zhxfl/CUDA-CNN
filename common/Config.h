@@ -125,20 +125,16 @@ class ConfigNonLinearity
 public:
 	ConfigNonLinearity(std::string poolMethod)
 	{
-		if(poolMethod == std::string("NL_SIGMOID"))
-		{
+		if(poolMethod == std::string("NL_SIGMOID")){
 			m_nonLinearity = NL_SIGMOID;
-		}else if(poolMethod == std::string("NL_TANH"))
-		{
+		}else if(poolMethod == std::string("NL_TANH")){
 			m_nonLinearity = NL_TANH;
-		}else if(poolMethod == std::string("NL_RELU"))
-		{
+		}else if(poolMethod == std::string("NL_RELU")){
 			m_nonLinearity = NL_RELU;
 		}
 		else{
 			m_nonLinearity = -1;
-		} 
-		
+		}
 	}
 	int getValue(){return m_nonLinearity;}
 private:
@@ -526,6 +522,9 @@ public:
 	int getClasses(){
 		return m_classes;
 	}
+	void setTraining(bool isTrainning){training = isTrainning;}
+	bool isTraining(){return training;}
+
 private:
 	void deleteComment();
 	void deleteSpace();
@@ -563,6 +562,7 @@ private:
 	double lrate;
 	int m_imageSize;
 	int m_classes;
+	bool training;
 };
 
 #endif

@@ -79,6 +79,7 @@ private:
 	cuMatrixVector<double> bgrad;
 	cuMatrixVector<double> momentum_w;
 	cuMatrixVector<double> momentum_b;
+	cuMatrixVector<double> preDeltaTmp;
 };
 
 #endif 

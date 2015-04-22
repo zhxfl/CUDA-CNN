@@ -288,7 +288,7 @@ void Config:: get_layers_config(string &str){
 		{
 			int hn = get_word_int(layers[i], "NUM_FULLCONNECT_NEURONS");
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-			double drop = get_word_double(layers[i], "DROPCONNECT_RATE");
+			double drop = get_word_double(layers[i], "DROPOUT_RATE");
 			double initW= get_word_double(layers[i], "initW");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			std::string initType = get_word_type(layers[i], "initType");
@@ -304,7 +304,7 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "SUBINPUT                : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "NUM_FULLCONNECT_NEURONS : %d\n", hn);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "WEIGHT_DECAY            : %lf\n", wd);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "DROPCONNECT_RATE        : %lf\n", drop);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "DROPOUT_RATE            : %lf\n", drop);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "initW                   : %lf\n", initW);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity           : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}

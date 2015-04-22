@@ -16,9 +16,8 @@ public:
 	void updateWeight() ;
 	void clearMomentum();
 	void calCost();
-	void drop();
-	void drop(double rate);
-
+	void dropOut();
+	//void drop(double rate);
 	cuMatrix<double>* getOutputs();
 	cuMatrix<double>* getCurDelta() ;
 
@@ -49,9 +48,9 @@ private:
 	cuMatrix<double>* preDelta;
 	cuMatrix<double>* preDelta_format;
 
-	cuMatrix<double>* dropW;
-	cuMatrix<double>* afterDropW;
-
+	//cuMatrix<double>* dropW;
+	//cuMatrix<double>* afterDropW;
+	cuMatrix<double>* drop;
 	cuMatrix<double>* w;
 	cuMatrix<double>* wgrad;
 	cuMatrix<double>* b;
