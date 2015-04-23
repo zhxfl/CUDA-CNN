@@ -30,13 +30,8 @@ public:
 		delete curDelta;
 	}
 
-	cuMatrix<double>* getOutputs(){return outputs;}
+	cuMatrix<double>* getOutputs() {return outputs;}
 	cuMatrix<double>* getCurDelta(){return curDelta;}
-
-
-// 	void setPreDelta(cuMatrix<double>* _preDelta){
-// 		preDelta = _preDelta;
-// 	}
 
 	int getOutputAmount(){
 		return outputAmount;
@@ -57,6 +52,7 @@ private:
 
 	cuMatrix<int>* inputsSkip;
 	cuMatrix<int>* inputsCols;
+	cuMatrix<int>* inputsChannels;
 
 	int batch;
 };

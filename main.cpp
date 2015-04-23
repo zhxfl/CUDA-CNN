@@ -240,12 +240,12 @@ void runCifar10()
 	nlrate.push_back(0.02);   nMomentum.push_back(0.93);  epoCount.push_back(30);
 	nlrate.push_back(0.01);   nMomentum.push_back(0.94);  epoCount.push_back(30);
 	nlrate.push_back(0.009);  nMomentum.push_back(0.942); epoCount.push_back(30);
-	nlrate.push_back(0.007);  nMomentum.push_back(0.944); epoCount.push_back(30);
-	nlrate.push_back(0.005);  nMomentum.push_back(0.95);  epoCount.push_back(30);
-	nlrate.push_back(0.003);  nMomentum.push_back(0.96);  epoCount.push_back(30);
-	nlrate.push_back(0.001);  nMomentum.push_back(0.97);  epoCount.push_back(30);
-	nlrate.push_back(0.0009); nMomentum.push_back(0.995); epoCount.push_back(30);
-	nlrate.push_back(0.0007); nMomentum.push_back(0.90);  epoCount.push_back(30);
+	nlrate.push_back(0.008);  nMomentum.push_back(0.944); epoCount.push_back(30);
+	nlrate.push_back(0.007);  nMomentum.push_back(0.95);  epoCount.push_back(30);
+	nlrate.push_back(0.006);  nMomentum.push_back(0.96);  epoCount.push_back(30);
+	nlrate.push_back(0.005);  nMomentum.push_back(0.97);  epoCount.push_back(30);
+	nlrate.push_back(0.004);  nMomentum.push_back(0.995); epoCount.push_back(30);
+	nlrate.push_back(0.003);  nMomentum.push_back(0.90);  epoCount.push_back(30);
 
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
@@ -288,7 +288,7 @@ void runMnist(){
  	/*build CNN net*/
  	int ImgSize = trainX[0]->rows;
 	Config::instance()->setImageSize(ImgSize - Config::instance()->getCrop());
-	int crop    = Config::instance()->getCrop();
+	int crop = Config::instance()->getCrop();
 
  	int nsamples = trainX.size();
 
@@ -304,7 +304,6 @@ void runMnist(){
 		scanf("%d", &cmd);
 
 	buildNetWork(trainX.size(), testX.size());
-
 
 	if(cmd == 2)
 		cuReadConvNet(ImgSize - crop, "Result/checkPoint.txt", nclasses);

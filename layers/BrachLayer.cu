@@ -30,7 +30,6 @@ __global__ void g_BrachLayer_feedforward(
 void BrachLayer::feedforward()
 {
 	/*copy the input to outputs*/
-
 	dim3 block = dim3(outputs.size(), batch);
 	dim3 thread= dim3(min(outputs[0]->getLen() / batch, 1024));
 	
@@ -40,13 +39,15 @@ void BrachLayer::feedforward()
 		outputs[0]->getLen());
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("BrachLayer feedforward");
-
 }
 
 void BrachLayer::backpropagation()
 {
+	if(Config::instance()->getLayerByName(m_name)->m_input == std::string("data"))
+		return;
 	dim3 block = dim3(batch);
 	dim3 thread= dim3(min(outputs[0]->getLen() / batch, 1024));
+
 
 	preDelta->gpuClear();
 

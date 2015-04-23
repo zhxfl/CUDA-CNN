@@ -114,7 +114,7 @@ void buildNetWork(int trainLen, int testLen)
 			new DataLayer(top->m_name);
 		}
 
-		sprintf(logStr, "layer %10s:", top->m_name.c_str());
+		sprintf(logStr, "layer %15s:", top->m_name.c_str());
 		LOG(logStr, "Result/log.txt");
 		for(int n = 0; n < top->m_next.size(); n++){
 			if(inque.find(top->m_next[n]) == inque.end()){

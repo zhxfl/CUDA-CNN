@@ -126,9 +126,9 @@ void FullConnect::feedforward()
 	}
 	else if(dropRate > 0.0){
 		static int dropId = 0;
+
 		if(dropId % 5 == 0){
 			dropOut();
-			dropId++;
 			if(dropId >= 5) dropId = 1;
 		}
 		
@@ -138,6 +138,7 @@ void FullConnect::feedforward()
 
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("g_FullConnectDropout");
+		dropId++;
 		//printf("training dropout\n");
 	}else{
 		//printf("training no dropout\n");

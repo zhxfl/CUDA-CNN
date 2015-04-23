@@ -17,7 +17,7 @@ public:
 	void clearMomentum();
 	void calCost();
 	void dropOut();
-	//void drop(double rate);
+
 	cuMatrix<double>* getOutputs();
 	cuMatrix<double>* getCurDelta() ;
 

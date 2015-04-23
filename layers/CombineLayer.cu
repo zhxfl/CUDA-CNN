@@ -17,6 +17,8 @@ __global__ void g_CombineLayer_backpropagation(
 	double* curDeltas,
 	int* skip,
 	int* cols,
+	int* channels,
+	int batch,
 	int curDeltaCols);
 
 /* 
@@ -28,14 +30,15 @@ __global__ void g_CombineLayer_feedforward(
 	double** inputs,
 	double* outputs,
 	int* skip,
-	int* len,
+	int* cols,
+	int* channels,
+	int batch,
 	int outputCols);
 
 
 void CombineLayer::feedforward()
 {
 	/*spread multi-inputs to output*/
-
 	dim3 block = dim3(batch, inputsSkip->getLen());
 	dim3 thread= dim3(min(outputs->getLen() / batch, 1024));
 	
@@ -44,10 +47,28 @@ void CombineLayer::feedforward()
 		outputs->getDev(),
 		inputsSkip->getDev(),
 		inputsCols->getDev(),
+		inputsChannels->getDev(),
+		batch,
 		outputs->cols);
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("CombineLayer feedforward");
 
+	//inputsChannels->toCpu();
+
+#ifdef CombineLayer_feedforward_Checking 
+	outputs->toCpu();
+	for(int i = 0; i < inputs.size(); i++){
+		inputs[i]->toCpu();
+		for(int j = 0; j < inputs[i]->getLen(); j++){
+			printf("%lf ", inputs[i]->getHost()[j]);
+		}printf("\n");
+	}
+	printf("\n\noutputs\n\n");
+	for(int i = 0; i < outputs->getLen(); i++){
+		printf("%lf ", outputs->getHost()[i]);
+	}printf("\n");
+#endif
+	
 }
 
 void CombineLayer::backpropagation()
@@ -61,9 +82,27 @@ void CombineLayer::backpropagation()
 		curDelta->getDev(),
 		inputsSkip->getDev(),
 		inputsCols->getDev(),
+		inputsChannels->getDev(),
+		batch,
 		curDelta->cols);
 	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("CombineLayer backpropagation");
+	getLastCudaError("combineLayer backpropagation");
+
+#ifdef CombineLayer_backpropagation_checking
+	curDelta->toCpu();
+	for(int i = 0; i < inputs.size(); i++){
+		preDelta[i]->toCpu();
+		for(int j = 0; j < preDelta[i]->getLen(); j++){
+			printf("%lf ", preDelta[i]->getHost()[j]);
+		}printf("\n");
+	}
+	printf("\n\noutputs\n\n");
+	for(int i = 0; i < curDelta->getLen(); i++){
+		printf("%lf ", curDelta->getHost()[i]);
+	}printf("\n");
+
+	exit(0);
+#endif
 }
 
 CombineLayer::CombineLayer(std::string name)
@@ -77,8 +116,10 @@ CombineLayer::CombineLayer(std::string name)
 	/*multi-inputs*/
 	/*suppose the input certainly not the BranLayers's sub-output*/
 
-	inputsSkip = new cuMatrix<int>(config->m_inputs.size(), 1, 1);
-	inputsCols = new cuMatrix<int>(config->m_inputs.size(), 1, 1);
+	inputsSkip     = new cuMatrix<int>(config->m_inputs.size(), 1, 1);
+	inputsChannels = new cuMatrix<int>(config->m_inputs.size(), 1, 1);
+	inputsCols     = new cuMatrix<int>(config->m_inputs.size(), 1, 1);
+
 	int len = 0;
 	for(int i = 0; i < config->m_inputs.size(); i++){
 		ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_inputs[i]);
@@ -86,14 +127,13 @@ CombineLayer::CombineLayer(std::string name)
 		preDelta.push_back(preLayer->getCurDelta());
 
 		inputsSkip->set(i, 0, 0, len);
-		int cols = preLayer->getOutputs()->cols * preLayer->getOutputs()->channels;
-		inputsCols->set(i, 0, 0, cols);
+		int area = preLayer->getOutputs()->cols * preLayer->getOutputs()->channels;
 
-		len += cols;
+		inputsCols->set(i, 0, 0, preLayer->getOutputs()->cols);
+		inputsChannels->set(i, 0, 0, preLayer->getOutputs()->channels);
+
+		len += area;
 	}
-
-	//printf("CombineLayer len %d", len);
-
 
 	batch = Config::instance()->getBatchSize();
 
@@ -104,6 +144,7 @@ CombineLayer::CombineLayer(std::string name)
 	preDelta.toGpu();
 	inputsSkip->toGpu();
 	inputsCols->toGpu();
+	inputsChannels->toGpu();
 
 	Layers::instance()->set(m_name, this);
 }
@@ -118,19 +159,26 @@ __global__ void g_CombineLayer_feedforward(
 	double* outputs,
 	int* skip,
 	int* cols,
+	int* channels,
+	int batch,
 	int outputCols)
 {
-	int batchId = blockIdx.x;
-	int skipId  = blockIdx.y;
-	int curcols = cols[skipId];/*current input's one image feature size*/
+	int batchId     = blockIdx.x;
+	int skipId      = blockIdx.y;
+	int curcols     = cols[skipId];/*current input's one image feature size*/
+	int curChannels = channels[skipId];
 
-	double* output = outputs + batchId * outputCols + skip[skipId];
-	double* input  = inputs[skipId] + batchId * curcols;
-	
-	for(int i = 0; i < curcols; i += blockDim.x){
+	double* output  = outputs + batchId * outputCols + skip[skipId];
+	double* input   = inputs[skipId];
+
+	int cols_channels = curChannels * curcols;
+	for(int i = 0; i < cols_channels; i += blockDim.x){
 		int idx = i + threadIdx.x;
-		if(idx < curcols){
-			output[idx] = input[idx];
+		if(idx < cols_channels){
+			int channel = idx / curcols;
+			int col     = idx % curcols;
+			int area    = batch * curcols;
+			output[idx] = input[channel * area + batchId * curcols + col];
 		}
 	}
 }
@@ -145,20 +193,27 @@ __global__ void g_CombineLayer_backpropagation(
 	double* curDeltas,
 	int* skip,
 	int* cols,
-	int curDeltaCols)
-{
-	int batchId = blockIdx.x;
-	int skipId  = blockIdx.y;
+	int* channels,
+	int batch,
+	int curDeltaCols){
+		int batchId      = blockIdx.x;
+		int skipId       = blockIdx.y;
 
-	int precols = cols[skipId];/*current input's one image feature size*/
+		int precols      = cols[skipId];/*current input's one image feature size*/
+		int preChannels  = channels[skipId];
 
-	double* curDelta = curDeltas + batchId * curDeltaCols + skip[skipId];
-	double* preDelta = preDeltas[skipId] + batchId * precols;
+		double* curDelta = curDeltas + batchId * curDeltaCols + skip[skipId];
+		double* preDelta = preDeltas[skipId];
 
-	for(int i = 0; i < precols; i += blockDim.x){
-		int idx = i + threadIdx.x;
-		if(idx < precols){
-			preDelta[idx] = curDelta[idx];
+		int cols_channels= precols * preChannels;
+
+		for(int i = 0; i < cols_channels; i += blockDim.x){
+			int idx = i + threadIdx.x;
+			if(idx < cols_channels){
+				int channel = idx / precols;
+				int col     = idx % precols;
+				int area    = batch * precols;
+				preDelta[channel * area + batchId * precols + col] = curDelta[idx];
+			}
 		}
-	}
 }
