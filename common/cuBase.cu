@@ -82,7 +82,7 @@ __device__ void swap(double& val1, double& val2){
 __global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
 	double** _v_b, double** _bgrad, double** _b, 
 	int lenw, int lenb,
-	double momentum, double lrate)
+	double momentum, double lratew, double lrateb)
 {
 	double* v_w   = _v_w[blockIdx.x];
 	double* wgrad = _wgrad[blockIdx.x];
@@ -97,7 +97,7 @@ __global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
 		int id = i + idx;
 		if(id < lenw)
 		{
-			v_w[id] = v_w[id] * momentum + wgrad[id] * lrate;
+			v_w[id] = v_w[id] * momentum + wgrad[id] * lratew;
 			w[id] -= v_w[id];
 		}
 	}
@@ -106,7 +106,7 @@ __global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
 		int id = i + idx;
 		if(id < lenb)
 		{
-			v_b[id] = v_b[id] * momentum + bgrad[id] * lrate;
+			v_b[id] = v_b[id] * momentum + bgrad[id] * lrateb;
 			b[id] -= v_b[id];
 		}
 	}
@@ -115,7 +115,7 @@ __global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
 __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 	double* v_b, double* bgrad, double* b, 
 	int lenw, int lenb,
-	double momentum, double lrate)
+	double momentum, double lratew, double lrateb)
 {
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	for(int i = 0; i < lenw; i += blockDim.x * gridDim.x)
@@ -123,7 +123,7 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 		int id = i + idx;
 		if(id < lenw)
 		{
-			v_w[id] = v_w[id] * momentum + wgrad[id] * lrate;
+			v_w[id] = v_w[id] * momentum + wgrad[id] * lratew;
 			w[id] -= v_w[id];
 		}
 	}
@@ -132,7 +132,7 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 		int id = i + idx;
 		if(id < lenb)
 		{
-			v_b[id] = v_b[id] * momentum + bgrad[id] * lrate;
+			v_b[id] = v_b[id] * momentum + bgrad[id] * lrateb;
 			b[id] -= v_b[id];
 		}
 	}

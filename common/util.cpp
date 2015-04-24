@@ -158,7 +158,7 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 
 void dropDelta(cuMatrix<double>* M, double cuDropProb)
 {
-	srand(clock());
+	//srand(clock());
 	for(int c = 0; c < M->channels; c++){
 		//cv::Mat ran = cv::Mat::zeros(M->rows, M->cols, CV_64FC1);
 		//cv::theRNG().state = clock();

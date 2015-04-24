@@ -33,6 +33,7 @@ std::vector<int> g_argv;
 
 int main (int argc, char** argv)
 {
+	srand(clock());
 	if(argc >= 3){
 		g_argv.push_back(atoi(argv[1]));
 		g_argv.push_back(atoi(argv[2]));

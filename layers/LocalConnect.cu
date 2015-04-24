@@ -395,7 +395,7 @@ void LocalConnect::updateWeight()
 		momentum_b.m_devPoint, bgrad.m_devPoint, b.m_devPoint,
 		w[0]->getLen(), b[0]->getLen(), 
 		Config::instance()->getMomentum(),
-		Config::instance()->getLrate());
+		Config::instance()->getLrate(), Config::instance()->getLrate());
 }
 
 LocalConnect::LocalConnect(std::string name)
@@ -490,7 +490,7 @@ void LocalConnect::clearMomentum()
 
 void LocalConnect::initRandom()
 {
-	srand(clock());
+	//srand(clock());
 	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){

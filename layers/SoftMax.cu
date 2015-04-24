@@ -187,7 +187,7 @@ void SoftMax::updateWeight()
 		wgrad->getLen(),
 		bgrad->getLen(),
 		Config::instance()->getMomentum(), 
-		Config::instance()->getLrate());
+		Config::instance()->getLrate(), Config::instance()->getLrate());
 }
 
 void SoftMax::clearMomentum()
@@ -222,7 +222,7 @@ void SoftMax::setPreDelta(cuMatrix<double>* _preDelta)
 
 void SoftMax::initRandom()
 {
-	srand(clock());
+	//srand(clock());
 	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){

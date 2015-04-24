@@ -231,7 +231,7 @@ void NIN::updateWeight()
 		momentum_b->getDev(), bgrad->getDev(), b->getDev(),
 		w->getLen(), b->getLen(), 
 		Config::instance()->getMomentum(),
-		Config::instance()->getLrate());
+		Config::instance()->getLrate(), Config::instance()->getLrate());
 }
 
 NIN::NIN(std::string name)

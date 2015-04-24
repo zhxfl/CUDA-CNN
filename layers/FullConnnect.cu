@@ -276,7 +276,7 @@ void FullConnect::updateWeight()
 		momentum_b->getDev(), bgrad->getDev(), b->getDev(),
 		wgrad->getLen(), bgrad->getLen(), 
 		Config::instance()->getMomentum(),
-		Config::instance()->getLrate());
+		Config::instance()->getLrate(), Config::instance()->getLrate());
 }
 
 void FullConnect::clearMomentum()
@@ -316,7 +316,7 @@ void FullConnect::convert()
 
 void FullConnect::initRandom()
 {
-	srand(clock());
+	//srand(clock());
 	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
 	//initMatrix(w, epsilon);

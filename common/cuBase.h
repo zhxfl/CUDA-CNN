@@ -17,12 +17,12 @@ __device__ void   swap(double& val1, double& val2);
 __global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
 	double** _v_b, double** _bgrad, double** _b, 
 	int lenw, int lenb,
-	double momentum, double lrate);
+	double momentum, double lratew, double lrateb);
 
 __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 	double* v_b, double* bgrad, double* b, 
 	int lenw, int lenb,
-	double momentum, double lrate);
+	double momentum, double lratew, double lrateb);
 
 __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, int batch);
 __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch);

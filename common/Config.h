@@ -292,6 +292,14 @@ public:
 	double m_weightDecay;
 };
 
+/*
+[
+	LAYER = NIN;
+	NAME  = nin1;
+	INPUT = conv3;
+	WEIGHT_DECAY = 1e-6;
+]
+*/
 class ConfigNIN : public ConfigBase{
 public:
 	ConfigNIN(std::string name, 

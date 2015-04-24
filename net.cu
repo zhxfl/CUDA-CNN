@@ -446,7 +446,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 		double start, end;
 		start = clock();
-		cuApplyRandom(batch, clock(), ImgSize);
+		cuApplyRandom(batch, clock() + epo, ImgSize);
 
 		Config::instance()->setTraining(true);
 

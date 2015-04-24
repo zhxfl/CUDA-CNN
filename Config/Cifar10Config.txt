@@ -12,7 +12,7 @@ ROTATION = 0.0;                 #angle#
 DISTORTION = 0.0;               #just for mnist#
 SHOWIMAGE = false;              #show the images after transformation#
 HORIZONTAL = true;              #horizontal reflection#
-TEST_EPOCH = 10;                 #the period to get the test dataset's error rate#
+TEST_EPOCH = 10;                #the period to get the test dataset's error rate#
 WHITE_NOISE = 0.01;
 
 
@@ -30,11 +30,11 @@ PADDING = 2;
 KERNEL_AMOUNT = 32;
 COMBINE_FEATRUE_MAPS = 3;       #According to paper "notes on Convolutional Neural NetWorks#
 WEIGHT_DECAY = 1e-6;
-initW = 0.05;
+initW = 0.01;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 NON_LINEARITY = NL_RELU;
 ]
-
+     
 [
 LAYER = POOLING;
 NAME  = pooling1;
@@ -61,7 +61,7 @@ INPUT = lrn1;
 KERNEL_SIZE = 5;
 PADDING = 2;
 KERNEL_AMOUNT = 64;
-COMBINE_FEATRUE_MAPS = 3;       #According to paper "notes on Convolutional Neural NetWorks#
+COMBINE_FEATRUE_MAPS = 32;       #According to paper "notes on Convolutional Neural NetWorks#
 WEIGHT_DECAY = 1e-6;
 initW = 0.1;
 initType = Bernoulli;           #Gaussian, Bernoulli#
@@ -90,24 +90,57 @@ SKIP = 2;
 ]
 
 [
+LAYER = BRANCHLAYER;
+NAME  = branchlayer1;
+INPUT = pooling2;
+OUTPUTS = b1a,b1b;
+]
+
+
+#===================branchlayer1->b1a start===================#
+[
 LAYER = FC;
 NAME  = fc1;
-INPUT = pooling2;
+INPUT = branchlayer1;
+SUBINPUT = b1a;
 NUM_FULLCONNECT_NEURONS = 1024;
-WEIGHT_DECAY = 1e-8;
+WEIGHT_DECAY = 1e-6;
 DROPOUT_RATE = 0.5;
 initW = 0.01;
 NON_LINEARITY = NL_RELU;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
+#===================branchlayer1->b1a start===================#
 
+[  
+LAYER = CONV;
+NAME  = conv3;
+INPUT = branchlayer1;
+SUBINPUT = b1b;
+KERNEL_SIZE = 3;
+PADDING = 0;
+KERNEL_AMOUNT = 64;
+COMBINE_FEATRUE_MAPS = 64;       #According to paper "notes on Convolutional Neural NetWorks#
+WEIGHT_DECAY = 1e-6;
+initW = 0.1;
+initType = Bernoulli;           #Gaussian, Bernoulli#
+NON_LINEARITY = NL_RELU;
+]
+
+#===============combineLayer1====================#
+
+[
+LAYER = COMBINELAYER;
+NAME  = combineLayer1;
+INPUTS= fc1, conv3;
+]
 
 [
 LAYER = SOFTMAX;
 NAME = softmax1;
-INPUT = fc1;
+INPUT = combineLayer1;
 NUM_CLASSES = 10;
 WEIGHT_DECAY = 1e-6;
-initW = 0.1;
+initW = 0.05;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
