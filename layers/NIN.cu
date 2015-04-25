@@ -21,6 +21,22 @@ __global__ void g_NIN_feedforward(
 	int inputArea,
 	int outputArea);
 
+
+/*
+ * dim3 block = dim3(batch, outputAmount);
+ * dim3 thread= dim3(THREADS, inputAmount);
+*/
+template <int INPUTAMOUNT, int THREADS>
+__global__ void g_NIN_wgrad_1(double*_inputs,
+	double* _curDelta,
+	double** wgradTmp,
+	int inputDim,
+	int curDeltaDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int curDeltaAea);
+
 /*
  * dim3 block = dim3(batch, outputAmount);
  * dim3 thread= dim3(inputAmount);
@@ -222,30 +238,37 @@ __global__ void g_NIN_wgradAdd(
 
 void NIN::getGrad()
 {
-// 	if(outputDim >= 8 && inputAmount <=64){
-// 		dim3 block = dim3(batch, outputAmount);
-// 		dim3 thread= dim3(8, inputAmount);
-// 		/*temple*/
-// 		g_NIN_wgrad_1<<<block, thread>>>(
-// 			inputs->getDev(),
-// 			curDelta->getDev(),
-// 			wgradTmp.m_devPoint,
-// 			inputDim,
-// 			outputDim,
-// 			kernelSize,
-// 			inputAmount,
-// 			outputAmount,
-// 			padding,
-// 			inputs->getArea(),
-// 			curDelta->getArea(),
-// 			wgradTmp[0]->getArea(),
-// 			batch,
-// 			lambda);
-// 		checkCudaErrors(cudaDeviceSynchronize());
-// 		getLastCudaError("g_NIN_wgrad_1");
-// 	}
-// 	else{
-
+	if(outputDim >= 8 && inputAmount == 32){
+		dim3 block = dim3(batch, outputAmount);
+		dim3 thread= dim3(32, inputAmount);
+		g_NIN_wgrad_1<32, 32><<<block, thread>>>(
+			inputs->getDev(),
+			curDelta->getDev(),
+			wgradTmp.m_devPoint,
+			inputDim,
+			outputDim,
+			inputAmount,
+			outputAmount,
+			inputs->getArea(),
+			curDelta->getArea());
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("g_NIN_wgrad_1");
+	}else if(outputDim >= 8 && inputAmount == 64){
+		dim3 block = dim3(batch, outputAmount);
+		dim3 thread= dim3(16, 64);
+		g_NIN_wgrad_1<64, 16><<<block, thread>>>(
+			inputs->getDev(),
+			curDelta->getDev(),
+			wgradTmp.m_devPoint,
+			inputDim,
+			outputDim,
+			inputAmount,
+			outputAmount,
+			inputs->getArea(),
+			curDelta->getArea());
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("g_NIN_wgrad_1");
+	}else{
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(inputAmount);
 		g_NIN_wgrad<<<block, thread>>>(
@@ -261,10 +284,10 @@ void NIN::getGrad()
 
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("g_NIN_wgrad");
-	//}
+	}
 
-	block  = dim3(outputAmount, inputAmount);
-	thread = dim3(batch);
+	dim3 block  = dim3(outputAmount, inputAmount);
+	dim3 thread = dim3(batch);
 
 	g_NIN_wgradAdd<<<block, thread, sizeof(double) * batch>>>(
 		wgradTmp.m_devPoint,
@@ -563,7 +586,61 @@ __global__ void g_NIN_wgrad(double*_inputs,
 	wgradTmp[ok][ik + b * inputAmount] = val;
 }
 
+/*
+ * dim3 block = dim3(batch, outputAmount);
+ * dim3 thread= dim3(THREADS, inputAmount);
+*/
+template <int INPUTAMOUNT, int THREADS>
+__global__ void g_NIN_wgrad_1(double*_inputs,
+	double* _curDelta,
+	double** wgradTmp,
+	int inputDim,
+	int curDeltaDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int curDeltaAea)
+{
+	__shared__ double __sum[INPUTAMOUNT][THREADS];
+	
+	int ok = blockIdx.y;
+	int ik = threadIdx.y;
+	int b  = blockIdx.x;
 
+	double* _sum = __sum[ik];
+
+	int inputSize2    = inputDim * inputDim;
+	int curDeltaSize2 = curDeltaDim * curDeltaDim;
+
+	double* input    = _inputs +   ik * inputArea   + b * inputSize2;
+	double* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
+
+	double val = 0.0;
+	for(int x = 0; x < inputSize2; x += blockDim.x){
+		int idx = x + threadIdx.x;
+		if(idx < inputSize2){
+			val += input[idx] * curDelta[idx];
+		}
+	}
+
+	_sum[threadIdx.x] = val;
+	__syncthreads();
+	int len = blockDim.x;
+	while(len != 1)
+	{
+		__syncthreads();
+		int skip = (len + 1) >> 1;
+		if(threadIdx.x < (len >> 1))
+		{
+			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
+		}
+		len = (len + 1) >> 1;
+	}
+
+	if(threadIdx.x == 0){
+		wgradTmp[ok][ik + b * inputAmount] = _sum[0];
+	}
+}
 
 /*
  * block = dim3(outputAmount);
