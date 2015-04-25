@@ -18,10 +18,11 @@
 #include "layers/LayerBase.h"
 #include "layers/LocalConnect.h"
 #include "layers/LRN.h"
-#include "layers/NIN.h"
-#include "layers/BrachLayer.h"
+#include "layers/One.h"
+#include "layers/BranchLayer.h"
 #include "layers/CombineLayer.h"
 #include "layers/DataLayer.h"
+#include "layers/NIN.h"
 
 #include <queue>
 #include <set>
@@ -85,7 +86,7 @@ void buildNetWork(int trainLen, int testLen)
 		}else if(top->m_type == std::string("LOCAL")){
 			 new LocalConnect(top->m_name);
 		}else if(top->m_type == std::string("BRANCHLAYER")){
-			new BrachLayer(top->m_name);
+			new BranchLayer(top->m_name);
 		}else if(top->m_type == std::string("COMBINELAYER")){
 			ConfigCombineLayer *bl = static_cast<ConfigCombineLayer*>(top);
 			bool flag = true;
@@ -106,12 +107,14 @@ void buildNetWork(int trainLen, int testLen)
 			new FullConnect(top->m_name);
 		}else if(top->m_type == std::string("SOFTMAX")){
 			new SoftMax(top->m_name);
-		}else if(top->m_type == std::string("NIN")){
-			new NIN(top->m_name);
+		}else if(top->m_type == std::string("ONE")){
+			new One(top->m_name);
 		}else if(std::string("LRN") == top->m_type){
 			new LRN(top->m_name);
 		}else if(std::string("DATA") == top->m_type){
 			new DataLayer(top->m_name);
+		}else if(std::string("NIN") == top->m_type){
+			new NIN(top->m_name);
 		}
 
 		sprintf(logStr, "layer %15s:", top->m_name.c_str());

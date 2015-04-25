@@ -1,5 +1,5 @@
-#ifndef __CONV_NIN_CU_H__
-#define __CONV_NIN_CU_H__
+#ifndef __NET_IN_NET_CU_H__
+#define __NET_IN_NET_CU_H__
 
 #include "LayerBase.h"
 #include "../common/cuMatrix.h"
@@ -8,24 +8,25 @@
 #include "../common/cuMatrixVector.h"
 
 
-class NIN: public ConvLayerBase
+class One: public ConvLayerBase
 {
 public:
-	NIN(std::string name);
-	~NIN(){
-		delete outputs;
-	}
-
 	void feedforward();
 	void backpropagation();
 	void getGrad();
 	void updateWeight();
 	void clearMomentum();
 	void calCost();
+	
+	One(std::string name);
 
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
+
+	~One(){
+		delete outputs;
+	}
 
 	cuMatrix<double>* getOutputs(){
 		return outputs;
@@ -39,10 +40,6 @@ public:
 		return outputAmount;
 	}
 
-	int getInputDim(){
-		return inputDim;
-	}
-
 	int getOutputDim(){
 		return outputDim;
 	}
@@ -51,31 +48,27 @@ public:
 		char logStr[1024];
 		sprintf(logStr, "%s:\n",m_name.c_str());
 		LOG(logStr, "Result/log.txt");
-		w[0]->toCpu();
-		sprintf(logStr, "weight:%lf, %lf, %lf;\n", w[0]->get(0,0,0), w[0]->get(0,1,0), w[0]->get(0, 2, 0));
+		w->toCpu();
+		sprintf(logStr, "weight:%lf, %lf:\n", w->get(0,0,0), w->get(0,1,0));
 		LOG(logStr, "Result/log.txt");
-		b[0]->toCpu();
-		b[1]->toCpu();
-		sprintf(logStr, "bias  :%lf %lf\n", b[0]->get(0,0,0), b[1]->get(0, 0, 0));
+		b->toCpu();
+		sprintf(logStr, "bias  :%lf, %lf:\n", b->get(0,0,0), b->get(0,1,0));
 		LOG(logStr, "Result/log.txt");
 	}
-
 private:
 	cuMatrix<double>* inputs;
 	cuMatrix<double>* preDelta;
 	cuMatrix<double>* outputs;
-	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
-	int batch;
-	int NON_LINEARITY;
+	cuMatrix<double>* curDelta;
 	double lambda;
 private:
-	cuMatrixVector<double> w;
-	cuMatrixVector<double> wgrad;
-	cuMatrixVector<double> wgradTmp;
-	cuMatrixVector<double> b;
-	cuMatrixVector<double> bgrad;
-	cuMatrixVector<double> momentum_w;
-	cuMatrixVector<double> momentum_b;
+	cuMatrix<double>* w;
+	cuMatrix<double>* wgrad;
+	cuMatrix<double>* b;
+	cuMatrix<double>* bgrad;
+	cuMatrix<double>* momentum_w;
+	cuMatrix<double>* momentum_b;
+	cuMatrix<double>* wgradTmp;
 };
 
 #endif 

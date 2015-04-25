@@ -5,7 +5,7 @@
 #include <math.h>
 #include "../common/Config.h"
 #include "../common/cuBase.h"
-#include "../layers/BrachLayer.h"
+#include "../layers/BranchLayer.h"
 
 #define USE_DOUBLE float
 /*
@@ -152,7 +152,7 @@ LRN::LRN(std::string name)
 		/*inputs = NULL the type must be BranchLayers*/
 		Assert(Config::instance()->getLayerByName(config->m_input)->isBranchLayer());
 		Assert(config->m_subInput != std::string("NULL"));
-		BrachLayer* bl = static_cast<BrachLayer*>(preLayer);
+		BranchLayer* bl = static_cast<BranchLayer*>(preLayer);
 		inputs = bl->getSubOutput(config->m_subInput);
 		preDelta = bl->getSubCurDelta(config->m_subInput);
 	}else{

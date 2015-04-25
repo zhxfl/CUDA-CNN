@@ -294,15 +294,15 @@ public:
 
 /*
 [
-	LAYER = NIN;
-	NAME  = nin1;
+	LAYER = ONE;
+	NAME  = one1;
 	INPUT = conv3;
 	WEIGHT_DECAY = 1e-6;
 ]
 */
-class ConfigNIN : public ConfigBase{
+class ConfigONE : public ConfigBase{
 public:
-	ConfigNIN(std::string name, 
+	ConfigONE(std::string name, 
 		std::string input, 
 		std::string subInput,
 		std::string type,
@@ -312,6 +312,35 @@ public:
 		m_subInput = subInput;
 		m_type = type;
 		m_weightDecay = weightDecay;
+	}
+	double m_weightDecay;
+};
+
+
+/*
+[
+	LAYER = NIN;
+	NAME  = nin1;
+	INPUT = xxxx;
+	WEIGHT_DECAY = 1e-6;
+]
+*/
+class ConfigNIN : public ConfigBase{
+public:
+	ConfigNIN(std::string name, 
+		std::string input, 
+		std::string subInput,
+		std::string type,
+		double weightDecay,
+		double initW,
+		int non_linearity){
+		m_name = name;
+		m_input= input;
+		m_subInput = subInput;
+		m_type = type;
+		m_weightDecay = weightDecay;
+		m_initW = initW;
+		m_nonLinearity = non_linearity;
 	}
 	double m_weightDecay;
 };

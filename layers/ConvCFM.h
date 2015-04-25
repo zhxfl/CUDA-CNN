@@ -11,22 +11,23 @@
 class ConvCFM: public ConvLayerBase
 {
 public:
+	ConvCFM(std::string name);
+	~ConvCFM(){
+		delete outputs;
+	}
+
+
 	void feedforward();
 	void backpropagation();
 	void getGrad();
 	void updateWeight();
 	void clearMomentum();
 	void calCost();
-	
-	ConvCFM(std::string name);
 
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
 	void save(FILE* file);
 
-	~ConvCFM(){
-		delete outputs;
-	}
 	cuMatrix<double>* getOutputs(){
 		return outputs;
 	};

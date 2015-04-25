@@ -1,160 +1,208 @@
 #include "NIN.h"
 #include "../common/cuBase.h"
 #include "../common/Config.h"
-#include "../layers/BrachLayer.h"
+#include "../layers/BranchLayer.h"
 
 
 /*
- * dim3 thread = min(512, inputs->cols);
- * dim3 block  = dim3(inputs->rows, inputs->channels);
-*/
-__global__ void g_NIN_backpropagation(
-	double* _curDelta,
-	double* _w,
-	double* _nextDelta,
-	int rows, int cols, int channels);
-
-/*
- * block = dim3(channels, cols);
- * thread= dim3(rows);
- * wgradTmp   = new cuMatrix<double>(channel, cols, batch)
- * w = new cuMatrix<double>(channel, cols, 1)
-*/
-
-__global__ void g_NIN_wgrad_Add(
-	double* _WgradTmp,
-	double* Wgrad,
-	double* w,
-	int rows,
-	int cols,
-	int channels,
-	double lambda);
-
-/*
- * dim3 block = dim3(rows, channel);
- * dim3 thread= dim3(min(cols, 512));
-*/
-__global__ void g_NIN_wgrad(
-	double* _inputs,
-	double* _curDelta,
-	double* _wgradTmp,
-	int rows,
-	int cols,
-	int channels);
-
-/*
- * function: get convolution layer and pooling output
- * dim3 block = dim3(batch, amount);
- * dim3 thread= dim3(min(outputDim * outputDim, 512));
- * const kernelsize = 1
+ * dim3 block = dim3(batch, outputAmpunt);
+ * dim3 thread= dim3(outputDim * outputDim);
 */
 
 __global__ void g_NIN_feedforward(
-	double* _inputs,
-	double* _w,
-	double* _b,
-	double* _outputs,
-	int rows,
-	int cols, 
-	int channels);
+	double*  inputs,
+	double** ws,
+	double** bs,
+	double*  outputs,
+	int inputDim,
+	int outputDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int outputArea);
 
 /*
- * block = dim3(channel, cols);
- * thread= dim3(rows); 
+ * dim3 block = dim3(batch, outputAmount);
+ * dim3 thread= dim3(inputAmount);
 */
-__global__ void g_NIN_Bgrad(double* _delta,
-	double* bgrad,
-	int rows,
-	int cols,
-	int channels);
+
+__global__ void g_NIN_wgrad(double*_inputs,
+	double* _curDelta,
+	double** wgradTmp,
+	int inputDim,
+	int curDeltaDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int curDeltaAea);
+
+/*
+ * dim3 block = dim3(batch, inputAmount);
+ * dim3 thread= min(inputDim * inputDim, 512);
+*/
+__global__ void g_NIN_backpropagation(
+	double* _curDelta,
+	double**ws,
+	double* _preDelta,
+	int     curDim,
+	int     preDim,
+	int     preAmount,
+	int     curAmount,
+	int     curArea,
+	int     preArea);
+
+/*
+* blocks  : dim3(batch, cuKernelScan[cl]),
+* threads : dim3(threadidx)
+*/
+__global__ void g_NIN_wgrad(double*_inputs,
+	double* _curDelta,
+	double** wgradTmp,
+	int inputDim,
+	int curDeltaDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int curDeltaAea,
+	int wgradTmpArea,
+	int batch);
+
+
+/*
+ * block = dim3(outputAmount, inputAmount);
+ * thread= dim3(batch);
+*/
+__global__ void g_NIN_wgradAdd(
+	double** _WgradTmp,
+	double** Wgrad,
+	double** w,
+	int batch,
+	double lambda);
+
+/*
+*blocks  : dim3(kernelAmount2)
+*threads : dim3(256)
+*shared  : sizeof(double) * 256
+*/
+__global__ void g_NIN_Bgrad(double* delta,
+	double** bgrad,
+	int deltaSize,
+	int kernelAmount2,
+	int batch,
+	int deltaArea);
 
 
 void NIN::calCost()
 {
 	cost->gpuClear();
-	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(), 
-		w->getDev(), 
+	g_getCost_3<<<dim3(w.size()), dim3(32), sizeof(double) * 32>>>(cost->getDev(), 
+		w.m_devPoint, 
 		lambda,
-		w->getLen());
+		w[0]->getLen());
 	cudaDeviceSynchronize();
-	getLastCudaError("NIN:g_getCost_2");
+	getLastCudaError("NIN:getCost");
 }
 
 void NIN::feedforward()
 {
-	dim3 block  = dim3(inputs->rows, inputs->channels);
-	dim3 thread = min(512, inputs->cols);
+	if((inputs == NULL))
+	{
+		printf("NIN init error\n");
+		exit(0);
+	}
+
+	dim3 block = dim3(batch, outputAmount);
+	dim3 thread= dim3(min(outputDim * outputDim, 1024));
 
 	g_NIN_feedforward<<<block, thread>>>(
 		inputs->getDev(),
-		w->getDev(),
-		b->getDev(),
+		w.m_devPoint,
+		b.m_devPoint,
 		outputs->getDev(),
-		inputs->rows, 
-		inputs->cols,
-		inputs->channels);
+		inputDim,
+		outputDim,
+		inputAmount,
+		outputAmount,
+		inputs->getArea(),
+		outputs->getArea());
 	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("NIN:g_NIN_feedforward");
+	getLastCudaError("NIN::g_NIN_feedforward");
+
+	if(NON_LINEARITY >= 0){
+		dim3 thread = dim3(min(256, outputs->getLen()));
+		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
+		g_nonLinearity<<<block, thread>>>(
+			outputs->getDev(), 
+			outputs->getLen(),
+			NON_LINEARITY);
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("NIN::g_nonLinearity");
+	}
 }
 
 void NIN::backpropagation()
 {
-	dim3 block  = dim3(inputs->rows, inputs->channels);
-	dim3 thread = min(512, inputs->cols);
+	if(NON_LINEARITY >= 0){
+		dim3 thread = dim3(min(256, outputs->getLen()));
+		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
 
-	//preDelta->gpuClear();
+		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
+			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
+
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("NIN::g_dnonLinearity");
+	}
+	
+	if(Config::instance()->getLayerByName(m_name)->m_input == std::string("data"))
+		return;
+
+	dim3 block = dim3(batch, inputAmount);
+	dim3 thread= dim3(min(inputDim * inputDim, 1024));
 
 	g_NIN_backpropagation<<<block, thread>>>(
 		curDelta->getDev(),
-		w->getDev(),
+		w.m_devPoint,
 		preDelta->getDev(),
-		inputs->rows, inputs->cols, inputs->channels);
+		outputDim,
+		inputDim,
+		inputAmount,
+		outputAmount,
+		curDelta->getArea(),
+		preDelta->getArea());
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("NIN::g_NIN_backpropagation");
-
-// 	curDelta->toCpu();
-// 	preDelta->toCpu();
-// 	for(int i = 0; i < curDelta->getLen(); i++){
-// 		if(curDelta->getHost()[i] != preDelta->getHost()[i]){
-// 			sprintf(logStr, "%d %lf %lf\n", i, curDelta->getHost()[i], preDelta->getHost()[i]);
-// 		}
-// 	}
-// 	exit(0);
 }
 
 /*
- * block    = dim3(channels, cols);
- * thread   = dim3(rows);
- * wgradTmp = new cuMatrix<double>(rows, channel, cols)
- * w        = new cuMatrix<double>(channel, cols, 1)
+ * block = dim3(outputAmount, inputAmount);
+ * thread= dim3(batch);
 */
-
-__global__ void g_NIN_wgrad_Add(
-	double* _WgradTmp,
-	double* Wgrad,
-	double* w,
-	int rows,
-	int cols,
-	int channels,
+__global__ void g_NIN_wgradAdd(
+	double** _WgradTmp,
+	double** Wgrad,
+	double** w,
+	int batch,
 	double lambda)
 {
 	extern __shared__ double _sum[];
-	int channel = blockIdx.x;
-	int col     = blockIdx.y;
-	int tid     = threadIdx.x;
+	int ok = blockIdx.x;
+	int ik = blockIdx.y;
+	int tid = threadIdx.x;
 	_sum[tid] = 0;
+	int inputAmount = gridDim.y;
 	__syncthreads();
-
-
-	for(int i = 0; i < rows; i += blockDim.x){
-		int row = i + threadIdx.x;
-		if(row < rows){
-			_sum[threadIdx.x] += _WgradTmp[channel * rows * cols + row * cols + col];
+	int tlen = batch;
+	double* wgradTmp = _WgradTmp[ok];
+	for(int i = 0; i < tlen; i += blockDim.x)
+	{
+		int b = i + threadIdx.x;
+		if(b < tlen)
+		{
+			_sum[threadIdx.x] += wgradTmp[ik + b * inputAmount];
 		}
 	}
 	__syncthreads();
-
-	int len = rows;
+	int len = blockDim.x;
 	while(len != 1)
 	{
 		__syncthreads();
@@ -168,68 +216,86 @@ __global__ void g_NIN_wgrad_Add(
 	__syncthreads();
 	if(tid == 0)
 	{
-		Wgrad[channel * cols + col] = _sum[0] / rows + w[channel * cols + col] * lambda;
+		Wgrad[ok][ik] = _sum[0] / batch + w[ok][ik] * lambda;
 	}
 }
 
-
 void NIN::getGrad()
 {
-	int rows    = inputs->rows;
-	int cols    = inputs->cols;
-	int channel = inputs->channels;
+// 	if(outputDim >= 8 && inputAmount <=64){
+// 		dim3 block = dim3(batch, outputAmount);
+// 		dim3 thread= dim3(8, inputAmount);
+// 		/*temple*/
+// 		g_NIN_wgrad_1<<<block, thread>>>(
+// 			inputs->getDev(),
+// 			curDelta->getDev(),
+// 			wgradTmp.m_devPoint,
+// 			inputDim,
+// 			outputDim,
+// 			kernelSize,
+// 			inputAmount,
+// 			outputAmount,
+// 			padding,
+// 			inputs->getArea(),
+// 			curDelta->getArea(),
+// 			wgradTmp[0]->getArea(),
+// 			batch,
+// 			lambda);
+// 		checkCudaErrors(cudaDeviceSynchronize());
+// 		getLastCudaError("g_NIN_wgrad_1");
+// 	}
+// 	else{
 
-	dim3 block = dim3(rows, channel);
-	dim3 thread= dim3(min(cols, 512));
+		dim3 block = dim3(batch, outputAmount);
+		dim3 thread= dim3(inputAmount);
+		g_NIN_wgrad<<<block, thread>>>(
+			inputs->getDev(),
+			curDelta->getDev(),
+			wgradTmp.m_devPoint,
+			inputDim,
+			outputDim,
+			inputAmount,
+			outputAmount,
+			inputs->getArea(),
+			curDelta->getArea());
 
-	g_NIN_wgrad<<<block, thread>>>(
-		inputs->getDev(),
-		curDelta->getDev(),
-		wgradTmp->getDev(),
-		rows,
-		cols,
-		channel);
-	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("NIN::g_NIN_wgrad");
+		checkCudaErrors(cudaDeviceSynchronize());
+		getLastCudaError("g_NIN_wgrad");
+	//}
 
-	block = dim3(channel, cols);
-	thread= dim3(rows); 
+	block  = dim3(outputAmount, inputAmount);
+	thread = dim3(batch);
 
-	g_NIN_wgrad_Add<<<block, thread, sizeof(double) * rows>>>(
-		wgradTmp->getDev(),
-		wgrad->getDev(),
-		w->getDev(),
-		rows,
-		cols,
-		channel,
+	g_NIN_wgradAdd<<<block, thread, sizeof(double) * batch>>>(
+		wgradTmp.m_devPoint,
+		wgrad.m_devPoint,
+		w.m_devPoint,
+		batch,
 		lambda);
 	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("NIN::g_NIN_wgrad_Add");
+	getLastCudaError("g_NIN_wgradAdd");
+	
 
-	block = dim3(channel, cols);
-	thread= dim3(rows); 
-
-	g_NIN_Bgrad<<<block, thread, sizeof(double) * rows>>>
-		(curDelta->getDev(),
-		bgrad->getDev(),
-		rows,
-		cols,
-		channel);
+	block = dim3(outputAmount);
+	thread= dim3(256);
+	g_NIN_Bgrad<<<block, thread, sizeof(double) * thread.x>>>(curDelta->getDev(),
+		bgrad.m_devPoint,
+		outputDim,
+		outputAmount,
+		batch,
+		curDelta->getArea());
 
 	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("NIN::g_NIN_Bgrad");
+	getLastCudaError("NIN::getGrad::g_NIN_Bgrad");
 }
 
 void NIN::updateWeight()
 {
-// 	int len = (w->getLen()) / 2;
-// 	dim3 thread = min(512, len);
-// 	dim3 block  = min((len + thread.x - 1) / thread.x, 5120);
-	dim3 block = min((momentum_w->getLen() + 255) / 256, 5120);
-	dim3 thread= 256;
-	g_vecAdd<<<block, thread>>>(momentum_w->getDev(), wgrad->getDev(), w->getDev(),
-		momentum_b->getDev(), bgrad->getDev(), b->getDev(),
-		w->getLen(), b->getLen(), 
+	dim3 block  = outputAmount;
+	dim3 thread = min(256, w[0]->getLen());
+	g_vecAdd<<<block, thread>>>(momentum_w.m_devPoint, wgrad.m_devPoint, w.m_devPoint,
+		momentum_b.m_devPoint, bgrad.m_devPoint, b.m_devPoint,
+		w[0]->getLen(), b[0]->getLen(), 
 		Config::instance()->getMomentum(),
 		Config::instance()->getLrate(), Config::instance()->getLrate());
 }
@@ -237,43 +303,52 @@ void NIN::updateWeight()
 NIN::NIN(std::string name)
 {
 	m_name = name;
-	ConfigNIN *config = (ConfigNIN *) Config::instance()->getLayerByName(m_name);
-	ConvLayerBase* preLayer = (ConvLayerBase*) Layers::instance()->get(config->m_input);
+	ConfigNIN* config = (ConfigNIN*)Config::instance()->getLayerByName(m_name);
+	ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_input);
 
 	inputs = preLayer->getOutputs();
 	if(inputs == NULL){
 		/*inputs = NULL the type must be BranchLayers*/
 		Assert(Config::instance()->getLayerByName(config->m_input)->isBranchLayer());
 		Assert(config->m_subInput != std::string("NULL"));
-		BrachLayer* bl = static_cast<BrachLayer*>(preLayer);
+		BranchLayer* bl = static_cast<BranchLayer*>(preLayer);
 		inputs = bl->getSubOutput(config->m_subInput);
 		preDelta = bl->getSubCurDelta(config->m_subInput);
 	}else{
 		preDelta = preLayer->getCurDelta();
 	}
-
-	inputDim = preLayer->outputDim;
-	outputDim= inputDim;
-	inputAmount = preLayer->outputAmount;
+	inputAmount  = preLayer->outputAmount;
 	outputAmount = inputAmount;
-	lambda = config->m_weightDecay;
 
-	int rows    = inputs->rows;
-	int cols    = inputs->cols;
-	int channel = inputs->channels;
+	inputDim  = preLayer->outputDim;
+	outputDim = inputDim;
+	batch     = Config::instance()->getBatchSize();
+	lambda    = config->m_weightDecay;
+	NON_LINEARITY = config->m_nonLinearity;
 
-	assert(rows == Config::instance()->getBatchSize());
+	outputs  = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
+	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
 
-	outputs    = new cuMatrix<double>(rows, cols, channel);
-	curDelta   = new cuMatrix<double>(rows, cols, channel);
+	for(int i = 0; i < outputAmount; i++){
+		w.push_back(new cuMatrix<double>(1, 1, inputAmount));
+		b.push_back(new cuMatrix<double>(1, 1, 1));
+		wgrad.push_back(new cuMatrix<double>(1, 1, inputAmount));
+		bgrad.push_back(new cuMatrix<double>(1, 1, 1));
+		wgradTmp.push_back(new cuMatrix<double>(batch, inputAmount, 1));
+	}
 
-	w          = new cuMatrix<double>(channel, cols, 1);
-	b          = new cuMatrix<double>(channel, cols, 1);
-	wgrad      = new cuMatrix<double>(channel, cols, 1);
-	bgrad      = new cuMatrix<double>(channel, cols, 1);
-	wgradTmp   = new cuMatrix<double>(rows, cols, channel);
-	momentum_w = new cuMatrix<double>(channel, cols, 1);
-	momentum_b = new cuMatrix<double>(channel, cols, 1);
+	w.toGpu();
+	b.toGpu();
+	wgrad.toGpu();
+	bgrad.toGpu();
+	wgradTmp.toGpu();
+
+	for(int i = 0; i < outputAmount; i++){
+		momentum_w.push_back(new cuMatrix<double>(1, 1, inputAmount));
+		momentum_b.push_back(new cuMatrix<double>(1, 1, 1));
+	}
+	momentum_w.toGpu();
+	momentum_b.toGpu();
 
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
@@ -281,19 +356,24 @@ NIN::NIN(std::string name)
 
 void NIN::save(FILE* file)
 {
-	w->toCpu();
-	for(int c = 0; c < w->channels; c++){
-		for(int i = 0; i < w->rows; i++){
-			for(int j = 0; j < w->cols; j++){
-				fprintf(file, "%lf ", w->get(i, j, c));
+	for(int a = 0; a < w.size(); a++){
+		
+		w[a]->toCpu();
+		b[a]->toCpu();
+
+		for(int c = 0; c < w[a]->channels; c++){
+			for(int i = 0; i < w[a]->rows; i++){
+				for(int j = 0; j < w[a]->cols; j++){
+					fprintf(file, "%lf ", w[a]->get(i, j, c));
+				}
 			}
 		}
-	}
-	b->toCpu();
-	for(int c = 0; c < b->channels; c++){
-		for(int i = 0; i < b->rows; i++){
-			for(int j = 0; j < b->cols; j++){
-				fprintf(file, "%lf ", b->get(i, j, c));
+
+		for(int c = 0; c < b[a]->channels; c++){
+			for(int i = 0; i < b[a]->rows; i++){
+				for(int j = 0; j < b[a]->cols; j++){
+					fprintf(file, "%lf ", b[a]->get(i, j, c));
+				}
 			}
 		}
 	}
@@ -301,153 +381,222 @@ void NIN::save(FILE* file)
 
 void NIN::clearMomentum()
 {
-	momentum_b->gpuClear();
-	momentum_w->gpuClear();
+	for(int i = 0; i < momentum_b.size(); i++){
+		momentum_b[i]->gpuClear();
+	}
+	for(int i = 0; i < momentum_w.size(); i++){
+		momentum_w[i]->gpuClear();
+	}
 }
 
 void NIN::initRandom()
 {
-	for(int i = 0; i < w->getLen(); i++){
-		w->getHost()[i] =  1.0;
+	//srand(clock());
+	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
+
+	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
+		for(int i = 0; i < w.size(); i++){
+			double epsilon = initW;
+			for(int c = 0; c < w[i]->channels; c++)
+			{
+				double r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+				double r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+				createGaussian(w[i]->getHost() + c * w[i]->getArea(), r1,r2,
+					1, 1, w[i]->channels,
+					epsilon);
+			}
+			w[i]->toGpu();
+		}
 	}
-	w->toGpu();
+	else{
+		for(int i = 0; i < w.size(); i++){
+			for(int j = 0; j < w[i]->getLen(); j++){
+				w[i]->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+				//printf("%lf ", w[i]->hostData[j]);
+			}//printf("\n");
+			w[i]->toGpu();
+		}
+	}
+
+ 		 	
 }
 
 void NIN::initFromCheckpoint(FILE* file)
 {
 	double val = 0;
-	for(int c = 0; c < w->channels; c++){
-		for(int i = 0; i < w->rows; i++){
-			for(int j = 0; j < w->cols; j++){
-				fscanf(file, "%lf", &val);
-				w->set(i, j, c, val);
+	for(int a = 0; a < w.size(); a++){
+		for(int c = 0; c < w[a]->channels; c++){
+			for(int i = 0; i < w[a]->rows; i++){
+				for(int j = 0; j < w[a]->cols; j++){
+					fscanf(file, "%lf", &val);
+					w[a]->set(i, j, c, val);
+				}
 			}
 		}
-	}
 
-
-	for(int c = 0; c < b->channels; c++){
-		for(int i = 0; i < b->rows; i++){
-			for(int j = 0; j < b->cols; j++){
-				fscanf(file, "%lf", &val);
-				b->set(i, j, c, val);
+		for(int c = 0; c < b[a]->channels; c++){
+			for(int i = 0; i < b[a]->rows; i++){
+				for(int j = 0; j < b[a]->cols; j++){
+					fscanf(file, "%lf", &val);
+					b[a]->set(i, j, c, val);
+				}
 			}
 		}
+		w[a]->toGpu();
+		b[a]->toGpu();
 	}
-	w->toGpu();
-	b->toGpu();
 }
 
 
 /*
- * dim3 block  = dim3(inputs->rows, inputs->channels);
- * dim3 thread = min(512, inputs->cols);
+ * dim3 block = dim3(batch, outputAmpunt);
+ * dim3 thread= dim3(outputDim * outputDim);
 */
 
 __global__ void g_NIN_feedforward(
-	double* _inputs,
-	double* _w,
-	double* _b,
-	double* _outputs,
-	int rows,
-	int cols, 
-	int channels)
+	double*  inputs,
+	double** ws,
+	double** bs,
+	double*  outputs,
+	int inputDim,
+	int outputDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int outputArea)
 {
-	int row     = blockIdx.x;
-	int channel = blockIdx.y;
+	int sp = blockIdx.x;
+	int ok = blockIdx.y;
 	
-	int skip = channel * rows * cols + row * cols;
-	double* inputs = _inputs + skip;
-	double* outputs= _outputs+ skip;
-// 	if(threadIdx.x == 0)
-// 		sprintf(logStr, "block(%d %d) skip = %d\n", blockIdx.x, blockIdx.y, skip);
-	double* w = _w + channel * cols;
-	double* b = _b + channel * cols;
+	int outputSize2 = outputDim * outputDim;
+	int inputSize2  = inputDim* inputDim;
 
-	for(int i = 0; i < cols; i += blockDim.x){
-		int id = i + threadIdx.x;
-		if(id < cols){
-			outputs[id] = inputs[id] * w[id] + b[id];
+	double  b       = bs[ok][0];
+
+	double* curOutput = outputs + ok * outputArea + sp * outputSize2;
+
+	/*convolution*/
+	for(int tidx = 0; tidx < outputSize2; tidx += blockDim.x)
+	{
+		int idx = tidx + threadIdx.x;
+		if(idx < outputSize2)
+		{
+			double val = 0.0;
+			double *w  = ws[ok];
+			for(int ik = 0; ik < inputAmount; ik++){
+				double* curInput = inputs + ik * inputArea + sp * inputSize2;
+				val += curInput[idx] * w[ik];
+			}
+			curOutput[idx] = val + b;
 		}
 	}
 }
 
+
+
 /*
- * dim3 block  = dim3(inputs->rows, inputs->channels);
- * dim3 thread = min(512, inputs->cols);
+ * dim3 block = dim3(batch, inputAmount);
+ * dim3 thread= min(inputDim * inputDim, 512);
 */
 __global__ void g_NIN_backpropagation(
 	double* _curDelta,
-	double* _w,
-	double* _nextDelta,
-	int rows, int cols, int channels)
+	double**ws,
+	double* _preDelta,
+	int     curDim,
+	int     preDim,
+	int     preAmount,
+	int     curAmount,
+	int     curArea,
+	int     preArea)
 {
-	int row     = blockIdx.x;
-	int channel = blockIdx.y;
+	int sp = blockIdx.x;
+	int ik = blockIdx.y;
 
-	int skip = channel * rows * cols + row * cols;
-	double* curDelta = _curDelta + skip;
-	double* nextDelta= _nextDelta+ skip;
+	int curSize2 = curDim * curDim;
+	int preSize2 = preDim * preDim;
 
-	double* w = _w + channel * cols;
-
-	for(int i = 0; i < cols; i += blockDim.x){
-		int id = i + threadIdx.x;
-		if(id < cols){
-			nextDelta[id] = curDelta[id] * w[id];
+	double *preDelta = _preDelta + ik * preArea + sp * preSize2;
+	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
+		int idx = tidx + threadIdx.x;
+		if (idx < preSize2) {
+			double val = 0.0;
+			for(int ok = 0; ok < curAmount; ok++){
+				double *curDelta = _curDelta + ok * curArea + sp * curSize2;
+				double w         = ws[ok][ik];
+				val += curDelta[idx] * w;
+			}
+			preDelta[idx] = val;
 		}
 	}
 }
 
+
 /*
- * dim3 block = dim3(rows, channel);
- * dim3 thread= dim3(min(cols, 512));
- * wgradTmp   = new cuMatrix<double>(rows, cols, channel);
+ * dim3 block = dim3(batch, outputAmount);
+ * dim3 thread= dim3(inputAmount);
 */
-__global__ void g_NIN_wgrad(
-	double* _inputs,
+
+__global__ void g_NIN_wgrad(double*_inputs,
 	double* _curDelta,
-	double* _wgradTmp,
-	int rows,
-	int cols,
-	int channels)
+	double** wgradTmp,
+	int inputDim,
+	int curDeltaDim,
+	int inputAmount,
+	int outputAmount,
+	int inputArea,
+	int curDeltaAea)
 {
-	int row     = blockIdx.x;
-	int channel = blockIdx.y;
+	int ok = blockIdx.y;
+	int ik = threadIdx.x;
+	int b  = blockIdx.x;
 
-	int skip = channel * rows * cols + row * cols;
-	double* inputs   = _inputs   + skip;
-	double* curDelta = _curDelta + skip;
-	double* wgradTmp = _wgradTmp + skip;
+	int inputSize2    = inputDim * inputDim;
+	int curDeltaSize2 = curDeltaDim * curDeltaDim;
 
-	for(int i = 0; i < cols; i += blockDim.x){
-		int id = i + threadIdx.x;
-		if(id < cols){
-			wgradTmp[id] = inputs[id] * curDelta[id];
-		}
+	double* input    = _inputs +   ik * inputArea   + b * inputSize2;
+	double* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
+
+	double val = 0.0;
+	for(int x = 0; x < inputSize2; x++){
+		val += input[x] * curDelta[x];
 	}
+	wgradTmp[ok][ik + b * inputAmount] = val;
 }
 
 
+
 /*
-* block = dim3(channel, cols);
-* thread= dim3(rows); 
+ * block = dim3(outputAmount);
+ * thread= dim3(256);
+ * shared  : sizeof(double) * 256
 */
-__global__ void g_NIN_Bgrad(double* _delta,
-	double* bgrad,
-	int rows,
-	int cols,
-	int channels)
+__global__ void g_NIN_Bgrad(double* delta,
+	double** bgrad,
+	int deltaSize,
+	int kernelAmount2,
+	int batch,
+	int deltaArea)
 {
 	extern __shared__ double _sum[];
-	int channel = blockIdx.x;
-	int col     = blockIdx.y;
-	int row     = threadIdx.x;
-	double delta = _delta[channel * rows * cols + row * cols + col];
-	_sum[row] = delta;
+	int k2 = blockIdx.x;
+	_sum[threadIdx.x] = 0.0;
 	__syncthreads();
-
-	int len = rows;
+	int deltaSize2 = deltaSize * deltaSize;
+	int tlen = deltaSize2 * batch;
+	for(int i = 0; i < tlen; i += blockDim.x)
+	{
+		int idx = i + threadIdx.x;
+		if(idx < tlen)
+		{
+			int s  = idx / (deltaSize2);//s
+			int t2 = idx % (deltaSize2);//x,y
+			int id =
+				deltaArea * k2 + s * deltaSize2 + t2;
+			_sum[threadIdx.x] += delta[id];
+		}
+	}
+	__syncthreads();
+	int len = blockDim.x;
 	while(len != 1)
 	{
 		__syncthreads();
@@ -461,6 +610,6 @@ __global__ void g_NIN_Bgrad(double* _delta,
 	__syncthreads();
 	if(threadIdx.x == 0)
 	{
-		bgrad[channel * cols + col] = _sum[0] / rows;
+		bgrad[k2][0] = _sum[0] / batch;
 	}
 }

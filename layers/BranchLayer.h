@@ -11,9 +11,9 @@ ref : ImageNet Classification with Deep Convolutional Neural Networks
 #include "../common/util.h"
 
 
-class BrachLayer: public ConvLayerBase{
+class BranchLayer: public ConvLayerBase{
 public:
-	BrachLayer(std::string name);
+	BranchLayer(std::string name);
 
 	void feedforward();
 	void backpropagation();
@@ -25,7 +25,7 @@ public:
 	void initFromCheckpoint(FILE* file){};
 	void save(FILE* file){};
 
-	~BrachLayer(){
+	~BranchLayer(){
 
 	}
 
@@ -36,7 +36,7 @@ public:
 		if(mapId.find(name) != mapId.end()){
 			return outputs[mapId[name]];
 		}else{
-			printf("brachLayer: can not find getOutputs %s\n", name.c_str());
+			printf("BranchLayer: can not find getOutputs %s\n", name.c_str());
 			exit(0);
 			return NULL;
 		}
@@ -46,7 +46,7 @@ public:
 		if(mapId.find(name) != mapId.end()){
 			return curDelta[mapId[name]];
 		}else{
-			printf("brachLayer: can not find getCurDelta %s\n", name.c_str());
+			printf("BranchLayer: can not find getCurDelta %s\n", name.c_str());
 			exit(0);
 			return NULL;
 		}

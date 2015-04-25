@@ -1,4 +1,4 @@
-#include "BrachLayer.h"
+#include "BranchLayer.h"
 #include <vector>
 #include <helper_functions.h>
 #include <helper_cuda.h>
@@ -11,7 +11,7 @@
  * dim3 thread= dim3(min(outputs[0]->getLen() / batch, 1024));
 */
 
-__global__ void g_BrachLayer_backpropagation(
+__global__ void g_BranchLayer_backpropagation(
 	double** curDelta,
 	double* preDelta,
 	int curDeltaSize,
@@ -21,27 +21,27 @@ __global__ void g_BrachLayer_backpropagation(
  *dim3 block = dim3(outputs.size(), batch);
  *dim3 thread= dim3(min(outputs[0]->getLen() / batch, 1024));
 */
-__global__ void g_BrachLayer_feedforward(
+__global__ void g_BranchLayer_feedforward(
 	double* inputs,
 	double** outputs,
 	int len);
 
 
-void BrachLayer::feedforward()
+void BranchLayer::feedforward()
 {
 	/*copy the input to outputs*/
 	dim3 block = dim3(outputs.size(), batch);
 	dim3 thread= dim3(min(outputs[0]->getLen() / batch, 1024));
 	
-	g_BrachLayer_feedforward<<<block, thread>>>(
+	g_BranchLayer_feedforward<<<block, thread>>>(
 		inputs->getDev(),
 		outputs.m_devPoint,
 		outputs[0]->getLen());
 	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("BrachLayer feedforward");
+	getLastCudaError("BranchLayer feedforward");
 }
 
-void BrachLayer::backpropagation()
+void BranchLayer::backpropagation()
 {
 	if(Config::instance()->getLayerByName(m_name)->m_input == std::string("data"))
 		return;
@@ -51,16 +51,16 @@ void BrachLayer::backpropagation()
 
 	preDelta->gpuClear();
 
-	g_BrachLayer_backpropagation<<<block, thread>>>(
+	g_BranchLayer_backpropagation<<<block, thread>>>(
 		curDelta.m_devPoint,
 		preDelta->getDev(),
 		curDelta.size(),
 		preDelta->getLen());
 	checkCudaErrors(cudaDeviceSynchronize());
-	getLastCudaError("BrachLayer backpropagation");
+	getLastCudaError("BranchLayer backpropagation");
 }
 
-BrachLayer::BrachLayer(std::string name)
+BranchLayer::BranchLayer(std::string name)
 {	
 	cost = NULL;
 	m_name = name;
@@ -72,7 +72,7 @@ BrachLayer::BrachLayer(std::string name)
 		/*inputs = NULL the type must be BranchLayers*/
 		Assert(Config::instance()->getLayerByName(config->m_input)->isBranchLayer());
 		Assert(config->m_subInput != std::string("NULL"));
-		BrachLayer* bl = static_cast<BrachLayer*>(preLayer);
+		BranchLayer* bl = static_cast<BranchLayer*>(preLayer);
 		inputs = bl->getSubOutput(config->m_subInput);
 		preDelta = bl->getSubCurDelta(config->m_subInput);
 	}else{
@@ -102,7 +102,7 @@ BrachLayer::BrachLayer(std::string name)
  *dim3 block = dim3(outputs.size(), batch);
  *dim3 thread= dim3(min(outputs[0]->getLen() / batch, 1024));
 */
-__global__ void g_BrachLayer_feedforward(
+__global__ void g_BranchLayer_feedforward(
 	double* inputs,
 	double** outputs,
 	int len)
@@ -124,7 +124,7 @@ __global__ void g_BrachLayer_feedforward(
  * dim3 thread= dim3(min(outputs[0]->getLen() / batch, 1024));
 */
 
-__global__ void g_BrachLayer_backpropagation(
+__global__ void g_BranchLayer_backpropagation(
 	double** curDelta,
 	double* preDelta,
 	int curDeltaSize,

@@ -3,7 +3,7 @@
 IS_GRADIENT_CHECKING = false;   #is true when debug#
 SHOWIMAGE = false;              #show the images after transformation#
 TEST_EPOCH = 10000;                 #the period to get the test dataset's error rate#
-WHITE_NOISE = 0.5;  
+WHITE_NOISE = 0.1;  
 
 
 BATCH_SIZE = 256;               #test image size should be divided with no remainder#
@@ -30,7 +30,7 @@ COMBINE_FEATRUE_MAPS = 1;       #According to paper "notes on Convolutional Neur
 WEIGHT_DECAY = 1e-6;
 initW = 0.01;
 NON_LINEARITY = NL_RELU;
-initType = Gaussian;           #Gaussian, Bernoulli#
+initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
 
 [
@@ -48,12 +48,12 @@ NAME  = conv2;
 INPUT = pooling1;
 KERNEL_SIZE = 5;
 PADDING = 0;
-KERNEL_AMOUNT = 64;
-COMBINE_FEATRUE_MAPS = 8;       #According to paper "notes on Convolutional Neural NetWorks#
+KERNEL_AMOUNT = 32;
+COMBINE_FEATRUE_MAPS = 32;       #According to paper "notes on Convolutional Neural NetWorks#
 WEIGHT_DECAY = 1e-6;
 initW = 0.1;
 NON_LINEARITY = NL_RELU;
-initType = Gaussian;            #Gaussian, Bernoulli#
+initType = Bernoulli;            #Gaussian, Bernoulli#
 ]
 
 [

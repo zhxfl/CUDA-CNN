@@ -210,16 +210,32 @@ void Config:: get_layers_config(string &str){
 				sprintf(logStr, "%s,", inputs[i].c_str());LOG(logStr, "Result/log.txt");
 			}sprintf(logStr, "\n");LOG(logStr, "Result/log.txt");
 		}
-		else if(type == string("NIN")){
+		else if(type == string("ONE")){
 			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-			layer = new ConfigNIN(name, input, subInput, type, wd);
+			layer = new ConfigONE(name, input, subInput, type, wd);
 			
 			char logStr[256];
-			sprintf(logStr, "\n\n********NIN layer********\n");LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "\n\n********ONE layer********\n");LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);LOG(logStr, "Result/log.txt");
+		}
+		else if(type == string("NIN")){
+			double wd   = get_word_double(layers[i], "WEIGHT_DECAY");
+			double initW = get_word_double(layers[i], "initW");
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			layer = new ConfigNIN(name, input, subInput, type, wd, initW, m_nonLinearity->getValue());
+			
+
+			char logStr[256];
+			sprintf(logStr, "\n\n********NIN layer********\n");       LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());    LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());   LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);             LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %lf\n", initW);          LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("POOLING"))
 		{
