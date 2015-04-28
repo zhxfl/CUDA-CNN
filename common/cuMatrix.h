@@ -172,9 +172,9 @@ private:
 
 /*matrix multiply*/
 /*z = x * y*/
-void matrixMul   (cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z);
+void matrixMul   (cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z);
 /*z = T(x) * y*/
-void matrixMulTA (cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z);
+void matrixMulTA (cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z);
 /*z = x * T(y)*/
-void matrixMulTB (cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z);
+void matrixMulTB (cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z);
 #endif

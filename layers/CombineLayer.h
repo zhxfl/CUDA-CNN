@@ -30,8 +30,8 @@ public:
 		delete curDelta;
 	}
 
-	cuMatrix<double>* getOutputs() {return outputs;}
-	cuMatrix<double>* getCurDelta(){return curDelta;}
+	cuMatrix<float>* getOutputs() {return outputs;}
+	cuMatrix<float>* getCurDelta(){return curDelta;}
 
 	int getOutputAmount(){
 		return outputAmount;
@@ -44,11 +44,11 @@ public:
 	void printParameter(){};
 
 private:
-	cuMatrixVector<double> inputs;
-	cuMatrixVector<double> preDelta;
+	cuMatrixVector<float> inputs;
+	cuMatrixVector<float> preDelta;
 
-	cuMatrix<double>*outputs;
-	cuMatrix<double>*curDelta;
+	cuMatrix<float>*outputs;
+	cuMatrix<float>*curDelta;
 
 	cuMatrix<int>* inputsSkip;
 	cuMatrix<int>* inputsCols;

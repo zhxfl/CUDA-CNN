@@ -3,12 +3,12 @@
 
 void cuInitDistortionMemery(int batch, int ImgSize);
 void cuApplyRandom(int batch, unsigned long long s, int ImgSize);
-void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize);
-void cuApplyCropRandom(double**inputs, double**outputs, int batch, int ImgSize);
-void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cropr, int cropc);
-void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize, int flag);
-void cuApplyScaleAndRotate(int batch, int ImgSize, double scalingx, double scalingy, double rotation);
-void cuApplyWhiteNoise(double **inputs, double**outputs, int batch, int ImgSize, double stdev);
+void cuApplyDistortion(float**inputs, float**outputs, int batch, int ImgSize);
+void cuApplyCropRandom(float**inputs, float**outputs, int batch, int ImgSize);
+void cuApplyCrop(float**inputs, float**outputs, int batch, int ImgSize, int cropr, int cropc);
+void cuApplyHorizontal(float **inputs, float**outputs, int batch, int ImgSize, int flag);
+void cuApplyScaleAndRotate(int batch, int ImgSize, float scalingx, float scalingy, float rotation);
+void cuApplyWhiteNoise(float **inputs, float**outputs, int batch, int ImgSize, float stdev);
 
 
 #define RANDOM_HORIZONTAL 0

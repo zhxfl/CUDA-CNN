@@ -7,7 +7,7 @@
 #include "../common/cuBase.h"
 #include "../layers/BranchLayer.h"
 
-#define USE_DOUBLE float
+#define USE_float float
 /*
 * int _min = (outputDim * outputDim + 15) / 16 * 16;
 * int remain = min(1024 / _min, outputAmount); //32
@@ -16,19 +16,19 @@
 * dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
 */
 __global__ void g_LRN_backpropagation(
-	double* inputs,
-	double* inputsDelta,
-	double* outputsDelta,
+	float* inputs,
+	float* inputsDelta,
+	float* outputsDelta,
 	int inputDim,
 	int outputDim,
 	int InputArea,
 	int outputArea,
 	int batch,
 	int kAmount,
-	double lrn_k,
+	float lrn_k,
 	int lrn_n, 
-	double lrn_alpha,
-	double lrn_belta);
+	float lrn_alpha,
+	float lrn_belta);
 
 /*
  * int _min = (outputDim * outputDim + 31) / 32 * 32;
@@ -39,18 +39,18 @@ __global__ void g_LRN_backpropagation(
  * dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
 */
 __global__ void g_LRN_feedforward(
-	double* inputs ,
-	double* outputs,
+	float* inputs ,
+	float* outputs,
 	int inputDim,
 	int outputDim,
 	int InputArea,
 	int outputArea,
 	int batch,
 	int kAmount,
-	double lrn_k,
+	float lrn_k,
 	int lrn_n, 
-	double lrn_alpha,
-	double lrn_belta);
+	float lrn_alpha,
+	float lrn_belta);
 
 void LRN::feedforward()
 {
@@ -173,8 +173,8 @@ LRN::LRN(std::string name)
 	lrn_alpha = config->m_alpha;
 	lrn_belta = config->m_belta;
 
-	outputs  = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
-	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
+	outputs  = new cuMatrix<float>(batch, outputDim * outputDim, outputAmount);
+	curDelta = new cuMatrix<float>(batch, outputDim * outputDim, outputAmount);
 
 	Layers::instance()->set(m_name, this);
 }
@@ -188,18 +188,18 @@ LRN::LRN(std::string name)
  * dim3 thread= dim3(min(outputDim * outputDim, _min), remain);
 */
 __global__ void g_LRN_feedforward(
-	double* inputs ,
-	double* outputs,
+	float* inputs ,
+	float* outputs,
 	int inputDim,
 	int outputDim,
 	int InputArea,
 	int outputArea,
 	int batch,
 	int kAmount,
-	double lrn_k,
+	float lrn_k,
 	int lrn_n, 
-	double lrn_alpha,
-	double lrn_belta)
+	float lrn_alpha,
+	float lrn_belta)
 {
 	int sp = blockIdx.x;
 	//int k  = blockIdx.y;
@@ -224,19 +224,19 @@ __global__ void g_LRN_feedforward(
 				from = (k - half) >= 0 ? (k - half) : 0;
 				to   = (k + half) <= (kAmount - 1) ? (k + half) : (kAmount - 1);
 			}
-			double u = 0.0;
+			float u = 0.0;
 			int offset = from * InputArea + sp * inputDim2 + idx;
 			int koffset = InputArea * k + sp * inputDim2 + idx;
-			double a = inputs[koffset];
+			float a = inputs[koffset];
 			
 			for(int j = from; j <= to; j++){
-				double val = inputs[offset];
+				float val = inputs[offset];
 				u = u + val * val;
 				offset += InputArea;
 			}
 			u = u * lrn_alpha / (to - from + 1) + lrn_k;
-			//u = (double)pow((float)u, (float)lrn_belta);
-			u = (double)pow((USE_DOUBLE)u, (USE_DOUBLE)lrn_belta);
+			//u = (float)pow((float)u, (float)lrn_belta);
+			u = (float)pow((USE_float)u, (USE_float)lrn_belta);
 			outputs[koffset] = a / u;
 		}
 	}
@@ -252,19 +252,19 @@ __global__ void g_LRN_feedforward(
 */
 
 __global__ void g_LRN_backpropagation(
-	double* inputs ,
-	double* inputsDelta,
-	double* outputsDelta,
+	float* inputs ,
+	float* inputsDelta,
+	float* outputsDelta,
 	int inputDim,
 	int outputDim,
 	int InputArea,
 	int outputArea,
 	int batch,
 	int kAmount,
-	double lrn_k,
+	float lrn_k,
 	int lrn_n, 
-	double lrn_alpha,
-	double lrn_belta)
+	float lrn_alpha,
+	float lrn_belta)
 {
 	int sp = blockIdx.x;
 	int k  = blockIdx.y * blockDim.y + threadIdx.y;
@@ -289,27 +289,27 @@ __global__ void g_LRN_backpropagation(
 				to   = (k + half) <= (kAmount - 1) ? (k + half) : (kAmount - 1);
 			}
 
-			double u = 0.0;
+			float u = 0.0;
 
 			int offset = from * InputArea + sp * inputDim2 + idx;
 			int koffset = InputArea * k + sp * inputDim2 + idx;
 
-			double a = inputs[koffset];
+			float a = inputs[koffset];
 			for(int j = from; j <= to; j++){
-				double val = inputs[offset];
+				float val = inputs[offset];
 				u = u + val * val;
 				offset += InputArea;
 			}
 
 			//
 			u = u * lrn_alpha / (to - from + 1) + lrn_k;
-			//double t1 = (double)pow((float)u, (float)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
-			double t1 = (double)pow((USE_DOUBLE)u, (USE_DOUBLE)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
-			double t2 = t1 * u;                //pow(u, lrn_belta)
-			double t3 = t2 * t2;               //pow(u, 2.0 * lrn_belta)
+			//float t1 = (float)pow((float)u, (float)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
+			float t1 = (float)pow((USE_float)u, (USE_float)(lrn_belta - 1)); //pow(u, lrn_belta - 1)
+			float t2 = t1 * u;                //pow(u, lrn_belta)
+			float t3 = t2 * t2;               //pow(u, 2.0 * lrn_belta)
 
-			double u1 = t2 - 2.0 * lrn_belta * lrn_alpha * t1 * a * a / (to - from + 1);
-			double u2 = t3;
+			float u1 = t2 - 2.0 * lrn_belta * lrn_alpha * t1 * a * a / (to - from + 1);
+			float u2 = t3;
 			outputsDelta[koffset] = 
 				inputsDelta[koffset] * u1 / u2;
 		}

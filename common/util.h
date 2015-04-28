@@ -10,17 +10,17 @@
 #define NL_TANH 1
 #define NL_RELU 2
 
-void showImg(cuMatrix<double>* x, double scala);
-void DebugPrintf(cuMatrix<double>*x);
-void DebugPrintf(double* data, int len, int dim);
+void showImg(cuMatrix<float>* x, float scala);
+void DebugPrintf(cuMatrix<float>*x);
+void DebugPrintf(float* data, int len, int dim);
 void LOG(char* str, char* file);
 int  getCV_64();
-void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2,
-	int rows, int cols, int channels, double epsilon);
+void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
+	int rows, int cols, int channels, float epsilon);
 
 #define  cuAssert( X ) if ( !(X) ) {printf("tid %d: FILE=%s, LINE=%d\n", threadIdx.x, __FILE__, __LINE__); return; }
 #define  Assert( X )   if ( !(X) ) {printf("FILE=%s, LINE=%d\n", __FILE__, __LINE__); return; }
 
-void dropDelta(cuMatrix<double>* M, double cuDropProb);
-void initMatrix(cuMatrix<double>* M, double iniw);
+void dropDelta(cuMatrix<float>* M, float cuDropProb);
+void initMatrix(cuMatrix<float>* M, float iniw);
 #endif

@@ -30,8 +30,8 @@ public:
 		checkCudaErrors(cudaStreamDestroy(stream1));
 	}
 
-	cuMatrix<double>* getOutputs(){return outputs;}
-	cuMatrix<double>* getCurDelta(){return NULL;}
+	cuMatrix<float>* getOutputs(){return outputs;}
+	cuMatrix<float>* getCurDelta(){return NULL;}
 
 	int getOutputAmount(){
 		return outputAmount;
@@ -43,18 +43,18 @@ public:
 
 	void trainData();
 	void testData(int cropr, int cropc, 
-		double scalex, double scaley,
-		double rotate,
+		float scalex, float scaley,
+		float rotate,
 		int hori);
 
 	void printParameter(){};
 	void synchronize();
 
-	void getBatchImageWithStreams(cuMatrixVector<double>& inputs, int start);
+	void getBatchImageWithStreams(cuMatrixVector<float>& inputs, int start);
 private:
-	cuMatrix<double>* outputs;
-	cuMatrixVector<double>cropOutputs;
-	cuMatrixVector<double>batchImg[2];/*batch size images*/
+	cuMatrix<float>* outputs;
+	cuMatrixVector<float>cropOutputs;
+	cuMatrixVector<float>batchImg[2];/*batch size images*/
 	int batchId;
 	int batch;
 	cudaStream_t stream1;

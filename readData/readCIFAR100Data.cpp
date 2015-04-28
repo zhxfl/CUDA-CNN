@@ -8,7 +8,7 @@
 using namespace std;
 
 
-void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*&label, int number_of_images)
+void read_batch(std::string filename, cuMatrixVector<float>&vec, cuMatrix<int>*&label, int number_of_images)
 {
 	ifstream file(filename.c_str(), ios::binary);
 	if(file.is_open())
@@ -22,7 +22,7 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*
 			file.read((char*)& type1, sizeof(type1));
 			file.read((char*)& type2, sizeof(type2));
 			//printf("type1 = %d type2 = %d\n", type1, type2);
-			cuMatrix<double>* channels = new cuMatrix<double>(n_rows, n_cols, 3);
+			cuMatrix<float>* channels = new cuMatrix<float>(n_rows, n_cols, 3);
 			channels->freeCudaMem();
 			int idx = vec.size();
 			label->set(idx, 0, 0, type2);
@@ -32,7 +32,7 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*
 					for(int c = 0; c < n_cols; c++){
 						unsigned char temp = 0;
 						file.read((char*) &temp, sizeof(temp));
-						channels->set(r, c , ch, double(temp) / 256.0 * 2.0 - 1.0);
+						channels->set(r, c , ch, float(temp) / 256.0f * 2.0f - 1.0f);
 					}
 				}
 			}
@@ -42,8 +42,8 @@ void read_batch(std::string filename, cuMatrixVector<double>&vec, cuMatrix<int>*
 	}
 }
 
-void read_CIFAR100_Data(cuMatrixVector<double> &trainX,
-	cuMatrixVector<double>&testX,
+void read_CIFAR100_Data(cuMatrixVector<float> &trainX,
+	cuMatrixVector<float>&testX,
 	cuMatrix<int>*&trainY,
 	cuMatrix<int>*&testY)
 {

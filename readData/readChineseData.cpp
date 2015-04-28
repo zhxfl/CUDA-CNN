@@ -13,8 +13,8 @@ using namespace std;
 
 
 #ifdef linux
-void readChineseData(cuMatrixVector<double> &trainX,
-		cuMatrixVector<double>&testX, cuMatrix<int>*&trainY,
+void readChineseData(cuMatrixVector<float> &trainX,
+		cuMatrixVector<float>&testX, cuMatrix<int>*&trainY,
 		cuMatrix<int>*&testY) {
 
 	int ImgSize = 28;
@@ -127,10 +127,10 @@ void readChineseData(cuMatrixVector<double> &trainX,
 		//cv::imshow("1", img);
 		//cv::waitKey(0);
 
-		cuMatrix<double>* m = new cuMatrix<double>(ImgSize, ImgSize, 1);
+		cuMatrix<float>* m = new cuMatrix<float>(ImgSize, ImgSize, 1);
 		for(int r = 0; r < ImgSize; r++){
 			for(int c = 0; c < ImgSize; c++){
-				double val = img.at<uchar>(r, c);
+				float val = img.at<uchar>(r, c);
 				//val = (256.0 - val) / 256.0;
 				val = (256.0 - val) / 256.0;
 				m->set(r, c, 0, val);
@@ -151,10 +151,10 @@ void readChineseData(cuMatrixVector<double> &trainX,
 		cv::Mat img = cv::imread(testSet[i], 0);
 		cv::resize(img, img, cv::Size(ImgSize, ImgSize));
 
-		cuMatrix<double>* m = new cuMatrix<double>(ImgSize, ImgSize, 1);
+		cuMatrix<float>* m = new cuMatrix<float>(ImgSize, ImgSize, 1);
 		for (int r = 0; r < ImgSize; r++) {
 			for (int c = 0; c < ImgSize; c++) {
-				double val = img.at<char>(r, c);
+				float val = img.at<char>(r, c);
 				val = (256.0 - val) / 256.0;
 				m->set(r, c, 0, val);
 			}

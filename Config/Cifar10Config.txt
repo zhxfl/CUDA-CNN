@@ -32,22 +32,13 @@ COMBINE_FEATRUE_MAPS = 3;       #According to paper "notes on Convolutional Neur
 WEIGHT_DECAY = 1e-6;
 initW = 0.01;
 initType = Bernoulli;           #Gaussian, Bernoulli#
-]
-     
-[  
-LAYER = NIN;
-NAME  = nin1;
-INPUT = conv1;
-WEIGHT_DECAY = 1e-6;
-initW = 0.1;
-initType = Bernoulli;           #Gaussian, Bernoulli#
 NON_LINEARITY = NL_RELU;
 ]
-
+     
 [
 LAYER = POOLING;
 NAME  = pooling1;
-INPUT = nin1;
+INPUT = conv1;
 POOLINGTYPE = max;
 SIZE = 3;
 SKIP = 2;
@@ -77,21 +68,10 @@ initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
 
 
-[  
-LAYER = NIN;
-NAME  = nin2;
-INPUT = conv2;
-WEIGHT_DECAY = 1e-6;
-initW = 0.1;
-initType = Bernoulli;           #Gaussian, Bernoulli#
-NON_LINEARITY = NL_RELU;
-]
-
-
 [
 LAYER = LRN;
 NAME = lrn2;
-INPUT = nin2;
+INPUT = conv2;
 LRN_K = 2.0;
 LRN_N = 4;
 LRN_ALPHA = 0.000125;
@@ -144,6 +124,7 @@ initW = 0.1;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 NON_LINEARITY = NL_RELU;
 ]
+
 
 #===============combineLayer1====================#
 

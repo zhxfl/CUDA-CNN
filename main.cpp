@@ -65,8 +65,8 @@ void runChinese() {
 	init(handle);
 
 	/*read the data from disk*/
-	cuMatrixVector<double> trainX;
-	cuMatrixVector<double> testX;
+	cuMatrixVector<float> trainX;
+	cuMatrixVector<float> testX;
 	cuMatrix<int>* trainY, *testY;
 	readChineseData(trainX, testX, trainY, testY);
 
@@ -79,7 +79,7 @@ void runChinese() {
 
 	int nsamples = trainX.size();
 	int batch = Config::instance()->getBatchSize();
-	double start, end;
+	float start, end;
 	int cmd;
 	cuInitDistortionMemery(batch, ImgSize - crop);
 	printf(
@@ -97,11 +97,11 @@ void runChinese() {
 	buildNetWork(trainX.size(), testX.size());
 
 	/*learning rate*/
-	std::vector<double>nlrate;
-	std::vector<double>nMomentum;
+	std::vector<float>nlrate;
+	std::vector<float>nMomentum;
 	std::vector<int>epoCount;
-	double r = 0.05;
-	double m = 0.90;
+	float r = 0.05;
+	float m = 0.90;
 	int e = 50;
 	for(int i = 0; i < 20; i++){
 		nlrate.push_back(r);
@@ -116,7 +116,7 @@ void runChinese() {
 	end = clock();
 
 	char logStr[1024];
-	sprintf(logStr, "trainning time hours = %lf\n", 
+	sprintf(logStr, "trainning time hours = %f\n", 
 		(end - start) / CLOCKS_PER_SEC / 3600);
 	LOG(logStr, "Result/log.txt");
 }
@@ -133,8 +133,8 @@ void runCifar100(){
 	init(handle);
 
 	/*read the data from disk*/
-	cuMatrixVector<double>trainX;
-	cuMatrixVector<double>testX;
+	cuMatrixVector<float>trainX;
+	cuMatrixVector<float>testX;
 	cuMatrix<int>* trainY, *testY;
 
 	Config::instance()->initPath("Config/Cifar100Config.txt");
@@ -151,7 +151,7 @@ void runCifar100(){
 	int nsamples = trainX.size();
 
 	int batch = Config::instance()->getBatchSize();
-	double start,end;
+	float start,end;
 	int cmd;
 	cuInitDistortionMemery(batch, ImgSize - crop);
 	printf("1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
@@ -168,25 +168,25 @@ void runCifar100(){
 		cuReadConvNet(ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
 	/*learning rate*/
-	std::vector<double>nlrate;
-	std::vector<double>nMomentum;
+	std::vector<float>nlrate;
+	std::vector<float>nMomentum;
 	std::vector<int>epoCount;
-	double r = 0.05;
-	double m = 0.90;
+	float r = 0.05f;
+	float m = 0.90f;
 	int e = 10;
 	for(int i = 0; i < 100; i++){
 		nlrate.push_back(r);
 		nMomentum.push_back(m);
 		epoCount.push_back(e);
-		r = r * 0.90;
-		m = m + 0.001;
+		r = r * 0.90f;
+		m = m + 0.001f;
 		if(m >= 1.0) break;
 	}
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 	char logStr[1024];
-	sprintf(logStr, "trainning time hours = %lf\n", 
+	sprintf(logStr, "trainning time hours = %f\n", 
 		(end - start) / CLOCKS_PER_SEC / 3600);
 	LOG(logStr, "Result/log.txt");
 }
@@ -198,8 +198,8 @@ void runCifar10()
 	init(handle);
 
 	/*read the data from disk*/
-	cuMatrixVector<double>trainX;
-	cuMatrixVector<double>testX;
+	cuMatrixVector<float>trainX;
+	cuMatrixVector<float>testX;
 	cuMatrix<int>* trainY, *testY;
 
 	Config::instance()->initPath("Config/Cifar10Config.txt");
@@ -215,7 +215,7 @@ void runCifar10()
 
 	int nsamples = trainX.size();
 	int batch = Config::instance()->getBatchSize();
-	double start,end;
+	float start,end;
 	int cmd;
 	cuInitDistortionMemery(batch, ImgSize - crop);
 	printf("1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
@@ -231,37 +231,31 @@ void runCifar10()
 		cuReadConvNet(ImgSize - crop, "Result/checkPoint.txt", nclasses);
 	
 	/*learning rate*/
-	std::vector<double>nlrate;
-	std::vector<double>nMomentum;
+	std::vector<float>nlrate;
+	std::vector<float>nMomentum;
 	std::vector<int>epoCount;
 
-	nlrate.push_back(0.05);    nMomentum.push_back(0.90);  epoCount.push_back(30);
-	nlrate.push_back(0.04);    nMomentum.push_back(0.90);  epoCount.push_back(30);
-	nlrate.push_back(0.03);    nMomentum.push_back(0.90);  epoCount.push_back(30);
-	nlrate.push_back(0.02);    nMomentum.push_back(0.90);  epoCount.push_back(30);
-	nlrate.push_back(0.01);    nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.009);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.008);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.007);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.006);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.005);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.004);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.003);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.002);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.001);   nMomentum.push_back(0.91);  epoCount.push_back(30);
-	nlrate.push_back(0.0009);  nMomentum.push_back(0.92);  epoCount.push_back(30);
-	nlrate.push_back(0.0008);  nMomentum.push_back(0.92);  epoCount.push_back(30);
-	nlrate.push_back(0.0007);  nMomentum.push_back(0.92);  epoCount.push_back(30);
-	nlrate.push_back(0.0006);  nMomentum.push_back(0.92);  epoCount.push_back(30);
-	nlrate.push_back(0.0005);  nMomentum.push_back(0.92);  epoCount.push_back(30);
-	nlrate.push_back(0.0004);  nMomentum.push_back(0.92);  epoCount.push_back(30);
+	nlrate.push_back(0.05f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.04f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.03f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.02f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.01f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.009f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.008f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.007f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.006f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.005f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.004f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.003f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.002f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.001f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
 
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 
 	char logStr[1024];
-	sprintf(logStr, "trainning time hours = %lf\n", 
+	sprintf(logStr, "trainning time hours = %f\n", 
 		(end - start) / CLOCKS_PER_SEC / 3600);
 	LOG(logStr, "Result/log.txt");
 }
@@ -286,8 +280,8 @@ void runMnist(){
 	init(handle);
 	
  	/*read the data from disk*/
-	cuMatrixVector<double>trainX;
-	cuMatrixVector<double>testX;
+	cuMatrixVector<float>trainX;
+	cuMatrixVector<float>testX;
  	cuMatrix<int>* trainY, *testY;
 	Config::instance()->initPath("Config/MnistConfig.txt");
  	readMnistData(trainX, trainY, "mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", 60000, 1);
@@ -302,7 +296,7 @@ void runMnist(){
  	int nsamples = trainX.size();
 
  	int batch = Config::instance()->getBatchSize();
-	double start,end;
+	float start,end;
 	int cmd;
 	cuInitDistortionMemery(batch, ImgSize - crop);
 	printf("1. random init weight\n2. Read weight from file\nChoose the way to init weight:");
@@ -318,28 +312,28 @@ void runMnist(){
 		cuReadConvNet(ImgSize - crop, "Result/checkPoint.txt", nclasses);
 
 	/*learning rate*/
-	std::vector<double>nlrate;
-	std::vector<double>nMomentum;
+	std::vector<float>nlrate;
+	std::vector<float>nMomentum;
 	std::vector<int>epoCount;
-	nlrate.push_back(0.05);   nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.04);   nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.03);   nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.02);   nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.01);   nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.009);  nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.008);  nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.007);  nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.006);  nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.005);  nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.004);  nMomentum.push_back(0.90);  epoCount.push_back(10);
-	nlrate.push_back(0.003);  nMomentum.push_back(0.90);  epoCount.push_back(10);
+	nlrate.push_back(0.05f);   nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.04f);   nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.03f);   nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.02f);   nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.01f);   nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.009f);  nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.008f);  nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.007f);  nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.006f);  nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.005f);  nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.004f);  nMomentum.push_back(0.90f);  epoCount.push_back(15);
+	nlrate.push_back(0.003f);  nMomentum.push_back(0.90f);  epoCount.push_back(15);
 
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
 
 	char logStr[1024];
-	sprintf(logStr, "trainning time hours = %lf\n", 
+	sprintf(logStr, "trainning time hours = %f\n", 
 		(end - start) / CLOCKS_PER_SEC / 3600);
 	LOG(logStr, "Result/log.txt");
 }
@@ -356,8 +350,8 @@ void cuVoteMnist()
 	init(handle);
 
 	/*read the data from disk*/
-	cuMatrixVector<double>trainX;
-	cuMatrixVector<double>testX;
+	cuMatrixVector<float>trainX;
+	cuMatrixVector<float>testX;
 	cuMatrix<int>* trainY, *testY;
 
 	readMnistData(trainX, trainY, "mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", 60000, 1);

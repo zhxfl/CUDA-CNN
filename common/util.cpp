@@ -5,36 +5,36 @@
 
 using namespace cv;
 
-int getCV_64()
+int getCV_32()
 {
-	int cv_64;
+	int cv_32;
 	if(Config::instance()->getChannels() == 1){
-		cv_64 = CV_64FC1;
+		cv_32 = CV_32FC1;
 	}
 	else if(Config::instance()->getChannels() == 3){
-		cv_64 = CV_64FC3;
+		cv_32 = CV_32FC3;
 	}
 	else if(Config::instance()->getChannels() == 4){
-		cv_64 = CV_64FC4;
+		cv_32 = CV_32FC4;
 	}
-	return cv_64;
+	return cv_32;
 }
 
-void showImg(cuMatrix<double>* x, double scala)
+void showImg(cuMatrix<float>* x, float scala)
 {
 	x->toCpu();
 
-	int CV_64;
+	int CV_32;
 	if(x->channels == 1){
-		CV_64 = CV_64FC1;
+		CV_32 = CV_32FC1;
 	}
 	else if(x->channels == 3){
-		CV_64 = CV_64FC3;
+		CV_32 = CV_32FC3;
 	}
 	else if(x->channels == 4){
-		CV_64 = CV_64FC4;
+		CV_32 = CV_32FC4;
 	}
-	Mat src(x->rows, x->cols, CV_64);;
+	Mat src(x->rows, x->cols, CV_32);;
 
 
 	for(int i = 0; i < x->rows; i++)
@@ -42,17 +42,17 @@ void showImg(cuMatrix<double>* x, double scala)
 		for(int j = 0; j < x->cols; j++)
 		{
 			if(x->channels == 1){
-				src.at<double>(i, j) = x->get(i, j, 0);
+				src.at<float>(i, j) = x->get(i, j, 0);
 			}
 			else if(x->channels == 3){
-				src.at<Vec3d>(i, j) = 
-					Vec3d(
+				src.at<Vec3f>(i, j) = 
+					Vec3f(
 					x->get(i, j, 0),
 					x->get(i, j, 1), 
 					x->get(i, j, 2));
 			}else if(x->channels == 4){
-				src.at<Vec4d>(i, j) = 
-					Vec4d(
+				src.at<Vec4f>(i, j) = 
+					Vec4f(
 					x->get(i, j, 0),
 					x->get(i, j, 1),
 					x->get(i, j, 2),
@@ -66,7 +66,7 @@ void showImg(cuMatrix<double>* x, double scala)
 	size.height = src.rows * scala;
 
 
-	Mat dst(size.height, size.width, CV_64);
+	Mat dst(size.height, size.width, CV_32);
 
 	cv::resize(src, dst, size);
 
@@ -78,7 +78,7 @@ void showImg(cuMatrix<double>* x, double scala)
 	cv::imshow(ch, dst);
 }
 
-void DebugPrintf(cuMatrix<double>*x)
+void DebugPrintf(cuMatrix<float>*x)
 {
 	FILE *file = fopen("DEBUG.txt", "w+");
 	x->toCpu();
@@ -88,22 +88,22 @@ void DebugPrintf(cuMatrix<double>*x)
 		{
 			for(int j = 0; j < x->cols; j++)
 			{
-				fprintf(file, "%lf ", x->get(i, j, c));
+				fprintf(file, "%f ", x->get(i, j, c));
 			}fprintf(file, "\n");
 		}
 	}
 }
 
-void DebugPrintf(double* data, int len, int dim)
+void DebugPrintf(float* data, int len, int dim)
 {
 	for(int id = 0; id < len; id += dim*dim)
 	{
-		double* img = data + id;
+		float* img = data + id;
 		for(int i = 0; i < dim; i++)
 		{
 			for(int j = 0; j < dim; j++)
 			{
-				printf("%lf ", img[i * dim + j]);
+				printf("%f ", img[i * dim + j]);
 			}printf("\n");
 		}
 	}
@@ -118,20 +118,20 @@ void LOG(char* str, char* file)
 }
 
 
-void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigma2,
-	int rows, int cols, int channels, double epsilon)
+void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
+	int rows, int cols, int channels, float epsilon)
 {
 	int iiMidr = rows >> 1;
 	int iiMidc = cols >> 1;
 
-	double _sum = 0.0;
+	float _sum = 0.0;
 	for(int row = 0; row < rows; row++)
 	{
 		for(int col = 0; col < cols; col++)
 		{
-			double val1 = 1.0 / (dElasticSigma1 * dElasticSigma2 * 2.0 * 3.1415926535897932384626433832795);
-			double val2 = (row-iiMidr)*(row-iiMidr) / (dElasticSigma1 * dElasticSigma1) + (col-iiMidc)*(col-iiMidc) / (dElasticSigma2 * dElasticSigma2) 
-				+ 2.0 * (row - iiMidr) * (col - iiMidc) / (dElasticSigma1 * dElasticSigma2);
+			float val1 = 1.0f / (dElasticSigma1 * dElasticSigma2 * 2.0f * 3.1415926535897932384626433832795f);
+			float val2 = 1.0f * (row-iiMidr)*(row-iiMidr) / (dElasticSigma1 * dElasticSigma1) + 1.0f * (col-iiMidc)*(col-iiMidc) / (dElasticSigma2 * dElasticSigma2) 
+				+ 2.0f * (row - iiMidr) * (col - iiMidc) / (dElasticSigma1 * dElasticSigma2);
 			gaussian[row * cols + col] = val1 * exp(-1.0 * val2);
 			//gaussian[row * cols + col] = exp(gaussian[row * cols + col]);
 			_sum += gaussian[row * cols + col];
@@ -145,18 +145,18 @@ void createGaussian(double* gaussian, double dElasticSigma1, double dElasticSigm
 	{
 		for(int col = 0; col < cols; col++)
 		{
-			double val = gaussian[row * cols + col] / _sum;
+			float val = gaussian[row * cols + col] / _sum;
 			//val = val * 2.0 - 0.5;
 			//val = val * epsilon;
 			gaussian[row * cols + col] = val * epsilon;
-			//printf("%lf ", val * epsilon);
+			//printf("%f ", val * epsilon);
 		}//printf("\n");
 	}
 	//printf("\n\n");
 }
 
 
-void dropDelta(cuMatrix<double>* M, double cuDropProb)
+void dropDelta(cuMatrix<float>* M, float cuDropProb)
 {
 	//srand(clock());
 	for(int c = 0; c < M->channels; c++){
@@ -165,7 +165,7 @@ void dropDelta(cuMatrix<double>* M, double cuDropProb)
 		//randu(ran, cv::Scalar(0), cv::Scalar(1.0));
 		for(int i = 0; i < M->rows; i++){
 			for(int j = 0; j < M->cols; j++){
-				double r = 1.0 * rand() / RAND_MAX;
+				float r = 1.0f * rand() / RAND_MAX;
 				if(r < cuDropProb)
 					M->set(i, j, c, 0.0);
 				else 
@@ -177,7 +177,7 @@ void dropDelta(cuMatrix<double>* M, double cuDropProb)
 }
 
 
-void initMatrix(cuMatrix<double>* M, double initW)
+void initMatrix(cuMatrix<float>* M, float initW)
 {
 	for(int c = 0; c < M->channels; c++){
 		srand(time(NULL));
@@ -185,8 +185,8 @@ void initMatrix(cuMatrix<double>* M, double initW)
 		randn(matrix2xN, 0, initW); 
 		for(int i = 0; i < matrix2xN.rows; i++){
 			for(int j = 0; j < matrix2xN.cols; j++){
-				M->set(i,j,c, matrix2xN.at<double>(i, j));
-				printf("%lf ", matrix2xN.at<double>(i, j));
+				M->set(i,j,c, matrix2xN.at<float>(i, j));
+				printf("%f ", matrix2xN.at<float>(i, j));
 			}printf("\n");
 		}
 		printf("\n\n");

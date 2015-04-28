@@ -42,10 +42,10 @@ int Config::get_word_int(string &str, string name){
 		return res;
 }
 
-double Config::get_word_double(string &str, string name){
+float Config::get_word_float(string &str, string name){
 		size_t pos = str.find(name+"=");  
 		int i = pos + 1;
-		double res = 0.0;
+		float res = 0.0f;
 		while(1){
 			if(i == str.length()) break;
 			if(str[i] == ';') break;
@@ -154,10 +154,10 @@ void Config:: get_layers_config(string &str){
 			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
 			int pd = get_word_int(layers[i], "PADDING");
 			int cfm= get_word_int(layers[i], "COMBINE_FEATRUE_MAPS");
-			double initW = get_word_double(layers[i], "initW");
+			float initW = get_word_float(layers[i], "initW");
 			std::string initType = get_word_type(layers[i], "initType");
 
-			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
+			float wd = get_word_float(layers[i], "WEIGHT_DECAY");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
@@ -172,8 +172,8 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "KERNEL_AMOUNT : %d\n", ka);               LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "CFM           : %d\n", cfm);              LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "PADDING       : %d\n", pd);               LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);              LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "initW         : %lf\n", initW);           LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);              LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %f\n", initW);           LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str()); LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("DATA")){
@@ -211,7 +211,7 @@ void Config:: get_layers_config(string &str){
 			}sprintf(logStr, "\n");LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("ONE")){
-			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
+			float wd = get_word_float(layers[i], "WEIGHT_DECAY");
 			layer = new ConfigONE(name, input, subInput, type, wd);
 			
 			char logStr[256];
@@ -219,11 +219,11 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("NIN")){
-			double wd   = get_word_double(layers[i], "WEIGHT_DECAY");
-			double initW = get_word_double(layers[i], "initW");
+			float wd   = get_word_float(layers[i], "WEIGHT_DECAY");
+			float initW = get_word_float(layers[i], "initW");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			layer = new ConfigNIN(name, input, subInput, type, wd, initW, m_nonLinearity->getValue());
 			
@@ -233,8 +233,8 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "NAME          : %s\n", name.c_str());    LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "INPUT         : %s\n", input.c_str());   LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);             LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "initW         : %lf\n", initW);          LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);             LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %f\n", initW);          LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("POOLING"))
@@ -259,8 +259,8 @@ void Config:: get_layers_config(string &str){
 		}
 		else if(string("LOCAL") == type){
 			int ks = get_word_int(layers[i], "KERNEL_SIZE");
-			double initW = get_word_double(layers[i], "initW");
-			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
+			float initW = get_word_float(layers[i], "initW");
+			float wd = get_word_float(layers[i], "WEIGHT_DECAY");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			std::string initType = get_word_type(layers[i], "initType");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
@@ -274,15 +274,15 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "KERNEL_SIZE   : %d\n", ks);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "WEIGHT_DECAY  : %lf\n", wd);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "initW         : %lf\n", initW);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %f\n", initW);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(string("LRN") == type){
-			double lrn_k     = get_word_double(layers[i], "LRN_K");
+			float lrn_k     = get_word_float(layers[i], "LRN_K");
 			int    lrn_n     = get_word_int(layers[i], "LRN_N");
-			double lrn_alpha = get_word_double(layers[i], "LRN_ALPHA");
-			double lrn_belta = get_word_double(layers[i], "LRN_BALTA");
+			float lrn_alpha = get_word_float(layers[i], "LRN_ALPHA");
+			float lrn_belta = get_word_float(layers[i], "LRN_BALTA");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
@@ -294,18 +294,18 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "NAME          : %s\n", name.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "INPUT         : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "lrn_k         : %lf\n", lrn_k);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "lrn_k         : %f\n", lrn_k);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "lrn_n         : %d\n",  lrn_n);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "lrn_alpha     : %lf\n", lrn_alpha);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "lrn_belta     : %lf\n", lrn_belta);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "lrn_alpha     : %f\n", lrn_alpha);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "lrn_belta     : %f\n", lrn_belta);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("FC"))
 		{
 			int hn = get_word_int(layers[i], "NUM_FULLCONNECT_NEURONS");
-			double wd = get_word_double(layers[i], "WEIGHT_DECAY");
-			double drop = get_word_double(layers[i], "DROPOUT_RATE");
-			double initW= get_word_double(layers[i], "initW");
+			float wd = get_word_float(layers[i], "WEIGHT_DECAY");
+			float drop = get_word_float(layers[i], "DROPOUT_RATE");
+			float initW= get_word_float(layers[i], "initW");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			std::string initType = get_word_type(layers[i], "initType");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
@@ -319,16 +319,16 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "INPUT                   : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT                : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "NUM_FULLCONNECT_NEURONS : %d\n", hn);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "WEIGHT_DECAY            : %lf\n", wd);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "DROPOUT_RATE            : %lf\n", drop);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "initW                   : %lf\n", initW);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY            : %f\n", wd);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "DROPOUT_RATE            : %f\n", drop);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW                   : %f\n", initW);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity           : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 		else if(type == string("SOFTMAX"))
 		{
 			int numClasses = get_word_int(layers[i], "NUM_CLASSES");
-			double weightDecay = get_word_double(layers[i], "WEIGHT_DECAY");
-			double initW= get_word_double(layers[i], "initW");
+			float weightDecay = get_word_float(layers[i], "WEIGHT_DECAY");
+			float initW= get_word_float(layers[i], "initW");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			std::string initType = get_word_type(layers[i], "initType");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
@@ -342,8 +342,8 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "INPUT        : %s\n", input.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT     : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "NUM_CLASSES  : %d\n", numClasses);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "WEIGHT_DECAY : %lf\n", weightDecay);LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "initW        : %lf\n", initW);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY : %f\n", weightDecay);LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW        : %f\n", initW);LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity: %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
 		}
 
@@ -404,21 +404,21 @@ void Config::init(std::string path)
 	LOG(logStr, "Result/log.txt");
 
 	/*scale*/
-	double scale = get_word_double(m_configStr, "SCALE");
+	float scale = get_word_float(m_configStr, "SCALE");
 	m_scale = new ConfigScale(scale);
-	sprintf(logStr, "scale                 : %lf\n", scale);
+	sprintf(logStr, "scale                 : %f\n", scale);
 	LOG(logStr, "Result/log.txt");
 
 	/*rotation*/
-	double rotation = get_word_double(m_configStr, "ROTATION");
+	float rotation = get_word_float(m_configStr, "ROTATION");
 	m_rotation = new ConfigRotation(rotation);
-	sprintf(logStr, "rotation              : %lf\n", rotation);
+	sprintf(logStr, "rotation              : %f\n", rotation);
 	LOG(logStr, "Result/log.txt");
 
 	/*distortion*/
-	double distortion = get_word_double(m_configStr, "DISTORTION");
+	float distortion = get_word_float(m_configStr, "DISTORTION");
 	m_distortion = new ConfigDistortion(distortion);
-	sprintf(logStr, "distortion            : %lf\n", distortion);
+	sprintf(logStr, "distortion            : %f\n", distortion);
 	LOG(logStr, "Result/log.txt");
 
 	/*ImageShow*/
@@ -440,7 +440,7 @@ void Config::init(std::string path)
 	LOG(logStr, "Result/log.txt");
 
 	/*WHITE_NOISE*/
-	double stdev = get_word_double(m_configStr, "WHITE_NOISE");
+	float stdev = get_word_float(m_configStr, "WHITE_NOISE");
 	m_white_noise = new ConfigWhiteNoise(stdev);
 	sprintf(logStr, "White Noise           : %f\n", stdev);
 	LOG(logStr, "Result/log.txt");

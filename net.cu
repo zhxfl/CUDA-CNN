@@ -142,8 +142,8 @@ void buildNetWork(int trainLen, int testLen)
 
 void cuFreeCNNMemory(
 	int batch,
-	cuMatrixVector<double>&trainX, 
-	cuMatrixVector<double>&testX)
+	cuMatrixVector<float>&trainX, 
+	cuMatrixVector<float>&testX)
 {
 }
 
@@ -186,18 +186,18 @@ void getNetworkCost(int* y)
 /*
 dim3(1),dim3(batch)
 */
-__global__ void g_getCorrect(double* softMaxP, int cols,  int start, int* vote)
+__global__ void g_getCorrect(float* softMaxP, int cols,  int start, int* vote)
 {
 	int id = threadIdx.x;
 	if(id < start)return;
-	double* p = softMaxP + id * cols;
+	float* p = softMaxP + id * cols;
 	int* votep= vote     + id * cols;
 
 	int r = 0;
-	double maxele = log(p[0]);
+	float maxele = log(p[0]);
 	for(int i = 1; i < cols; i++)
 	{
-		double val = log(p[i]);
+		float val = log(p[i]);
 		if(maxele < val)
 		{
 			maxele = val;
@@ -228,7 +228,7 @@ void resultProdict(int* vote,int start)
 	}
 }
 
-void gradientChecking(double**x, 
+void gradientChecking(float**x, 
 	int*y, int batch, int ImgSize, int nclasses, cublasHandle_t handle)
 {
 	/*for(int hl = 0; hl < hLayers.size(); hl++)
@@ -236,7 +236,7 @@ void gradientChecking(double**x,
 		dropDelta(hLayers[hl].dropW, Config::instance()->getFC()[hl]->m_dropoutRate);
 	}
 	std::cout<<"test network !!!!"<<std::endl;
-	double epsilon = 1e-4;
+	float epsilon = 1e-4;
 	for(int a = 0; a < convNCFM.size(); a++)
 	{
 		for(int b = 0; b < CLayers[a].layer.size(); b++)
@@ -248,23 +248,23 @@ void gradientChecking(double**x,
 				smr,
 				batch, ImgSize, nclasses, handle);
 			CLayers[a].layer[b].Wgrad->toCpu();
-			cuMatrix<double>* grad = new cuMatrix<double>(CLayers[a].layer[b].Wgrad->getHost(), CLayers[a].layer[b].Wgrad->rows,
+			cuMatrix<float>* grad = new cuMatrix<float>(CLayers[a].layer[b].Wgrad->getHost(), CLayers[a].layer[b].Wgrad->rows,
 				CLayers[a].layer[b].Wgrad->cols, CLayers[a].layer[b].Wgrad->channels);
 			for(int c = 0; c < CLayers[a].layer[b].W->channels; c++){
 				for(int i = 0; i < CLayers[a].layer[b].W->rows; i++){
 					for(int j = 0; j < CLayers[a].layer[b].W->cols; j++){
-						double memo = CLayers[a].layer[b].W->get(i, j, c);
+						float memo = CLayers[a].layer[b].W->get(i, j, c);
 						CLayers[a].layer[b].W->set(i, j, c, memo + epsilon);
 						CLayers[a].layer[b].W->toGpu();
 						getNetworkCost(x, y, CLayers, hLayers, smr, batch, ImgSize, nclasses, handle);
 						smr.cost->toCpu();
-						double value1 = smr.cost->get(0, 0 , 0);
+						float value1 = smr.cost->get(0, 0 , 0);
 						CLayers[a].layer[b].W->set(i, j, c, memo - epsilon);
 						CLayers[a].layer[b].W->toGpu();
 						getNetworkCost(x, y, CLayers, hLayers, smr, batch, ImgSize, nclasses, handle);
 						smr.cost->toCpu();
-						double value2 = smr.cost->get(0, 0, 0);
-						double tp = (value1 - value2) / (2 * epsilon);
+						float value2 = smr.cost->get(0, 0, 0);
+						float tp = (value1 - value2) / (2 * epsilon);
 						if(fabs(tp - grad->get(i, j, c)) > 0.00001)
 							std::cout<<i<<","<<j<<","<<c<<","<<tp<<", "<<grad->get(i,j,c)<<", "
 							<<tp - grad->get(i,j,c)<<std::endl;
@@ -307,9 +307,9 @@ void __global__ g_getVotingResult(int* voting, int* y, int* correct, int len, in
 }
 
 
-void predictTestDate(cuMatrixVector<double>&x,
+void predictTestDate(cuMatrixVector<float>&x,
 	cuMatrix<int>*y ,
-	cuMatrixVector<double>&testX,
+	cuMatrixVector<float>&testX,
 	cuMatrix<int>* testY,
 	int batch,
 	int ImgSize,
@@ -321,14 +321,14 @@ void predictTestDate(cuMatrixVector<double>&x,
 		int cropr[] = {Config::instance()->getCrop() / 2, 0, 0, Config::instance()->getCrop(), Config::instance()->getCrop()};
 		int cropc[] = {Config::instance()->getCrop() / 2, 0, Config::instance()->getCrop(), 0, Config::instance()->getCrop()};
 
-		double scalex[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
-		double scaley[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
-		double rotate[] = {0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
+		float scalex[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
+		float scaley[] = {0, -Config::instance()->getScale(), Config::instance()->getScale()};
+		float rotate[] = {0, -Config::instance()->getRotation(), Config::instance()->getRotation()};
 
 		int hlen = Config::instance()->getHorizontal() == 1 ? 2 : 1;
 		int clen = Config::instance()->getCrop() == 0 ? 1 : sizeof(cropc) / sizeof(int);
-		int scaleLen = Config::instance()->getScale() == 0 ? 1 : sizeof(scalex) / sizeof(double);
-		int rotateLen = Config::instance()->getRotation() == 0 ? 1 : sizeof(rotate) / sizeof(double);
+		int scaleLen = Config::instance()->getScale() == 0 ? 1 : sizeof(scalex) / sizeof(float);
+		int rotateLen = Config::instance()->getRotation() == 0 ? 1 : sizeof(rotate) / sizeof(float);
 		if(!vote) hlen = clen = scaleLen = rotateLen = 1;
 		
 		DataLayer *dl = static_cast<DataLayer*>(Layers::instance()->get("data"));
@@ -386,18 +386,18 @@ void predictTestDate(cuMatrixVector<double>&x,
 
 
 
-void getBatchImageWithStreams(cuMatrixVector<double>&x,
-	cuMatrixVector<double>&batchImg, 
+void getBatchImageWithStreams(cuMatrixVector<float>&x,
+	cuMatrixVector<float>&batchImg, 
 	int start, 
 	cudaStream_t stream1){
 	 for(int i = 0; i < batchImg.size(); i++){
-		 memcpy(batchImg[i]->getHost(), x[i + start]->getHost(), sizeof(double) * batchImg[i]->getLen());
+		 memcpy(batchImg[i]->getHost(), x[i + start]->getHost(), sizeof(float) * batchImg[i]->getLen());
 		 batchImg[i]->toGpu(stream1);
 	 }
 }
 
-double getCost(){
-	double cost = 0.0;
+float getCost(){
+	float cost = 0.0;
 	for(int i = 0; i < que.size(); i++){
 		LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
 		layer->calCost();
@@ -407,15 +407,15 @@ double getCost(){
 	return cost;
 }
 
-void cuTrainNetwork(cuMatrixVector<double>&x,
+void cuTrainNetwork(cuMatrixVector<float>&x,
 	cuMatrix<int>*y,
-	cuMatrixVector<double>&testX,
+	cuMatrixVector<float>&testX,
 	cuMatrix<int>* testY,
 	int batch,
 	int ImgSize,
 	int nclasses,
-	std::vector<double>&nlrate,
-	std::vector<double>&nMomentum,
+	std::vector<float>&nlrate,
+	std::vector<float>&nMomentum,
 	std::vector<int>&epoCount,
 	cublasHandle_t handle)
 {
@@ -436,8 +436,8 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 
 	int epochs = 10000;
 
-	double lrate = 0.05;
-	double Momentum = 0.9;
+	float lrate = 0.05;
+	float Momentum = 0.9;
 	int id = 0;
 	for (int epo = 0; epo < epochs; epo++) {
 		if (id >= nlrate.size())
@@ -447,7 +447,7 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 		Config::instance()->setLrate(lrate);
 		Config::instance()->setMomentum(Momentum);
 
-		double start, end;
+		float start, end;
 		start = clock();
 		cuApplyRandom(batch, clock() + epo, ImgSize);
 
@@ -480,11 +480,11 @@ void cuTrainNetwork(cuMatrixVector<double>&x,
 			printf("\b\b\b\b\b\b\b\b\b");
 		}
 
-		double cost = getCost();
+		float cost = getCost();
 
 		end = clock();
-		sprintf(logStr, "epoch=%d time=%.03lfs cost=%lf Momentum=%.06lf lrate=%.08lf\n",
-			epo, (double) (end - start) / CLOCKS_PER_SEC,
+		sprintf(logStr, "epoch=%d time=%.03lfs cost=%f Momentum=%.06lf lrate=%.08lf\n",
+			epo, (float) (end - start) / CLOCKS_PER_SEC,
 			cost,
 			Config::instance()->getMomentum(), Config::instance()->getLrate());
 		LOG(logStr, "Result/log.txt");

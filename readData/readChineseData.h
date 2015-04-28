@@ -8,8 +8,8 @@
 #include <string>
 #include <vector>
 
-void readChineseData(cuMatrixVector<double> &trainX,
-	cuMatrixVector<double>&testX,
+void readChineseData(cuMatrixVector<float> &trainX,
+	cuMatrixVector<float>&testX,
 	cuMatrix<int>*&trainY,
 	cuMatrix<int>*&testY);
 

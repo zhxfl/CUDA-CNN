@@ -35,7 +35,7 @@ int ReverseInt (int i){
 
 /*read the train data*/
 int read_Mnist(std::string filename, 
-	cuMatrixVector<double>& vec,
+	cuMatrixVector<float>& vec,
 	int num,
 	int flag){
 		/*read the data from file*/
@@ -62,13 +62,13 @@ int read_Mnist(std::string filename,
 			file.read((char*) &n_cols, sizeof(n_cols));
 			n_cols = ReverseInt(n_cols);
 			for(int i = 0; i < number_of_images; ++i){
-				cuMatrix<double>* tpmat = new cuMatrix<double>(n_rows, n_cols, 1);
+				cuMatrix<float>* tpmat = new cuMatrix<float>(n_rows, n_cols, 1);
 				tpmat->freeCudaMem();
 				for(int r = 0; r < n_rows; ++r){
 					for(int c = 0; c < n_cols; ++c){
 						unsigned char temp = 0;
 						file.read((char*) &temp, sizeof(temp));
-						tpmat->set(r, c, 0, (double)temp * 2.0 / 255.0 - 1.0);
+						tpmat->set(r, c, 0, (float)temp * 2.0f / 255.0f - 1.0f);
 					}
 				}
 				//tpmat->toGpu();
@@ -133,7 +133,7 @@ int read_Mnist_Label(std::string filename,
 }
 
 /*read trainning data and lables*/
-int readMnistData(cuMatrixVector<double>& x,
+int readMnistData(cuMatrixVector<float>& x,
 	cuMatrix<int>*& y, 
 	std::string xpath,
 	std::string ypath, 

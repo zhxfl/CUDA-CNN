@@ -33,15 +33,15 @@ public:
 		delete curDelta;
 	}
 
-	cuMatrix<double>* getOutputs(){
+	cuMatrix<float>* getOutputs(){
 		return outputs;
 	};
 
-	cuMatrix<double>* getCurDelta(){
+	cuMatrix<float>* getCurDelta(){
 		return curDelta;
 	}
 
-	void setPreDelta(cuMatrix<double>* _preDelta){
+	void setPreDelta(cuMatrix<float>* _preDelta){
 		preDelta = _preDelta;
 	}
 
@@ -56,15 +56,15 @@ public:
 	void printParameter(){};
 
 private:
-	cuMatrix<double>* inputs;
-	cuMatrix<double>* preDelta;
-	cuMatrix<double>* outputs;
-	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
+	cuMatrix<float>* inputs;
+	cuMatrix<float>* preDelta;
+	cuMatrix<float>* outputs;
+	cuMatrix<float>* curDelta; // size(curDelta) == size(outputs)
 	
-	double lrn_k;
+	float lrn_k;
 	int    lrn_n;
-	double lrn_alpha;
-	double lrn_belta;
+	float lrn_alpha;
+	float lrn_belta;
 
 	int batch;
 	int NON_LINEARITY;

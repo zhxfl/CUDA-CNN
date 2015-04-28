@@ -16,14 +16,14 @@ public:
 	void* cpuMalloc(int size);
 	cudaError_t gpuMalloc(void** devPtr, int size);
 	MemoryMonitor(): gpuMemory(0), cpuMemory(0){}
-	void printCpuMemory(){printf("total malloc cpu memory %lfMb\n", cpuMemory / 1024 / 1024);}
-	void printGpuMemory(){printf("total malloc gpu memory %lfMb\n", gpuMemory / 1024 / 1024);}
+	void printCpuMemory(){printf("total malloc cpu memory %fMb\n", cpuMemory / 1024 / 1024);}
+	void printGpuMemory(){printf("total malloc gpu memory %fMb\n", gpuMemory / 1024 / 1024);}
 	void freeGpuMemory(void* ptr);
 	void freeCpuMemory(void* ptr);
 private:
-	double cpuMemory;
-	double gpuMemory;
-	std::map<void*, double>cpuPoint;
-	std::map<void*, double>gpuPoint;
+	float cpuMemory;
+	float gpuMemory;
+	std::map<void*, float>cpuPoint;
+	std::map<void*, float>gpuPoint;
 };
 #endif

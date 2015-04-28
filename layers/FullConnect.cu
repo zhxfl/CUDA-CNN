@@ -7,44 +7,44 @@
 #include <math.h>
 
 
-__global__ void g_FullConnectDropout(double * w, 
-	double * dropW,
-	double* afterDropW,
+__global__ void g_FullConnectDropout(float * w, 
+	float * dropW,
+	float* afterDropW,
 	int len);
 
-__global__ void g_FullConnectFeedforward(double* acti, 
-	double* b,
+__global__ void g_FullConnectFeedforward(float* acti, 
+	float* b,
 	int NumofNeurons, 
 	int NONLIN);
 
-__global__ void g_FullConnectActi(double* acti,
-	double* b,
+__global__ void g_FullConnectActi(float* acti,
+	float* b,
 	int NumofNeurons, 
 	int NONLIN);
 
-__global__ void g_FullConnectWgrad(double* wgrad, 
-	double* w, 
-	/*double* dropM,*/
+__global__ void g_FullConnectWgrad(float* wgrad, 
+	float* w, 
+	/*float* dropM,*/
 	int len, 
-	double lambda, 
+	float lambda, 
 	int batch);
 
-__global__ void g_FullConnectActi(double* acti, double* b, int NumofNeurons, int NONLIN)
+__global__ void g_FullConnectActi(float* acti, float* b, int NumofNeurons, int NONLIN)
 {
-	double* data  = acti + blockIdx.x * NumofNeurons;
+	float* data  = acti + blockIdx.x * NumofNeurons;
 	for(int id = 0; id < NumofNeurons; id += blockDim.x)
 	{
 		int idx = id + threadIdx.x;
 		if(idx < NumofNeurons)
 		{
-			double val = data[idx];
+			float val = data[idx];
 			val = val + b[idx];
 			data[idx] = d_nonLinearity(val, NONLIN);
 		}
 	}
 }
 
-__global__ void g_FullConnectWgrad(double* wgrad, double* w, int len, double lambda, int batch)
+__global__ void g_FullConnectWgrad(float* wgrad, float* w, int len, float lambda, int batch)
 {
 	for(int i = 0; i < len; i += blockDim.x * gridDim.x)
 	{
@@ -64,22 +64,22 @@ __global__ void g_FullConnectWgrad(double* wgrad, double* w, int len, double lam
 * blocks  : cuFullConnectActi[hl]->rows;
 * threads : dim3(min(512, len));
 */
-__global__ void g_FullConnectFeedforward(double* acti, double* b, int NumofNeurons, int NONLIN)
+__global__ void g_FullConnectFeedforward(float* acti, float* b, int NumofNeurons, int NONLIN)
 {
-	double* data  = acti + blockIdx.x * NumofNeurons;
+	float* data  = acti + blockIdx.x * NumofNeurons;
 	for(int id = 0; id < NumofNeurons; id += blockDim.x)
 	{
 		int idx = id + threadIdx.x;
 		if(idx < NumofNeurons)
 		{
-			double val = data[idx];
+			float val = data[idx];
 			val = val + b[idx];
 			data[idx] = d_nonLinearity(val, NONLIN);
 		}
 	}
 }
 
-__global__ void g_FullConnectDropout(double * outputs, double * drop, int len)
+__global__ void g_FullConnectDropout(float * outputs, float * drop, int len)
 {
 	for(int i = 0; i < len; i += blockDim.x * gridDim.x)
 	{
@@ -151,7 +151,7 @@ void FullConnect::calCost()
 	cost->gpuClear();
 	if(fabs(lambda) >= 1e-10)
 	{
-		g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(),
+		g_getCost_2<<<dim3(1), dim3(256), sizeof(float) * 256>>>(cost->getDev(),
 			w->getDev(),
 			lambda,
 			w->getLen());
@@ -186,23 +186,23 @@ FullConnect::FullConnect(std::string name)
 
 	NON_LINEARITY = config->m_nonLinearity;
 
-	inputs_format = new cuMatrix<double>(inputs->rows, inputs->cols * inputs->channels, 1);
-	outputs       = new cuMatrix<double>(batch, outputsize, 1);
-	curDelta      = new cuMatrix<double>(batch, outputsize, 1);
+	inputs_format = new cuMatrix<float>(inputs->rows, inputs->cols * inputs->channels, 1);
+	outputs       = new cuMatrix<float>(batch, outputsize, 1);
+	curDelta      = new cuMatrix<float>(batch, outputsize, 1);
 	if(fabs(dropRate) < 0.0001) drop = NULL;
-	else drop = new cuMatrix<double>(batch, outputsize, 1);
+	else drop = new cuMatrix<float>(batch, outputsize, 1);
 	
 
 	this->setPreDelta(preDelta);
 
-	w          = new cuMatrix<double>(outputsize, inputsize, 1);
-	wgrad      = new cuMatrix<double>(outputsize, inputsize, 1);
+	w          = new cuMatrix<float>(outputsize, inputsize, 1);
+	wgrad      = new cuMatrix<float>(outputsize, inputsize, 1);
 	
-	b     = new cuMatrix<double>(outputsize, 1, 1);
-	bgrad = new cuMatrix<double>(outputsize, 1, 1);
+	b     = new cuMatrix<float>(outputsize, 1, 1);
+	bgrad = new cuMatrix<float>(outputsize, 1, 1);
 
-	momentum_w = new cuMatrix<double>(outputsize, inputsize, 1);
-	momentum_b = new cuMatrix<double>(outputsize, 1, 1);
+	momentum_w = new cuMatrix<float>(outputsize, inputsize, 1);
+	momentum_b = new cuMatrix<float>(outputsize, 1, 1);
 
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
@@ -262,7 +262,7 @@ void FullConnect::getGrad()
 		exit(0);
 	}
 	g_getBgrad<<<dim3(curDelta->cols), dim3(curDelta->rows),
-		sizeof(double) * curDelta->rows>>>
+		sizeof(float) * curDelta->rows>>>
 		(curDelta->getDev(), bgrad->getDev(), batch);
 	cudaDeviceSynchronize();
 }
@@ -285,20 +285,20 @@ void FullConnect::clearMomentum()
 	momentum_w->gpuClear();
 }
 
-cuMatrix<double>* FullConnect::getOutputs()
+cuMatrix<float>* FullConnect::getOutputs()
 {
 	return outputs;
 }
 
-cuMatrix<double>* FullConnect::getCurDelta()
+cuMatrix<float>* FullConnect::getCurDelta()
 {
 	return curDelta;
 }
 
-void FullConnect::setPreDelta(cuMatrix<double>* _preDelta)
+void FullConnect::setPreDelta(cuMatrix<float>* _preDelta)
 {
 	preDelta = _preDelta;
-	preDelta_format = new cuMatrix<double>(preDelta->rows, preDelta->cols * preDelta->channels, 1);
+	preDelta_format = new cuMatrix<float>(preDelta->rows, preDelta->cols * preDelta->channels, 1);
 }
 
 void FullConnect::convert()
@@ -317,15 +317,15 @@ void FullConnect::convert()
 void FullConnect::initRandom()
 {
 	//srand(clock());
-	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
+	float initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
 	//initMatrix(w, epsilon);
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
-		double epsilon = initW;
+		float epsilon = initW;
 		for(int c = 0; c < w->channels; c++)
 		{
-			double r1 = 0.01 + 5 * (rand()) / RAND_MAX;
-			double r2 = 0.01 + 5 * (rand()) / RAND_MAX;
+			float r1 = 0.01 + 5 * (rand()) / RAND_MAX;
+			float r2 = 0.01 + 5 * (rand()) / RAND_MAX;
 			createGaussian(w->getHost() + c * w->getArea(), r1,r2,
 				w->rows, w->cols, w->channels,
 				epsilon);
@@ -333,25 +333,25 @@ void FullConnect::initRandom()
 		w->toGpu();
 	}
 	else{
-		//double epsilon = sqrt((double)6) / sqrt((double)(outputs->rows + outputs->cols));
+		//float epsilon = sqrt((float)6) / sqrt((float)(outputs->rows + outputs->cols));
 		for(int j = 0; j < w->getLen(); j++){
 			w->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
-			//printf("%lf ", w[i]->hostData[j]);
+			//printf("%f ", w[i]->hostData[j]);
 		}//printf("\n");
 		w->toGpu();
 	}
-	//double epsilon = sqrt((double)6) / sqrt((double)(inputsize + outputsize));
+	//float epsilon = sqrt((float)6) / sqrt((float)(inputsize + outputsize));
 
 	w->toGpu();
 }
 
 void FullConnect::initFromCheckpoint(FILE* file)
 {
-	double val = 0.0;
+	float val = 0.0;
 	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i < w->rows; i++){
 			for(int j = 0; j < w->cols; j++){
-				fscanf(file, "%lf", &val);
+				fscanf(file, "%f", &val);
 				w->set(i, j, c, val);
 			}
 		}
@@ -360,7 +360,7 @@ void FullConnect::initFromCheckpoint(FILE* file)
 	for(int c = 0; c < b->channels; c++){
 		for(int i = 0; i < b->rows; i++){
 			for(int j = 0; j < b->cols; j++){
-				fscanf(file, "%lf", &val);
+				fscanf(file, "%f", &val);
 				b->set(i, j, c, val);
 			}
 		}
@@ -377,7 +377,7 @@ void FullConnect::save(FILE* file)
 	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i < w->rows; i++){
 			for(int j = 0; j < w->cols; j++){
-				fprintf(file, "%lf ", w->get(i,j,c));
+				fprintf(file, "%f ", w->get(i,j,c));
 			}
 		}
 	}
@@ -385,7 +385,7 @@ void FullConnect::save(FILE* file)
 	for(int c = 0; c < b->channels; c++){
 		for(int i = 0; i < b->rows; i++){
 			for(int j = 0; j < b->cols;  j++){
-				fprintf(file, "%lf ", b->get(i,j, c));
+				fprintf(file, "%f ", b->get(i,j, c));
 			}
 		}
 	}

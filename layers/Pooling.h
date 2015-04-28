@@ -30,15 +30,15 @@ public:
 		delete outputs;
 	}
 
-	cuMatrix<double>* getOutputs(){
+	cuMatrix<float>* getOutputs(){
 		return outputs;
 	};
 
-	cuMatrix<double>* getCurDelta(){
+	cuMatrix<float>* getCurDelta(){
 		return curDelta;
 	}
 
-	void setPreDelta(cuMatrix<double>* _preDelta){
+	void setPreDelta(cuMatrix<float>* _preDelta){
 		preDelta = _preDelta;
 	}
 
@@ -53,12 +53,12 @@ public:
 	void printParameter(){}
 
 private:
-	cuMatrix<double>* inputs;
+	cuMatrix<float>* inputs;
 	cuMatrix<int>   * pointX;
 	cuMatrix<int>   * pointY;
-	cuMatrix<double>* preDelta;
-	cuMatrix<double>* outputs;
-	cuMatrix<double>* curDelta; // size(curDelta) == size(outputs)
+	cuMatrix<float>* preDelta;
+	cuMatrix<float>* outputs;
+	cuMatrix<float>* curDelta; // size(curDelta) == size(outputs)
 	int size;
 	int skip;
 	int batch;

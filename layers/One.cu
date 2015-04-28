@@ -9,35 +9,35 @@
  * dim3 block  = dim3(inputs->rows, inputs->channels);
 */
 __global__ void g_One_backpropagation(
-	double* _curDelta,
-	double* _w,
-	double* _nextDelta,
+	float* _curDelta,
+	float* _w,
+	float* _nextDelta,
 	int rows, int cols, int channels);
 
 /*
  * block = dim3(channels, cols);
  * thread= dim3(rows);
- * wgradTmp   = new cuMatrix<double>(channel, cols, batch)
- * w = new cuMatrix<double>(channel, cols, 1)
+ * wgradTmp   = new cuMatrix<float>(channel, cols, batch)
+ * w = new cuMatrix<float>(channel, cols, 1)
 */
 
 __global__ void g_One_wgrad_Add(
-	double* _WgradTmp,
-	double* Wgrad,
-	double* w,
+	float* _WgradTmp,
+	float* Wgrad,
+	float* w,
 	int rows,
 	int cols,
 	int channels,
-	double lambda);
+	float lambda);
 
 /*
  * dim3 block = dim3(rows, channel);
  * dim3 thread= dim3(min(cols, 512));
 */
 __global__ void g_One_wgrad(
-	double* _inputs,
-	double* _curDelta,
-	double* _wgradTmp,
+	float* _inputs,
+	float* _curDelta,
+	float* _wgradTmp,
 	int rows,
 	int cols,
 	int channels);
@@ -50,10 +50,10 @@ __global__ void g_One_wgrad(
 */
 
 __global__ void g_One_feedforward(
-	double* _inputs,
-	double* _w,
-	double* _b,
-	double* _outputs,
+	float* _inputs,
+	float* _w,
+	float* _b,
+	float* _outputs,
 	int rows,
 	int cols, 
 	int channels);
@@ -62,8 +62,8 @@ __global__ void g_One_feedforward(
  * block = dim3(channel, cols);
  * thread= dim3(rows); 
 */
-__global__ void g_One_Bgrad(double* _delta,
-	double* bgrad,
+__global__ void g_One_Bgrad(float* _delta,
+	float* bgrad,
 	int rows,
 	int cols,
 	int channels);
@@ -72,7 +72,7 @@ __global__ void g_One_Bgrad(double* _delta,
 void One::calCost()
 {
 	cost->gpuClear();
-	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(), 
+	g_getCost_2<<<dim3(1), dim3(256), sizeof(float) * 256>>>(cost->getDev(), 
 		w->getDev(), 
 		lambda,
 		w->getLen());
@@ -116,7 +116,7 @@ void One::backpropagation()
 // 	preDelta->toCpu();
 // 	for(int i = 0; i < curDelta->getLen(); i++){
 // 		if(curDelta->getHost()[i] != preDelta->getHost()[i]){
-// 			sprintf(logStr, "%d %lf %lf\n", i, curDelta->getHost()[i], preDelta->getHost()[i]);
+// 			sprintf(logStr, "%d %f %f\n", i, curDelta->getHost()[i], preDelta->getHost()[i]);
 // 		}
 // 	}
 // 	exit(0);
@@ -125,20 +125,20 @@ void One::backpropagation()
 /*
  * block    = dim3(channels, cols);
  * thread   = dim3(rows);
- * wgradTmp = new cuMatrix<double>(rows, channel, cols)
- * w        = new cuMatrix<double>(channel, cols, 1)
+ * wgradTmp = new cuMatrix<float>(rows, channel, cols)
+ * w        = new cuMatrix<float>(channel, cols, 1)
 */
 
 __global__ void g_One_wgrad_Add(
-	double* _WgradTmp,
-	double* Wgrad,
-	double* w,
+	float* _WgradTmp,
+	float* Wgrad,
+	float* w,
 	int rows,
 	int cols,
 	int channels,
-	double lambda)
+	float lambda)
 {
-	extern __shared__ double _sum[];
+	extern __shared__ float _sum[];
 	int channel = blockIdx.x;
 	int col     = blockIdx.y;
 	int tid     = threadIdx.x;
@@ -195,7 +195,7 @@ void One::getGrad()
 	block = dim3(channel, cols);
 	thread= dim3(rows); 
 
-	g_One_wgrad_Add<<<block, thread, sizeof(double) * rows>>>(
+	g_One_wgrad_Add<<<block, thread, sizeof(float) * rows>>>(
 		wgradTmp->getDev(),
 		wgrad->getDev(),
 		w->getDev(),
@@ -209,7 +209,7 @@ void One::getGrad()
 	block = dim3(channel, cols);
 	thread= dim3(rows); 
 
-	g_One_Bgrad<<<block, thread, sizeof(double) * rows>>>
+	g_One_Bgrad<<<block, thread, sizeof(float) * rows>>>
 		(curDelta->getDev(),
 		bgrad->getDev(),
 		rows,
@@ -264,16 +264,16 @@ One::One(std::string name)
 
 	assert(rows == Config::instance()->getBatchSize());
 
-	outputs    = new cuMatrix<double>(rows, cols, channel);
-	curDelta   = new cuMatrix<double>(rows, cols, channel);
+	outputs    = new cuMatrix<float>(rows, cols, channel);
+	curDelta   = new cuMatrix<float>(rows, cols, channel);
 
-	w          = new cuMatrix<double>(channel, cols, 1);
-	b          = new cuMatrix<double>(channel, cols, 1);
-	wgrad      = new cuMatrix<double>(channel, cols, 1);
-	bgrad      = new cuMatrix<double>(channel, cols, 1);
-	wgradTmp   = new cuMatrix<double>(rows, cols, channel);
-	momentum_w = new cuMatrix<double>(channel, cols, 1);
-	momentum_b = new cuMatrix<double>(channel, cols, 1);
+	w          = new cuMatrix<float>(channel, cols, 1);
+	b          = new cuMatrix<float>(channel, cols, 1);
+	wgrad      = new cuMatrix<float>(channel, cols, 1);
+	bgrad      = new cuMatrix<float>(channel, cols, 1);
+	wgradTmp   = new cuMatrix<float>(rows, cols, channel);
+	momentum_w = new cuMatrix<float>(channel, cols, 1);
+	momentum_b = new cuMatrix<float>(channel, cols, 1);
 
 	this->initRandom();
 	Layers::instance()->set(m_name, this);
@@ -285,7 +285,7 @@ void One::save(FILE* file)
 	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i < w->rows; i++){
 			for(int j = 0; j < w->cols; j++){
-				fprintf(file, "%lf ", w->get(i, j, c));
+				fprintf(file, "%f ", w->get(i, j, c));
 			}
 		}
 	}
@@ -293,7 +293,7 @@ void One::save(FILE* file)
 	for(int c = 0; c < b->channels; c++){
 		for(int i = 0; i < b->rows; i++){
 			for(int j = 0; j < b->cols; j++){
-				fprintf(file, "%lf ", b->get(i, j, c));
+				fprintf(file, "%f ", b->get(i, j, c));
 			}
 		}
 	}
@@ -315,11 +315,11 @@ void One::initRandom()
 
 void One::initFromCheckpoint(FILE* file)
 {
-	double val = 0;
+	float val = 0;
 	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i < w->rows; i++){
 			for(int j = 0; j < w->cols; j++){
-				fscanf(file, "%lf", &val);
+				fscanf(file, "%f", &val);
 				w->set(i, j, c, val);
 			}
 		}
@@ -329,7 +329,7 @@ void One::initFromCheckpoint(FILE* file)
 	for(int c = 0; c < b->channels; c++){
 		for(int i = 0; i < b->rows; i++){
 			for(int j = 0; j < b->cols; j++){
-				fscanf(file, "%lf", &val);
+				fscanf(file, "%f", &val);
 				b->set(i, j, c, val);
 			}
 		}
@@ -345,10 +345,10 @@ void One::initFromCheckpoint(FILE* file)
 */
 
 __global__ void g_One_feedforward(
-	double* _inputs,
-	double* _w,
-	double* _b,
-	double* _outputs,
+	float* _inputs,
+	float* _w,
+	float* _b,
+	float* _outputs,
 	int rows,
 	int cols, 
 	int channels)
@@ -357,12 +357,12 @@ __global__ void g_One_feedforward(
 	int channel = blockIdx.y;
 	
 	int skip = channel * rows * cols + row * cols;
-	double* inputs = _inputs + skip;
-	double* outputs= _outputs+ skip;
+	float* inputs = _inputs + skip;
+	float* outputs= _outputs+ skip;
 // 	if(threadIdx.x == 0)
 // 		sprintf(logStr, "block(%d %d) skip = %d\n", blockIdx.x, blockIdx.y, skip);
-	double* w = _w + channel * cols;
-	double* b = _b + channel * cols;
+	float* w = _w + channel * cols;
+	float* b = _b + channel * cols;
 
 	for(int i = 0; i < cols; i += blockDim.x){
 		int id = i + threadIdx.x;
@@ -377,19 +377,19 @@ __global__ void g_One_feedforward(
  * dim3 thread = min(512, inputs->cols);
 */
 __global__ void g_One_backpropagation(
-	double* _curDelta,
-	double* _w,
-	double* _nextDelta,
+	float* _curDelta,
+	float* _w,
+	float* _nextDelta,
 	int rows, int cols, int channels)
 {
 	int row     = blockIdx.x;
 	int channel = blockIdx.y;
 
 	int skip = channel * rows * cols + row * cols;
-	double* curDelta = _curDelta + skip;
-	double* nextDelta= _nextDelta+ skip;
+	float* curDelta = _curDelta + skip;
+	float* nextDelta= _nextDelta+ skip;
 
-	double* w = _w + channel * cols;
+	float* w = _w + channel * cols;
 
 	for(int i = 0; i < cols; i += blockDim.x){
 		int id = i + threadIdx.x;
@@ -402,12 +402,12 @@ __global__ void g_One_backpropagation(
 /*
  * dim3 block = dim3(rows, channel);
  * dim3 thread= dim3(min(cols, 512));
- * wgradTmp   = new cuMatrix<double>(rows, cols, channel);
+ * wgradTmp   = new cuMatrix<float>(rows, cols, channel);
 */
 __global__ void g_One_wgrad(
-	double* _inputs,
-	double* _curDelta,
-	double* _wgradTmp,
+	float* _inputs,
+	float* _curDelta,
+	float* _wgradTmp,
 	int rows,
 	int cols,
 	int channels)
@@ -416,9 +416,9 @@ __global__ void g_One_wgrad(
 	int channel = blockIdx.y;
 
 	int skip = channel * rows * cols + row * cols;
-	double* inputs   = _inputs   + skip;
-	double* curDelta = _curDelta + skip;
-	double* wgradTmp = _wgradTmp + skip;
+	float* inputs   = _inputs   + skip;
+	float* curDelta = _curDelta + skip;
+	float* wgradTmp = _wgradTmp + skip;
 
 	for(int i = 0; i < cols; i += blockDim.x){
 		int id = i + threadIdx.x;
@@ -433,17 +433,17 @@ __global__ void g_One_wgrad(
 * block = dim3(channel, cols);
 * thread= dim3(rows); 
 */
-__global__ void g_One_Bgrad(double* _delta,
-	double* bgrad,
+__global__ void g_One_Bgrad(float* _delta,
+	float* bgrad,
 	int rows,
 	int cols,
 	int channels)
 {
-	extern __shared__ double _sum[];
+	extern __shared__ float _sum[];
 	int channel = blockIdx.x;
 	int col     = blockIdx.y;
 	int row     = threadIdx.x;
-	double delta = _delta[channel * rows * cols + row * cols + col];
+	float delta = _delta[channel * rows * cols + row * cols + col];
 	_sum[row] = delta;
 	__syncthreads();
 

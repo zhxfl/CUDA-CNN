@@ -8,7 +8,7 @@
 class LayerBase
 {
 public:
-	LayerBase():cost(new cuMatrix<double>(1, 1, 1)){}
+	LayerBase():cost(new cuMatrix<float>(1, 1, 1)){}
 	virtual void feedforward() = 0;
 	virtual void backpropagation() = 0;
 	virtual void getGrad() = 0;
@@ -18,12 +18,12 @@ public:
 	virtual void initFromCheckpoint(FILE* file) = 0;
 	virtual void calCost() = 0;
 
-	virtual cuMatrix<double>* getOutputs() = 0;
-	virtual cuMatrix<double>* getCurDelta() = 0;
+	virtual cuMatrix<float>* getOutputs() = 0;
+	virtual cuMatrix<float>* getCurDelta() = 0;
 
 	virtual void printParameter() = 0;
 
-	double getCost(){
+	float getCost(){
 		if(cost != NULL){
 			cost->toCpu();
 			return cost->get(0, 0, 0);
@@ -34,7 +34,7 @@ public:
 		if(cost != NULL){
 			cost->toCpu();
 			char logStr[1024];
-			sprintf(logStr, "%10s cost = %lf\n", m_name.c_str(), cost->get(0, 0, 0));
+			sprintf(logStr, "%10s cost = %f\n", m_name.c_str(), cost->get(0, 0, 0));
 			LOG(logStr, "Result/log.txt");
 		}
 	}
@@ -43,7 +43,7 @@ public:
 	}
 	std::string m_name;
 	std::vector<std::string> m_preLayer;
-	cuMatrix<double>* cost;
+	cuMatrix<float>* cost;
 };
 
 class ConvLayerBase: public LayerBase

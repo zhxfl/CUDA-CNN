@@ -28,11 +28,11 @@ public:
 		delete outputs;
 	}
 
-	cuMatrix<double>* getOutputs(){
+	cuMatrix<float>* getOutputs(){
 		return outputs;
 	};
 
-	cuMatrix<double>* getCurDelta(){
+	cuMatrix<float>* getCurDelta(){
 		return curDelta;
 	}
 
@@ -49,30 +49,30 @@ public:
 		sprintf(logStr, "%s:\n",m_name.c_str());
 		LOG(logStr, "Result/log.txt");
 		w[0]->toCpu();
-		sprintf(logStr, "weight:%lf, %lf;\n", w[0]->get(0,0,0), w[0]->get(0,1,0));
+		sprintf(logStr, "weight:%f, %f;\n", w[0]->get(0,0,0), w[0]->get(0,1,0));
 		LOG(logStr, "Result/log.txt");
 		b[0]->toCpu();
-		sprintf(logStr, "bias  :%lf\n", b[0]->get(0,0,0));
+		sprintf(logStr, "bias  :%f\n", b[0]->get(0,0,0));
 		LOG(logStr, "Result/log.txt");
 	}
 private:
-	cuMatrix<double>* inputs;
-	cuMatrix<double>* preDelta;
-	cuMatrix<double>* outputs;
-	cuMatrix<double>* curDelta;
+	cuMatrix<float>* inputs;
+	cuMatrix<float>* preDelta;
+	cuMatrix<float>* outputs;
+	cuMatrix<float>* curDelta;
 	int kernelSize;
 	int batch;
 	int NON_LINEARITY;
-	double lambda;
+	float lambda;
 	int localKernelSize;
 private:
-	cuMatrixVector<double> w;
-	cuMatrixVector<double> wgrad;
-	cuMatrixVector<double> b;
-	cuMatrixVector<double> bgrad;
-	cuMatrixVector<double> momentum_w;
-	cuMatrixVector<double> momentum_b;
-	cuMatrixVector<double> wgradTmp;
+	cuMatrixVector<float> w;
+	cuMatrixVector<float> wgrad;
+	cuMatrixVector<float> b;
+	cuMatrixVector<float> bgrad;
+	cuMatrixVector<float> momentum_w;
+	cuMatrixVector<float> momentum_b;
+	cuMatrixVector<float> wgradTmp;
 };
 
 #endif 

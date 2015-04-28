@@ -4,9 +4,9 @@
 #include "../common/cuMatrix.h"
 #include "../common/cuMatrixVector.h"
 
-__global__ void g_getAver(double ** input1,
-	double** input2, 
-	double* aver,
+__global__ void g_getAver(float ** input1,
+	float** input2, 
+	float* aver,
 	int num_of_input1, 
 	int num_of_input2,
 	int imgSize)
@@ -79,13 +79,13 @@ __global__ void g_getAver(double ** input1,
 }
 
 void 
-	preProcessing(cuMatrixVector<double>&trainX, cuMatrixVector<double>&testX)
+	preProcessing(cuMatrixVector<float>&trainX, cuMatrixVector<float>&testX)
 {
 	int n_rows     = trainX[0]->rows;
 	int n_cols     = trainX[0]->cols;
 	int n_channels = trainX[0]->channels;
 
-	cuMatrix<double>* aver(new cuMatrix<double>(n_rows, n_cols, n_channels));
+	cuMatrix<float>* aver(new cuMatrix<float>(n_rows, n_cols, n_channels));
 
 	for (int imgId = 0; imgId < trainX.size(); imgId++) {
 		int len = trainX[0]->getLen();

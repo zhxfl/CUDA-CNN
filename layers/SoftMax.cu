@@ -8,15 +8,15 @@
 /*
 * blocks : cuSoftMaxP->rows
 * threads: cuSoftMaxP->cols
-* shared : sizeof(double) * cuSoftMaxP->cols * 2
+* shared : sizeof(float) * cuSoftMaxP->cols * 2
 */
-__global__ void g_getSoftMaxP(double* softMaxP, double* b, int cols)
+__global__ void g_getSoftMaxP(float* softMaxP, float* b, int cols)
 {
 	int bid = blockIdx.x;
-	extern __shared__ double _share[];
-	double * _max = _share;
-	double * _sum = _share + blockDim.x;
-	double* sp = softMaxP + bid * cols;
+	extern __shared__ float _share[];
+	float * _max = _share;
+	float * _sum = _share + blockDim.x;
+	float* sp = softMaxP + bid * cols;
 	_sum[threadIdx.x] = 0.0;
 	_max[threadIdx.x] = -100000000.0;
 	for(int tid = 0; tid < cols; tid += blockDim.x){
@@ -72,7 +72,7 @@ __global__ void g_getSoftMaxP(double* softMaxP, double* b, int cols)
 }
 
 
-__global__ void g_getSoftMaxDelta(double* softMaxDelta, double* softMaxP, double* groudTruth, int len)
+__global__ void g_getSoftMaxDelta(float* softMaxDelta, float* softMaxP, float* groudTruth, int len)
 {
 	for(int i = 0; i < len; i += blockDim.x)
 	{
@@ -86,7 +86,7 @@ __global__ void g_getSoftMaxDelta(double* softMaxDelta, double* softMaxP, double
 
 /*
 */
-__global__ void g_getSmrWgrad(double* wgrad, double* weight, double lambda, int len, int batch)
+__global__ void g_getSmrWgrad(float* wgrad, float* weight, float lambda, int len, int batch)
 {
 	for(int i = 0; i < len; i += blockDim.x)
 	{
@@ -117,7 +117,7 @@ void SoftMax::feedforward()
 		w, outputs);
 
 	int threads = std::min(512, outputs->cols);
-	g_getSoftMaxP<<<outputs->rows, threads, sizeof(double) * threads * 2>>>(
+	g_getSoftMaxP<<<outputs->rows, threads, sizeof(float) * threads * 2>>>(
 		outputs->getDev(),
 		b->getDev(), 
 		outputs->cols);
@@ -127,7 +127,7 @@ void SoftMax::feedforward()
 
 void SoftMax::backpropagation()
 {
-	g_getCost_1<<<dim3(1), dim3(256), sizeof(double) * 256>>>(outputs->getDev(), groudTruth->getDev(),
+	g_getCost_1<<<dim3(1), dim3(256), sizeof(float) * 256>>>(outputs->getDev(), groudTruth->getDev(),
 		cost->getDev(), predict, outputs->rows, outputs->cols, batch);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getCost_1");
@@ -166,7 +166,7 @@ void SoftMax::getGrad()
 		exit(0);
 	}
 	g_getBgrad<<<dim3(curDelta->cols), dim3(curDelta->rows), 
-		sizeof(double) * curDelta->rows>>>(
+		sizeof(float) * curDelta->rows>>>(
 		curDelta->getDev(), 
 		bgrad->getDev(),
 		batch);
@@ -198,38 +198,38 @@ void SoftMax::clearMomentum()
 
 void SoftMax::calCost()
 {
-	g_getCost_2<<<dim3(1), dim3(256), sizeof(double) * 256>>>(cost->getDev(),  w->getDev(), lambda,
+	g_getCost_2<<<dim3(1), dim3(256), sizeof(float) * 256>>>(cost->getDev(),  w->getDev(), lambda,
 		w->getLen());
 	cudaDeviceSynchronize();
 	getLastCudaError("g_getCost_2");
 }
 
-cuMatrix<double>* SoftMax::getOutputs()
+cuMatrix<float>* SoftMax::getOutputs()
 {
 	return outputs;
 }
 
-cuMatrix<double>* SoftMax::getCurDelta()
+cuMatrix<float>* SoftMax::getCurDelta()
 {
 	return curDelta;
 }
 
-void SoftMax::setPreDelta(cuMatrix<double>* _preDelta)
+void SoftMax::setPreDelta(cuMatrix<float>* _preDelta)
 {
 	preDelta = _preDelta;
-	preDelta_format = new cuMatrix<double>(preDelta->rows, preDelta->cols * preDelta->channels, 1);
+	preDelta_format = new cuMatrix<float>(preDelta->rows, preDelta->cols * preDelta->channels, 1);
 }
 
 void SoftMax::initRandom()
 {
 	//srand(clock());
-	double initW = Config::instance()->getLayerByName(m_name)->m_initW;
+	float initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
-		double epsilon = initW;
+		float epsilon = initW;
 		for(int c = 0; c < w->channels; c++){
-			double r1 = 0.01 + 5 * (rand()) / RAND_MAX;
-			double r2 = 0.01 + 5 * (rand()) / RAND_MAX;
+			float r1 = 0.01f + 5.0 * (rand()) / RAND_MAX;
+			float r2 = 0.01f + 5.0 * (rand()) / RAND_MAX;
 			createGaussian(w->getHost() + c * w->getArea(), r1,r2,
 				w->rows, w->cols, w->channels,
 				epsilon);
@@ -237,7 +237,7 @@ void SoftMax::initRandom()
 	}
 	else{
 		for(int j = 0; j < w->getLen(); j++){
-			w->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+			w->getHost()[j] =  initW * (2.0f * rand() / RAND_MAX - 1.0f);
 		}
 	}
 	w->toGpu();
@@ -245,17 +245,17 @@ void SoftMax::initRandom()
 	
 void SoftMax::initFromCheckpoint(FILE* file)
 {
-	double val = 0.0;
+	float val = 0.0;
 	for(int i = 0; i < w->rows; i++){
 		for(int j=0; j< w->cols; j++){
-			fscanf(file, "%lf", &val);
+			fscanf(file, "%f", &val);
 			w->set(i,j,0,val);
 		}
 	}
 	
 	for(int i = 0; i < b->rows; i++){
 		for(int j = 0; j < b->cols; j++){
-			fscanf(file, "%lf ", &val);
+			fscanf(file, "%f ", &val);
 			b->set(i,j,0, val);
 		}
 	}
@@ -270,7 +270,7 @@ void SoftMax::save(FILE* file)
 	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i< w->rows; i++){
 			for(int j=0; j< w->cols; j++){
-				fprintf(file, "%lf ", w->get(i,j,c)); 
+				fprintf(file, "%f ", w->get(i,j,c)); 
 			}
 		}
 	}
@@ -278,7 +278,7 @@ void SoftMax::save(FILE* file)
 	for(int c = 0; c < b->channels; c++){
 		for(int i = 0; i < b->rows; i++){
 			for(int j = 0; j < b->cols;  j++){
-				fprintf(file, "%lf ", b->get(i,j,c));
+				fprintf(file, "%f ", b->get(i,j,c));
 			}
 		}
 	}
@@ -310,21 +310,21 @@ SoftMax::SoftMax(std::string name)
 
 	NON_LINEARITY = config->m_nonLinearity;
 
-	inputs_format = new cuMatrix<double>(inputs->rows, inputs->cols * inputs->channels, 1);
-	outputs = new cuMatrix<double>(batch, outputsize, 1);
-	curDelta= new cuMatrix<double>(batch, outputsize, 1);
+	inputs_format = new cuMatrix<float>(inputs->rows, inputs->cols * inputs->channels, 1);
+	outputs = new cuMatrix<float>(batch, outputsize, 1);
+	curDelta= new cuMatrix<float>(batch, outputsize, 1);
 	this->setPreDelta(preDelta);
 
-	w     = new cuMatrix<double>(outputsize, inputsize, 1);
-	wgrad = new cuMatrix<double>(outputsize, inputsize, 1);
+	w     = new cuMatrix<float>(outputsize, inputsize, 1);
+	wgrad = new cuMatrix<float>(outputsize, inputsize, 1);
 
-	b     = new cuMatrix<double>(outputsize, 1, 1);
-	bgrad = new cuMatrix<double>(outputsize, 1, 1);
+	b     = new cuMatrix<float>(outputsize, 1, 1);
+	bgrad = new cuMatrix<float>(outputsize, 1, 1);
 
-	momentum_w = new cuMatrix<double>(outputsize, inputsize, 1);
-	momentum_b = new cuMatrix<double>(outputsize, 1, 1);
+	momentum_w = new cuMatrix<float>(outputsize, inputsize, 1);
+	momentum_b = new cuMatrix<float>(outputsize, 1, 1);
 
-	groudTruth = new cuMatrix<double>(batch, outputsize, 1);
+	groudTruth = new cuMatrix<float>(batch, outputsize, 1);
 
 	this->initRandom();
 	Layers::instance()->set(m_name, this);

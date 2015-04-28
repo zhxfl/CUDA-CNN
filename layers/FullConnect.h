@@ -18,10 +18,10 @@ public:
 	void calCost();
 	void dropOut();
 
-	cuMatrix<double>* getOutputs();
-	cuMatrix<double>* getCurDelta() ;
+	cuMatrix<float>* getOutputs();
+	cuMatrix<float>* getCurDelta() ;
 
-	void setPreDelta(cuMatrix<double>* _preDelta);
+	void setPreDelta(cuMatrix<float>* _preDelta);
 
 	void initRandom();
 	void initFromCheckpoint(FILE* file);
@@ -31,39 +31,39 @@ public:
 		sprintf(logStr, "%s:\n",m_name.c_str());
 		LOG(logStr, "Result/log.txt");
 		w->toCpu();
-		sprintf(logStr, "weight:%lf, %lf;\n", w->get(0,0,0), w->get(0,1,0));
+		sprintf(logStr, "weight:%f, %f;\n", w->get(0,0,0), w->get(0,1,0));
 		LOG(logStr, "Result/log.txt");
 		b->toCpu();
-		sprintf(logStr, "bias  :%lf\n", b->get(0,0,0));
+		sprintf(logStr, "bias  :%f\n", b->get(0,0,0));
 		LOG(logStr, "Result/log.txt");
 	}
 
 	FullConnect(std::string name);
 
 private:
-	cuMatrix<double>* inputs;
-	cuMatrix<double>* inputs_format;//convert inputs(batch, size, channel) to (batch, size * channel)
-	cuMatrix<double>* outputs;
-	cuMatrix<double>* curDelta;
-	cuMatrix<double>* preDelta;
-	cuMatrix<double>* preDelta_format;
+	cuMatrix<float>* inputs;
+	cuMatrix<float>* inputs_format;//convert inputs(batch, size, channel) to (batch, size * channel)
+	cuMatrix<float>* outputs;
+	cuMatrix<float>* curDelta;
+	cuMatrix<float>* preDelta;
+	cuMatrix<float>* preDelta_format;
 
-	//cuMatrix<double>* dropW;
-	//cuMatrix<double>* afterDropW;
-	cuMatrix<double>* drop;
-	cuMatrix<double>* w;
-	cuMatrix<double>* wgrad;
-	cuMatrix<double>* b;
-	cuMatrix<double>* bgrad;
+	//cuMatrix<float>* dropW;
+	//cuMatrix<float>* afterDropW;
+	cuMatrix<float>* drop;
+	cuMatrix<float>* w;
+	cuMatrix<float>* wgrad;
+	cuMatrix<float>* b;
+	cuMatrix<float>* bgrad;
 
-	cuMatrix<double>* momentum_w;
-	cuMatrix<double>* momentum_b;
+	cuMatrix<float>* momentum_w;
+	cuMatrix<float>* momentum_b;
 
 	int inputsize;
 	int outputsize; 
-	double lambda;
+	float lambda;
 	int batch;
-	double dropRate;
+	float dropRate;
 	int NON_LINEARITY;
 
 private:

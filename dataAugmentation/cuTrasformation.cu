@@ -17,14 +17,14 @@
 curandGenerator_t rand_generator_device;
 const curandRngType_t generator_type = CURAND_RNG_PSEUDO_DEFAULT;
 
-cuMatrix<double>* cuGaussianKernel;
-cuMatrix<double>* cuDispH;
-cuMatrix<double>* cuDispV;
+cuMatrix<float>* cuGaussianKernel;
+cuMatrix<float>* cuDispH;
+cuMatrix<float>* cuDispV;
 
 float * cu_d_randonNumf;
-double* cu_d_randomNum;
-double* cu_h_randomNum;
-double dElasticSigma   = 4.0;   /* higher numbers are more smooth and less distorted; Simard uses 4.0*/
+float* cu_d_randomNum;
+float* cu_h_randomNum;
+float dElasticSigma   = 4.0;   /* higher numbers are more smooth and less distorted; Simard uses 4.0*/
 
 
 int getRandomNumLen(int batch, int ImgSize)
@@ -36,22 +36,22 @@ int getRandomNumLen(int batch, int ImgSize)
  * blocks : dim3(1)
  * threads: dim3(GAUSSIAN_FIELD_SIZE*GAUSSIAN_FIELD_SIZE)
 */
-__global__ void g_createGaussianKernel(double* gaussian, double dElasticSigma, int ImgSize)
+__global__ void g_createGaussianKernel(float* gaussian, float dElasticSigma, int ImgSize)
 {
 	int iiMid = GAUSSIAN_FIELD_SIZE >> 1;
-	double doubleElasticSigma = dElasticSigma * dElasticSigma;
+	float floatElasticSigma = dElasticSigma * dElasticSigma;
 	int row = threadIdx.x % ImgSize;
 	int col = threadIdx.x / ImgSize;
-	double val1 = 1.0 / (dElasticSigma * 2.0 * 3.1415926535897932384626433832795);
-	double val2 = (row-iiMid)*(row-iiMid) + (col-iiMid)*(col-iiMid);
+	float val1 = 1.0 / (dElasticSigma * 2.0 * 3.1415926535897932384626433832795);
+	float val2 = (row-iiMid)*(row-iiMid) + (col-iiMid)*(col-iiMid);
 
-	gaussian[threadIdx.x] = val1 * exp(-1.0 * val2 / (2.0 * doubleElasticSigma));
+	gaussian[threadIdx.x] = val1 * exp(-1.0 * val2 / (2.0 * floatElasticSigma));
 }
 
 void cuInitDistortionMemery(int batch, int ImgSize)
 {
 	curandStatus_t curandstatus;
-	cuGaussianKernel = new cuMatrix<double>(GAUSSIAN_FIELD_SIZE, GAUSSIAN_FIELD_SIZE, 1);
+	cuGaussianKernel = new cuMatrix<float>(GAUSSIAN_FIELD_SIZE, GAUSSIAN_FIELD_SIZE, 1);
 	if(GAUSSIAN_FIELD_SIZE * GAUSSIAN_FIELD_SIZE > MAX_THREADS)
 	{
 		char logStr[1024];
@@ -67,14 +67,14 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 
 	/*cu_d_randomNum*/
 	checkCudaErrors(
-		MemoryMonitor::instance()->gpuMalloc((void**)&cu_d_randomNum, sizeof(double) * getRandomNumLen(batch, ImgSize))
+		MemoryMonitor::instance()->gpuMalloc((void**)&cu_d_randomNum, sizeof(float) * getRandomNumLen(batch, ImgSize))
 		);
 	/*cu_d_randonNumf*/
 	checkCudaErrors(
 		MemoryMonitor::instance()->gpuMalloc((void**)&cu_d_randonNumf, sizeof(float) * getRandomNumLen(batch, ImgSize))
 		);
 	/*cu_h_randomNum*/
-	cu_h_randomNum = (double*)MemoryMonitor::instance()->cpuMalloc(sizeof(double) * getRandomNumLen(batch, ImgSize));
+	cu_h_randomNum = (float*)MemoryMonitor::instance()->cpuMalloc(sizeof(float) * getRandomNumLen(batch, ImgSize));
 	if(!cu_h_randomNum)
 	{
 		char logStr[1024];
@@ -93,12 +93,12 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 		exit(0);
 	}
 
-	cuDispV = new cuMatrix<double>(batch, ImgSize * ImgSize, 1);
-	cuDispH = new cuMatrix<double>(batch, ImgSize * ImgSize, 1);
+	cuDispV = new cuMatrix<float>(batch, ImgSize * ImgSize, 1);
+	cuDispH = new cuMatrix<float>(batch, ImgSize * ImgSize, 1);
 }
 
 
-__global__ void g_getRandomUniform(float* r1, double* r2, int len)
+__global__ void g_getRandomUniform(float* r1, float* r2, int len)
 {
 	for(int i = 0; i < len; i += gridDim.x * blockDim.x)
 	{
@@ -115,21 +115,21 @@ __global__ void g_getRandomUniform(float* r1, double* r2, int len)
  * threads : dim3(512)
  */
 __global__ void g_generateDistortionMap(
-	double* _dispH,
-	double* _dispV,
-	double* rand, 
-	double* gaussianKernel,
-	double dElasticScaling, 
-	double dMaxScaling,
-	double dMaxRotation,
+	float* _dispH,
+	float* _dispV,
+	float* rand, 
+	float* gaussianKernel,
+	float dElasticScaling, 
+	float dMaxScaling,
+	float dMaxRotation,
 	int ImgSize)
 {
 	int ImgSize2 = ImgSize * ImgSize;
 
-	double* uniformH = rand + blockIdx.x * ImgSize2;
-	double* uniformV = rand + blockIdx.x * ImgSize2 * 2;
-	double* dispH = _dispH + ImgSize2 * blockIdx.x;
-	double* dispV = _dispV + ImgSize2 * blockIdx.x;
+	float* uniformH = rand + blockIdx.x * ImgSize2;
+	float* uniformV = rand + blockIdx.x * ImgSize2 * 2;
+	float* dispH = _dispH + ImgSize2 * blockIdx.x;
+	float* dispV = _dispV + ImgSize2 * blockIdx.x;
 
 	if(dElasticScaling >= 0.1){
 		for(int is = 0; is < ImgSize2; is += blockDim.x)
@@ -142,11 +142,11 @@ __global__ void g_generateDistortionMap(
 
 				int iiMid = GAUSSIAN_FIELD_SIZE / 2;
 
-				double fConvolvedH = 0.0;
-				double fConvolvedV = 0.0;
-				double fSampleH, fSampleV;
+				float fConvolvedH = 0.0;
+				float fConvolvedV = 0.0;
+				float fSampleH, fSampleV;
 
-				double elasticScale = dElasticScaling;
+				float elasticScale = dElasticScaling;
 
 				for(int xxx = 0; xxx < GAUSSIAN_FIELD_SIZE; ++xxx)
 				{
@@ -196,8 +196,8 @@ __global__ void g_generateDistortionMap(
 		{
 			int row = idx / ImgSize;
 			int col = idx % ImgSize;
-			double dSFHoriz = dMaxScaling / 100.0 * rand[blockIdx.x];
-			double dSFVert  = dMaxScaling / 100.0 * rand[blockIdx.x + 1];
+			float dSFHoriz = dMaxScaling / 100.0 * rand[blockIdx.x];
+			float dSFVert  = dMaxScaling / 100.0 * rand[blockIdx.x + 1];
 
 			int iMid = ImgSize / 2;
 
@@ -215,17 +215,17 @@ __global__ void g_generateDistortionMap(
 		{
 			int row = idx / ImgSize;
 			int col = idx % ImgSize;
-			double angle = dMaxRotation * rand[blockIdx.x];
-			//printf("%lf\n",angle);
+			float angle = dMaxRotation * rand[blockIdx.x];
+			//printf("%f\n",angle);
 			angle = angle * 3.1415926535897932384626433832795 / 180.0;
 
-			double cosAngle = cos(angle);
-			double sinAngle = sin(angle);
+			float cosAngle = cos(angle);
+			float sinAngle = sin(angle);
 
 			int iMid = ImgSize / 2;
 
-			double xx = row - iMid;
-			double yy = col - iMid;
+			float xx = row - iMid;
+			float yy = col - iMid;
 
 			dispH[idx] += yy - yy * cosAngle - xx * sinAngle;
 			dispV[idx] += xx - xx * cosAngle + yy * sinAngle;
@@ -235,17 +235,17 @@ __global__ void g_generateDistortionMap(
 
 
 __global__ void g_scaleAndRotate(
-	double* _dispH,
-	double* _dispV,
-	double scalingx,
-	double scalingy,
-	double rotation,
+	float* _dispH,
+	float* _dispV,
+	float scalingx,
+	float scalingy,
+	float rotation,
 	int ImgSize)
 {
 	int ImgSize2 = ImgSize * ImgSize;
 
-	double* dispH = _dispH + ImgSize2 * blockIdx.x;
-	double* dispV = _dispV + ImgSize2 * blockIdx.x;
+	float* dispH = _dispH + ImgSize2 * blockIdx.x;
+	float* dispV = _dispV + ImgSize2 * blockIdx.x;
 
 	for(int is = 0; is < ImgSize2; is += blockDim.x)
 	{
@@ -265,8 +265,8 @@ __global__ void g_scaleAndRotate(
 		{
 			int row = idx / ImgSize;
 			int col = idx % ImgSize;
-			double dSFHoriz = scalingx / 100.0;
-			double dSFVert  = scalingy / 100.0;
+			float dSFHoriz = scalingx / 100.0;
+			float dSFVert  = scalingy / 100.0;
 
 			int iMid = ImgSize / 2;
 
@@ -283,16 +283,16 @@ __global__ void g_scaleAndRotate(
 		{
 			int row = idx / ImgSize;
 			int col = idx % ImgSize;
-			double angle = rotation;
+			float angle = rotation;
 			angle = angle * 3.1415926535897932384626433832795 / 180.0;
 
-			double cosAngle = cos(angle);
-			double sinAngle = sin(angle);
+			float cosAngle = cos(angle);
+			float sinAngle = sin(angle);
 
 			int iMid = ImgSize / 2;
 
-			double xx = row - iMid;
-			double yy = col - iMid;
+			float xx = row - iMid;
+			float yy = col - iMid;
 
 			dispH[idx] += yy - yy * cosAngle - xx * sinAngle;
 			dispV[idx] += xx - xx * cosAngle + yy * sinAngle;
@@ -305,21 +305,21 @@ __global__ void g_scaleAndRotate(
  * threads: dim3(min(512, ImgSize * ImgSize))
  */
 __global__ void g_applyDistortionMap(
-	double** _inputs,
-	double** _outputs,
-	double* _dispH, 
-	double* _dispV, 
+	float** _inputs,
+	float** _outputs,
+	float* _dispH, 
+	float* _dispV, 
 	int ImgSize)
 {
 
-	extern __shared__ double img[];
+	extern __shared__ float img[];
 	int c = blockIdx.y;
 
 	int ImgSize2 = ImgSize * ImgSize;
-	double* input = _inputs[blockIdx.x] + ImgSize2 * c;
-	double* output= _outputs[blockIdx.x]+ ImgSize2 * c;
-	double* dispV = _dispV + blockIdx.x * ImgSize2;
-	double* dispH = _dispH + blockIdx.x * ImgSize2;
+	float* input = _inputs[blockIdx.x] + ImgSize2 * c;
+	float* output= _outputs[blockIdx.x]+ ImgSize2 * c;
+	float* dispV = _dispV + blockIdx.x * ImgSize2;
+	float* dispH = _dispH + blockIdx.x * ImgSize2;
 
 	for(int is = 0; is < ImgSize2; is += blockDim.x){
 		int idx = is + threadIdx.x;
@@ -338,10 +338,10 @@ __global__ void g_applyDistortionMap(
 			int row = idx / ImgSize;
 			int col = idx % ImgSize;
 
-			double sourceRow, sourceCol;
-			double fracRow, fracCol;
-			double w1, w2, w3, w4;
-			double sourceValue;
+			float sourceRow, sourceCol;
+			float fracRow, fracCol;
+			float w1, w2, w3, w4;
+			float sourceValue;
 			int sRow, sCol, sRowp1, sColp1;
 			bool bSkipOutOfBounds;
 
@@ -350,8 +350,8 @@ __global__ void g_applyDistortionMap(
 				output[idx] = input[idx];
 				continue;
 			}
-			sourceRow = (double)row - dispV[idx];
-			sourceCol = (double)col - dispH[idx];
+			sourceRow = (float)row - dispV[idx];
+			sourceCol = (float)col - dispH[idx];
 
 			fracRow = sourceRow - (int)sourceRow;
 			fracCol = sourceCol - (int)sourceCol;
@@ -435,9 +435,9 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 
 void cuApplyScaleAndRotate(int batch,
 		int ImgSize,
-		double scalingx,
-		double scalingy,
-		double rotation)
+		float scalingx,
+		float scalingy,
+		float rotation)
 {
 	g_scaleAndRotate<<<dim3(batch),dim3(512)>>>(
 			cuDispH->getDev(),
@@ -451,11 +451,11 @@ void cuApplyScaleAndRotate(int batch,
 
 }
 
-void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize)
+void cuApplyDistortion(float**inputs, float**outputs, int batch, int ImgSize)
 {
 	int threadidx = min(ImgSize * ImgSize, 512);
 	g_applyDistortionMap<<<dim3(batch, Config::instance()->getChannels()),
-		dim3(threadidx), sizeof(double) * ImgSize * ImgSize>>>(inputs,
+		dim3(threadidx), sizeof(float) * ImgSize * ImgSize>>>(inputs,
 		outputs, 
 		cuDispH->getDev(),
 		cuDispV->getDev(),
@@ -468,7 +468,7 @@ void cuApplyDistortion(double**inputs, double**outputs, int batch, int ImgSize)
  * blocks  : dim3(batch, channels)
  * threads : dim3(min(ImgSize*ImgSize, 512))
  */
-__global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* random, int crop, int ImgSize)
+__global__ void g_applyCropRandom(float**_inputs, float**_outputs, float* random, int crop, int ImgSize)
 {
 	int c = blockIdx.y;
 
@@ -478,8 +478,8 @@ __global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* ran
 	int inputImgSize2 = inputImgSize * inputImgSize;
 	int outputImgSize2= outputImgSize* outputImgSize;
 
-	double* input = _inputs [blockIdx.x] + c * inputImgSize2;
-	double* output= _outputs[blockIdx.x] + c * outputImgSize2;
+	float* input = _inputs [blockIdx.x] + c * inputImgSize2;
+	float* output= _outputs[blockIdx.x] + c * outputImgSize2;
 
 	int sx =(int)((random[blockIdx.x]     + 1.0) * 0.5 * crop);
 	int sy =(int)((random[blockIdx.x + 1] + 1.0) * 0.5 * crop);
@@ -515,7 +515,7 @@ __global__ void g_applyCropRandom(double**_inputs, double**_outputs, double* ran
  * blocks : dim3(batch, channels)
  * threads: dim3(min(ImgSize * ImgSize, 512);
 */
-__global__ void g_applyCrop(double**_inputs, double**_outputs, double* random, int croplen, int ImgSize, int cropr, int cropc)
+__global__ void g_applyCrop(float**_inputs, float**_outputs, float* random, int croplen, int ImgSize, int cropr, int cropc)
 {
 	int c = blockIdx.y;
 	
@@ -525,8 +525,8 @@ __global__ void g_applyCrop(double**_inputs, double**_outputs, double* random, i
 	int inputImgSize2 = inputImgSize * inputImgSize;
 	int outputImgSize2= outputImgSize* outputImgSize;
 
-	double* input = _inputs [blockIdx.x]+ c * inputImgSize2 ;
-	double* output= _outputs[blockIdx.x]+ c * outputImgSize2;
+	float* input = _inputs [blockIdx.x]+ c * inputImgSize2 ;
+	float* output= _outputs[blockIdx.x]+ c * outputImgSize2;
 
 	int sx = cropr;
 	int sy = cropc;
@@ -546,7 +546,7 @@ __global__ void g_applyCrop(double**_inputs, double**_outputs, double* random, i
 	}
 }
 
-void cuApplyCropRandom(double**inputs, double**outputs, int batch, int ImgSize)
+void cuApplyCropRandom(float**inputs, float**outputs, int batch, int ImgSize)
 {
 	dim3 block = dim3(batch, Config::instance()->getChannels());
 
@@ -557,7 +557,7 @@ void cuApplyCropRandom(double**inputs, double**outputs, int batch, int ImgSize)
 	getLastCudaError("g_applyCropRandom");
 }
 
-void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cropr, int cropc)
+void cuApplyCrop(float**inputs, float**outputs, int batch, int ImgSize, int cropr, int cropc)
 {
 	int threads = min(512, ImgSize * ImgSize);
 	g_applyCrop<<<dim3(batch, Config::instance()->getChannels()),
@@ -574,14 +574,14 @@ void cuApplyCrop(double**inputs, double**outputs, int batch, int ImgSize, int cr
  *		  1. Horizontal
  *		  2. Not Horizontal
  */
-__global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* rand, int ImgSize, int flag)
+__global__ void g_applyHorizontal(float**_inputs, float**_outputs, float* rand, int ImgSize, int flag)
 {
 	int c = blockIdx.y;
 
 	int ImgSize2 = ImgSize * ImgSize ;
 
-	double* input = _inputs[blockIdx.x] + c * ImgSize2;
-	double* output= _outputs[blockIdx.x]+ c * ImgSize2;
+	float* input = _inputs[blockIdx.x] + c * ImgSize2;
+	float* output= _outputs[blockIdx.x]+ c * ImgSize2;
 
 	int half = ImgSize / 2;
 	for(int is = 0; is < half * ImgSize; is += blockDim.x)
@@ -616,7 +616,7 @@ __global__ void g_applyHorizontal(double**_inputs, double**_outputs, double* ran
  *		  1. Horizontal
  *		  2. Not Horizontal
 */
-void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize, int flag)
+void cuApplyHorizontal(float **inputs, float**outputs, int batch, int ImgSize, int flag)
 {
 	int threads = std::min(ImgSize * ImgSize / 2, 512);
 
@@ -629,11 +629,11 @@ void cuApplyHorizontal(double **inputs, double**outputs, int batch, int ImgSize,
 
 
 __global__ void g_applyWhiteNoise(
-	double** _inputs, 
-	double ** _outputs,
-	double * _random,
+	float** _inputs, 
+	float ** _outputs,
+	float * _random,
 	int ImgSize, 
-	double stdev){
+	float stdev){
 
 		int s = blockIdx.x;
 		int c = blockIdx.y;
@@ -641,16 +641,16 @@ __global__ void g_applyWhiteNoise(
 		int ImgSize2 = ImgSize * ImgSize;
 
 		int offset = ImgSize2 * c;
-		double* input = _inputs [s] + offset;
-		double* output= _outputs[s] + offset;
+		float* input = _inputs [s] + offset;
+		float* output= _outputs[s] + offset;
 
-		double* rand = _random + offset;
+		float* rand = _random + offset;
 		//if(_random[blockIdx.x] >= 0.9){
 		if(true){
 			for(int i = 0; i < ImgSize2; i += blockDim.x){
 				int idx = i + threadIdx.x;
 				if(idx < ImgSize2){
-					double val = input[idx] + stdev * rand[idx];
+					float val = input[idx] + stdev * rand[idx];
 // 					if(val < -1.0) val = -1.0;
 // 					if(val >  1.0) val = 1.0;
 					output[idx] = val;
@@ -670,7 +670,7 @@ __global__ void g_applyWhiteNoise(
 /*
 ref: http://en.wikipedia.org/wiki/White_noise
 */
-void cuApplyWhiteNoise(double **inputs, double**outputs, int batch, int ImgSize, double stdev)
+void cuApplyWhiteNoise(float **inputs, float**outputs, int batch, int ImgSize, float stdev)
 {
 	dim3 blocks  = dim3(batch, Config::instance()->getChannels());
 	dim3 threads = dim3(min(ImgSize * ImgSize, 512));

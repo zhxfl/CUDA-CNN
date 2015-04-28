@@ -48,19 +48,19 @@ private:
 class ConfigScale
 {
 public:
-	ConfigScale(double scale):m_scale(scale){}
-	double getValue(){return m_scale;}
+	ConfigScale(float scale):m_scale(scale){}
+	float getValue(){return m_scale;}
 private:
-	double m_scale;
+	float m_scale;
 };
 
 class ConfigWhiteNoise
 {
 public:
-	ConfigWhiteNoise(double stdev):m_stdev(stdev){}
-	double getValue(){return m_stdev;}
+	ConfigWhiteNoise(float stdev):m_stdev(stdev){}
+	float getValue(){return m_stdev;}
 private:
-	double m_stdev;
+	float m_stdev;
 };
 
 class ConfigTestEpoch
@@ -78,32 +78,32 @@ private:
 class ConfigRotation
 {
 public:
-	ConfigRotation(double rotation)
+	ConfigRotation(float rotation)
 	{
 		m_rotation = rotation;
 	}
-	double getValue()
+	float getValue()
 	{
 		return m_rotation;
 	}
 private:
-	double m_rotation;
+	float m_rotation;
 
 };
 
 class ConfigDistortion
 {
 public:
-	ConfigDistortion(double distortion)
+	ConfigDistortion(float distortion)
 	{
 		m_distortion = distortion;
 	}
-	double getValue()
+	float getValue()
 	{
 		return m_distortion;
 	}
 private:
-	double m_distortion;
+	float m_distortion;
 };
 
 class ConfigBatchSize
@@ -160,7 +160,7 @@ public:
 	std::string m_subInput;
 	std::vector<ConfigBase*> m_next;
 	std::string m_type;
-	double m_initW;
+	float m_initW;
 	int m_nonLinearity; 
 	std::string m_initType;
 	bool isGaussian(){
@@ -180,8 +180,8 @@ public:
 		std::string input,
 		std::string subInput,
 		std::string type,
-		double k, int n, 
-		double alpha, double belta, 
+		float k, int n, 
+		float alpha, float belta, 
 		int nonLinearity):m_k(k), m_n(n), m_alpha(alpha), m_belta(belta){
 		  m_nonLinearity = nonLinearity;
 		  m_name  = name;
@@ -189,9 +189,9 @@ public:
 		  m_subInput = subInput;
 		  m_type = type;
 	  }
-	double m_k;
-	double m_alpha;
-	double m_belta;
+	float m_k;
+	float m_alpha;
+	float m_belta;
 	int m_n;
 };
 
@@ -245,7 +245,7 @@ public:
 	ConfigConv(std::string name, std::string input,
 		std::string subInput, std::string type,
 		int kernelSize, int padding, int amount,
-		double weightDecay, int cfm, double initW, std::string initType,
+		float weightDecay, int cfm, float initW, std::string initType,
 		int non_linearity){
 		m_kernelSize = kernelSize;
 		m_padding = padding;
@@ -264,7 +264,7 @@ public:
 	int m_kernelSize;
 	int m_padding;
 	int m_amount;
-	double m_weightDecay;
+	float m_weightDecay;
 };
 
 
@@ -276,7 +276,7 @@ public:
 		std::string subInput,
 		std::string type,
 		int kernelSize,
-		double weightDecay, double initW, std::string initType,
+		float weightDecay, float initW, std::string initType,
 		int non_linearity){
 			m_kernelSize = kernelSize;
 			m_weightDecay = weightDecay;
@@ -289,7 +289,7 @@ public:
 			m_initType = initType;
 	}
 	int m_kernelSize;
-	double m_weightDecay;
+	float m_weightDecay;
 };
 
 /*
@@ -306,14 +306,14 @@ public:
 		std::string input, 
 		std::string subInput,
 		std::string type,
-		double weightDecay){
+		float weightDecay){
 		m_name = name;
 		m_input= input;
 		m_subInput = subInput;
 		m_type = type;
 		m_weightDecay = weightDecay;
 	}
-	double m_weightDecay;
+	float m_weightDecay;
 };
 
 
@@ -331,8 +331,8 @@ public:
 		std::string input, 
 		std::string subInput,
 		std::string type,
-		double weightDecay,
-		double initW,
+		float weightDecay,
+		float initW,
 		int non_linearity){
 		m_name = name;
 		m_input= input;
@@ -342,7 +342,7 @@ public:
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
 	}
-	double m_weightDecay;
+	float m_weightDecay;
 };
 
 class ConfigPooling : public ConfigBase
@@ -377,9 +377,9 @@ public:
 		std::string subInput,
 		std::string type,
 		int numFullConnectNeurons,
-		double weightDecay,
-		double dropoutRate,
-		double initW, 
+		float weightDecay,
+		float dropoutRate,
+		float initW, 
 		std::string initType, 
 		int non_linearity)
 	{
@@ -395,22 +395,22 @@ public:
 		m_initType = initType;
 	}
 	int m_numFullConnectNeurons;
-	double m_weightDecay;
-	double m_dropoutRate;
+	float m_weightDecay;
+	float m_dropoutRate;
 };
 
 class ConfigSoftMax : public ConfigBase
 {
 public:
 	int m_numClasses;
-	double m_weightDecay;
+	float m_weightDecay;
 	ConfigSoftMax(std::string name,
 		std::string input,
 		std::string subInput,
 		std::string type, 
 		int numClasses, 
-		double weightDecay, 
-		double initW, 
+		float weightDecay, 
+		float initW, 
 		std::string initType,
 		int non_linearity)
 	{
@@ -444,16 +444,16 @@ private:
 class Config
 {
 public:
-	void setMomentum(double _momentum){
+	void setMomentum(float _momentum){
 		momentum = _momentum;
 	}
-	double getMomentum(){
+	float getMomentum(){
 		return momentum;
 	}
-	void setLrate(double _lrate){
+	void setLrate(float _lrate){
 		lrate = _lrate;
 	}
-	double getLrate(){
+	float getLrate(){
 		return lrate;
 	}
 	void initPath(std::string path){
@@ -501,15 +501,15 @@ public:
 		return m_horizontal->getValue();
 	}
 
-	double getScale(){
+	float getScale(){
 		return m_scale->getValue();
 	}
 
-	double getRotation(){
+	float getRotation(){
 		return m_rotation->getValue();
 	}
 
-	double getDistortion(){
+	float getDistortion(){
 		return m_distortion->getValue();
 	}
 
@@ -552,7 +552,7 @@ public:
 		return m_test_epoch->getValue();
 	}
 
-	double getWhiteNoise(){
+	float getWhiteNoise(){
 		return m_white_noise->getValue();
 	}
 
@@ -567,7 +567,7 @@ private:
 	void deleteSpace();
 	bool get_word_bool(std::string &str, std::string name);
 	std::string get_word_type(std::string &str, std::string name);
-	double get_word_double(std::string &str, std::string name);
+	float get_word_float(std::string &str, std::string name);
 	int get_word_int(std::string &str, std::string name);
 	std::string read_2_string(std::string File_name);
 	void get_layers_config(std::string &str);
@@ -595,8 +595,8 @@ private:
 	ConfigHorizontal         *m_horizontal;
 	ConfigTestEpoch          *m_test_epoch;
 	ConfigWhiteNoise         *m_white_noise;
-	double momentum;
-	double lrate;
+	float momentum;
+	float lrate;
 	int m_imageSize;
 	int m_classes;
 	bool training;

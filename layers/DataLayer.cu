@@ -15,8 +15,8 @@
  * dim3 thread= dim3(min(outputDim * outputDim, 1024));
 */
 __global__ void g_dataLayer_feedforward(
-	double** inputs,
-	double* outputs,
+	float** inputs,
+	float* outputs,
 	int outputArea,
 	int outputCols);
 
@@ -30,17 +30,17 @@ DataLayer::DataLayer(std::string name){
 	batch     = Config::instance()->getBatchSize();
 	inputAmount = Config::instance()->getChannels();
 	outputAmount= inputAmount;
-	outputs = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
+	outputs = new cuMatrix<float>(batch, outputDim * outputDim, outputAmount);
 
 	for(int i = 0; i < 2; i ++){
 		for(int j = 0; j < batch; j++){
-			batchImg[i].push_back(new cuMatrix<double>(inputDim, inputDim, Config::instance()->getChannels()));
+			batchImg[i].push_back(new cuMatrix<float>(inputDim, inputDim, Config::instance()->getChannels()));
 		}
 		batchImg[i].toGpu();
 	}
 
 	for(int i = 0; i < batch; i++){
-		cropOutputs.push_back(new cuMatrix<double>(outputDim, outputDim, Config::instance()->getChannels()));
+		cropOutputs.push_back(new cuMatrix<float>(outputDim, outputDim, Config::instance()->getChannels()));
 		cropOutputs.toGpu();
 	}
 
@@ -55,16 +55,16 @@ DataLayer::DataLayer(std::string name){
 */
 
 __global__ void g_dataLayer_feedforward(
-	double** inputs,
-	double* outputs,
+	float** inputs,
+	float* outputs,
 	int outputArea,
 	int outputCols)
 {
 	int batchId = blockIdx.x;
 	int ok      = blockIdx.y;
 
-	double* input = inputs[batchId];
-	double* output= outputs + ok * outputArea + batchId * outputCols;
+	float* input = inputs[batchId];
+	float* output= outputs + ok * outputArea + batchId * outputCols;
 	for(int i = 0; i < outputCols; i += blockDim.x){
 		int idx = i + threadIdx.x;
 		if(idx < outputCols){
@@ -116,8 +116,8 @@ void DataLayer::trainData()
 }
 
 void DataLayer::testData(int cropr, int cropc, 
-	double scalex, double scaley,
-	double rotate,
+	float scalex, float scaley,
+	float rotate,
 	int hori)
 {
 	cuApplyCrop(batchImg[batchId].m_devPoint,
@@ -151,10 +151,10 @@ void DataLayer::synchronize(){
 	cudaStreamSynchronize(stream1);
 }
 
-void DataLayer::getBatchImageWithStreams(cuMatrixVector<double>& inputs, int start){
+void DataLayer::getBatchImageWithStreams(cuMatrixVector<float>& inputs, int start){
 	int id = 1 - batchId;
 	for(int i = 0; i < batchImg[id].size(); i++){
-		memcpy(batchImg[id][i]->getHost(), inputs[i + start]->getHost(), sizeof(double) * batchImg[id][i]->getLen());
+		memcpy(batchImg[id][i]->getHost(), inputs[i + start]->getHost(), sizeof(float) * batchImg[id][i]->getLen());
 		batchImg[id][i]->toGpu(stream1);
 	}
 }

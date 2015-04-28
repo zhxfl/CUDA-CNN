@@ -4,7 +4,7 @@
 #include "../common/cuMatrixVector.h"
 
 void preProcessing(
-	cuMatrixVector<double>&trainX,
-	cuMatrixVector<double>&testX);
+	cuMatrixVector<float>&trainX,
+	cuMatrixVector<float>&testX);
 
 #endif

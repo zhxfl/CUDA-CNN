@@ -10,18 +10,18 @@
 /*
 * function: unPooling
 */
-__global__ void g_backpropagation_max(
+__global__ void g_pooling_backpropagation_max(
 	int* pointX,
 	int* pointY,
-	double* _pool,
-	double* _conv,
+	float* _pool,
+	float* _conv,
 	int poolSize,
 	int convSize, 
 	int poolDeltalen);
 
-__global__ void g_feedforward_avr(
-	double* conv,
-	double* pool,
+__global__ void g_pooling_feedforward_avr(
+	float* conv,
+	float* pool,
 	int convSize,
 	int poolSize,
 	int poolingSkip,
@@ -35,12 +35,26 @@ __global__ void g_feedforward_avr(
 /*
 * function: unPooling
 */
-__global__ void g_backpropagation_avr(double* _pool, double* _conv,
+__global__ void g_pooling_backpropagation_max_no_atomic(int* pointX, int* pointY,
+	float* _pool, float* _conv,
+	int poolSize, int convSize, int poolDeltalen);
+
+
+/*
+* function: unPooling
+*/
+__global__ void g_pooling_backpropagation_avr_no_atomic(float* _pool, float* _conv,
 	int poolDim, int convDim, int poolingSkip, int poolingSize, int poolDeltalen);
 
-__global__ void g_feedforward_max(
-	double* conv,
-	double* pool,
+/*
+* function: unPooling
+*/
+__global__ void g_pooling_backpropagation_avr(float* _pool, float* _conv,
+	int poolDim, int convDim, int poolingSkip, int poolingSize, int poolDeltalen);
+
+__global__ void g_pooling_feedforward_max(
+	float* conv,
+	float* pool,
 	int* pointX,
 	int* pointY,
 	int convSize,
@@ -54,11 +68,18 @@ __global__ void g_feedforward_max(
 
 void Pooling::feedforward()
 {
-	dim3 block = dim3(batch, outputAmount);
-	dim3 thread= dim3(512);
-	
+
+	int threadx = min(outputDim * outputDim , 512);
+	if(threadx <= 16) threadx = 16;
+	else if(threadx <= 256) threadx = 64;
+	int remain = 1024 / threadx;
+	int div = (outputAmount + remain - 1) / remain;
+
+	dim3 block = dim3(batch, div);
+	dim3 thread= dim3(threadx, remain);
+
 	if(type == std::string("max")){
-		g_feedforward_max<<<block, thread>>>(
+		g_pooling_feedforward_max<<<block, thread>>>(
 			inputs->getDev(),
 			outputs->getDev(),
 			pointX->getDev(),
@@ -72,10 +93,9 @@ void Pooling::feedforward()
 			batch,
 			outputAmount);
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("pooling feedforward");
-		//printf("max\n");
+		getLastCudaError("pooling g_pooling_feedforward_max");
 	}else{
-		g_feedforward_avr<<<block, thread>>>(
+		g_pooling_feedforward_avr<<<block, thread>>>(
 			inputs->getDev(),
 			outputs->getDev(),
 			inputDim,
@@ -87,8 +107,7 @@ void Pooling::feedforward()
 			batch,
 			outputAmount);
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("pooling feedforward avr");
-		//printf("avr\n");
+		getLastCudaError("pooling g_pooling_feedforward_avr");
 	}
 	
 
@@ -117,37 +136,49 @@ void Pooling::backpropagation()
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("ConvNCFM::g_dnonLinearity");
 	}
-	preDelta->gpuClear();
-
-
 
 	if(type == std::string("max")){
 		int curDeltalen = curDelta->getLen();
-		dim3 block = dim3(std::min(512, (curDeltalen + 511) / 512));
-		dim3 thread= dim3(512);
-
-		g_backpropagation_max<<<block, thread>>>(pointX->getDev(),
-			pointY->getDev(),
-			curDelta->getDev(),
-			preDelta->getDev(),
-			outputDim,
-			inputDim,
-			curDeltalen);
-		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("pooling backpropagation_max");
+		int threadx = outputDim * outputDim;
+		threadx = 1024 / threadx * threadx;
+		dim3 block = dim3(std::min(256, (curDeltalen + threadx) / threadx));
+		dim3 thread= dim3(threadx);
+		
+		if(size == skip){
+			g_pooling_backpropagation_max_no_atomic<<<block, thread>>>(
+				pointX->getDev(), pointY->getDev(), curDelta->getDev(), preDelta->getDev(),
+				outputDim, inputDim, curDeltalen);
+			checkCudaErrors(cudaDeviceSynchronize());
+			getLastCudaError("pooling g_backpropagation_max_no_atomic");
+		}
+		else{
+			preDelta->gpuClear();
+			g_pooling_backpropagation_max<<<block, thread>>>(
+				pointX->getDev(), pointY->getDev(), curDelta->getDev(), preDelta->getDev(),
+				outputDim, inputDim, curDeltalen);
+			checkCudaErrors(cudaDeviceSynchronize());
+			getLastCudaError("pooling backpropagation_max");
+		}
 	}else{
 		int curDeltalen = curDelta->getLen();
-		dim3 block = dim3(std::min(512, (curDeltalen + 511) / 512));
-		dim3 thread= dim3(512);
-		
-		g_backpropagation_avr<<<block, thread>>>(curDelta->getDev(),
-			preDelta->getDev(), 
-			outputDim,
-			inputDim,
-			skip,
-			size, curDeltalen);
-		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("pooling backpropagation_max");
+		int threadx = outputDim * outputDim;
+		threadx = 1024 / threadx * threadx;
+		dim3 block = dim3(std::min(256, (curDeltalen + threadx) / threadx));
+		dim3 thread= dim3(threadx);
+		if(size == skip){
+			/*do not clear need preDelta->gpuClear();*/
+			g_pooling_backpropagation_avr_no_atomic<<<block, thread>>>(
+				curDelta->getDev(), preDelta->getDev(), 
+				outputDim, inputDim, skip, size, curDeltalen);
+			checkCudaErrors(cudaDeviceSynchronize());
+			getLastCudaError("pooling g_backpropagation_avr_no_atomic");
+		}else{
+			preDelta->gpuClear();
+			g_pooling_backpropagation_avr<<<block, thread>>>(curDelta->getDev(), preDelta->getDev(), 
+				outputDim, inputDim, skip, size, curDeltalen);
+			checkCudaErrors(cudaDeviceSynchronize());
+			getLastCudaError("pooling g_pooling_backpropagation_avr");
+		}
 	}
 	
 }
@@ -184,8 +215,8 @@ Pooling::Pooling(std::string name)
 	
 	batch= Config::instance()->getBatchSize();
 	
-	outputs  = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
-	curDelta = new cuMatrix<double>(batch, outputDim * outputDim, outputAmount);
+	outputs  = new cuMatrix<float>(batch, outputDim * outputDim, outputAmount);
+	curDelta = new cuMatrix<float>(batch, outputDim * outputDim, outputAmount);
 	if(type == std::string("max")){
 		pointX   = new cuMatrix<int>   (batch, outputDim * outputDim, outputAmount);
 		pointY   = new cuMatrix<int>   (batch, outputDim * outputDim, outputAmount);
@@ -201,9 +232,9 @@ Pooling::Pooling(std::string name)
 *threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
 
-__global__ void g_feedforward_max(
-	double* conv,
-	double* pool,
+__global__ void g_pooling_feedforward_max(
+	float* conv,
+	float* pool,
 	int* pointX,
 	int* pointY,
 	int convSize,
@@ -216,7 +247,8 @@ __global__ void g_feedforward_max(
 	int kAmount)
 {
 	int sp = blockIdx.x;
-	int k  = blockIdx.y;
+	int k  = blockIdx.y * blockDim.y + threadIdx.y;
+	if(k >= kAmount)return;
 
 	int convSize2  = convSize * convSize;
 	int poolSize2  = poolSize * poolSize;
@@ -224,8 +256,8 @@ __global__ void g_feedforward_max(
 	int convSkip  = convArea * k + sp * convSize2;
 	int poolSkip  = poolArea * k + sp * poolSize2;
 
-	double* curConv  = conv   + convSkip;
-	double* curPool  = pool   + poolSkip;
+	float* curConv  = conv   + convSkip;
+	float* curPool  = pool   + poolSkip;
 	int* px          = pointX + poolSkip;
 	int* py          = pointY + poolSkip;
 
@@ -241,9 +273,9 @@ __global__ void g_feedforward_max(
 			int curX = x * poolingSkip;
 			int curY = y * poolingSkip;
 
-			cuAssert(curX < convSize && curY < convSize);
+			assert(curX < convSize && curY < convSize);
 
-			double _max = curConv[curX * convSize + curY];
+			float _max = curConv[curX * convSize + curY];
 			int lenx = min(convSize, curX + poolingSize);
 			int leny = min(convSize, curY + poolingSize);
 
@@ -251,7 +283,7 @@ __global__ void g_feedforward_max(
 			{
 				for(int j = curY; j < leny; j++)
 				{
-					double val = curConv[i * convSize + j];
+					float val = curConv[i * convSize + j];
 					if(_max < val){
 						_max  = val;
 						curX = i;
@@ -273,9 +305,9 @@ __global__ void g_feedforward_max(
 *threads: dim3(min(convOutputSize * convOutputSize, 512));
 */
 
-__global__ void g_feedforward_avr(
-	double* conv,
-	double* pool,
+__global__ void g_pooling_feedforward_avr(
+	float* conv,
+	float* pool,
 	int convSize,
 	int poolSize,
 	int poolingSkip,
@@ -286,7 +318,8 @@ __global__ void g_feedforward_avr(
 	int kAmount)
 {
 	int sp = blockIdx.x;
-	int k  = blockIdx.y;
+	int k  = blockIdx.y * blockDim.y + threadIdx.y;
+	if(k >= kAmount)return;
 
 	int convSize2  = convSize * convSize;
 	int poolSize2  = poolSize * poolSize;
@@ -294,8 +327,8 @@ __global__ void g_feedforward_avr(
 	int convSkip  = convArea * k + sp * convSize2;
 	int poolSkip  = poolArea * k + sp * poolSize2;
 
-	double* curConv  = conv   + convSkip;
-	double* curPool  = pool   + poolSkip;
+	float* curConv  = conv   + convSkip;
+	float* curPool  = pool   + poolSkip;
 
 	/*pooling*/
 	for(int tidx = 0; tidx < poolSize2; tidx += blockDim.x)
@@ -311,7 +344,7 @@ __global__ void g_feedforward_avr(
 
 			cuAssert(curX < convSize && curY < convSize);
 
-			double _sum = 0.0;
+			float _sum = 0.0;
 			int lenx = min(convSize, curX + poolingSize);
 			int leny = min(convSize, curY + poolingSize);
 
@@ -319,7 +352,7 @@ __global__ void g_feedforward_avr(
 			{
 				for(int j = curY; j < leny; j++)
 				{
-					double val = curConv[i * convSize + j];
+					float val = curConv[i * convSize + j];
 					_sum += val;
 				}
 			}
@@ -331,8 +364,8 @@ __global__ void g_feedforward_avr(
 /*
 * function: unPooling
 */
-__global__ void g_backpropagation_max(int* pointX, int* pointY,
-	double* _pool, double* _conv,
+__global__ void g_pooling_backpropagation_max(int* pointX, int* pointY,
+	float* _pool, float* _conv,
 	int poolSize, int convSize, int poolDeltalen)
 {
 	int poolSize2 = poolSize * poolSize;
@@ -347,13 +380,43 @@ __global__ void g_backpropagation_max(int* pointX, int* pointY,
 			int poolSkip = poolSize2 * convId;
 			int*       x = pointX  + poolSkip;
 			int*       y = pointY  + poolSkip;
-			double* pool = _pool   + poolSkip;
-			double* conv = _conv   + convSize2 * convId;
+			float* pool = _pool   + poolSkip;
+			float* conv = _conv   + convSize2 * convId;
 			int    curX = x   [idx];
 			int    curY = y   [idx];
-			double curP = pool[idx];
+			float curP = pool[idx];
 			cuAssert(curX < convSize && curY < convSize);
 			atomicAdd(conv + curX * convSize + curY, curP);
+		}
+	}
+}
+
+/*
+* function: unPooling
+*/
+__global__ void g_pooling_backpropagation_max_no_atomic(int* pointX, int* pointY,
+	float* _pool, float* _conv,
+	int poolSize, int convSize, int poolDeltalen)
+{
+	int poolSize2 = poolSize * poolSize;
+	int convSize2 = convSize * convSize;
+	for(int i = 0; i < poolDeltalen; i += gridDim.x * blockDim.x)
+	{
+		int id = i + blockDim.x * blockIdx.x + threadIdx.x;
+		if(id < poolDeltalen)
+		{
+			int convId = id / poolSize2;
+			int idx    = id % poolSize2;
+			int poolSkip = poolSize2 * convId;
+			int*       x = pointX  + poolSkip;
+			int*       y = pointY  + poolSkip;
+			float* pool = _pool   + poolSkip;
+			float* conv = _conv   + convSize2 * convId;
+			int    curX = x   [idx];
+			int    curY = y   [idx];
+			float curP = pool[idx];
+			assert(curX < convSize && curY < convSize);
+			conv[curX * convSize + curY] = curP;
 		}
 	}
 }
@@ -363,7 +426,7 @@ __global__ void g_backpropagation_max(int* pointX, int* pointY,
 /*
 * function: unPooling
 */
-__global__ void g_backpropagation_avr(double* _pool, double* _conv,
+__global__ void g_pooling_backpropagation_avr(float* _pool, float* _conv,
 	int poolDim, int convDim, int poolingSkip, int poolingSize, int poolDeltalen)
 {
 	int poolSize2 = poolDim * poolDim;
@@ -376,8 +439,8 @@ __global__ void g_backpropagation_avr(double* _pool, double* _conv,
 			int convId = id / poolSize2;
 			int idx    = id % poolSize2;
 
-			double* pool = _pool   + poolSize2 * convId;
-			double* conv = _conv   + convSize2 * convId;
+			float* pool = _pool   + poolSize2 * convId;
+			float* conv = _conv   + convSize2 * convId;
 
 			int x = idx / poolDim;
 			int y = idx % poolDim;
@@ -388,13 +451,55 @@ __global__ void g_backpropagation_avr(double* _pool, double* _conv,
 			int lenx = min(convDim, curX + poolingSize);
 			int leny = min(convDim, curY + poolingSize);
 
-			double val = pool[idx] / (poolingSize * poolingSize);
+			float val = pool[idx] / (poolingSize * poolingSize);
 			for(int i = curX; i < lenx; i++)
 			{
 				for(int j = curY; j < leny; j++)
 				{
 					cuAssert(i < convDim && j < convDim);
 					atomicAdd(conv + i * convDim + j, val);
+				}
+			}
+		}
+	}
+}
+
+
+/*
+* function: unPooling
+*/
+__global__ void g_pooling_backpropagation_avr_no_atomic(float* _pool, float* _conv,
+	int poolDim, int convDim, int poolingSkip, int poolingSize, int poolDeltalen)
+{
+	int poolSize2 = poolDim * poolDim;
+	int convSize2 = convDim * convDim;
+	for(int i = 0; i < poolDeltalen; i += gridDim.x * blockDim.x)
+	{
+		int id = i + blockDim.x * blockIdx.x + threadIdx.x;
+		if(id < poolDeltalen)
+		{
+			int convId = id / poolSize2;
+			int idx    = id % poolSize2;
+
+			float* pool = _pool   + poolSize2 * convId;
+			float* conv = _conv   + convSize2 * convId;
+
+			int x = idx / poolDim;
+			int y = idx % poolDim;
+
+			int curX = x * poolingSkip;
+			int curY = y * poolingSkip;
+
+			int lenx = min(convDim, curX + poolingSize);
+			int leny = min(convDim, curY + poolingSize);
+
+			float val = pool[idx] / (poolingSize * poolingSize);
+			for(int i = curX; i < lenx; i++)
+			{
+				for(int j = curY; j < leny; j++)
+				{
+					assert(i < convDim && j < convDim);
+					conv[i * convDim + j] = val;
 				}
 			}
 		}

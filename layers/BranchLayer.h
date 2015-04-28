@@ -29,10 +29,10 @@ public:
 
 	}
 
-	cuMatrix<double>* getOutputs(){return NULL;}
-	cuMatrix<double>* getCurDelta(){return NULL;}
+	cuMatrix<float>* getOutputs(){return NULL;}
+	cuMatrix<float>* getCurDelta(){return NULL;}
 
-	cuMatrix<double>* getSubOutput(std::string name){
+	cuMatrix<float>* getSubOutput(std::string name){
 		if(mapId.find(name) != mapId.end()){
 			return outputs[mapId[name]];
 		}else{
@@ -42,7 +42,7 @@ public:
 		}
 	};
 
-	cuMatrix<double>* getSubCurDelta(std::string name){
+	cuMatrix<float>* getSubCurDelta(std::string name){
 		if(mapId.find(name) != mapId.end()){
 			return curDelta[mapId[name]];
 		}else{
@@ -52,7 +52,7 @@ public:
 		}
 	}
 
-	void setPreDelta(cuMatrix<double>* _preDelta){
+	void setPreDelta(cuMatrix<float>* _preDelta){
 		preDelta = _preDelta;
 	}
 
@@ -67,11 +67,11 @@ public:
 	void printParameter(){};
 
 private:
-	cuMatrix<double>* inputs;
-	cuMatrix<double>* preDelta;
+	cuMatrix<float>* inputs;
+	cuMatrix<float>* preDelta;
 
-	cuMatrixVector<double>outputs;
-	cuMatrixVector<double>curDelta;
+	cuMatrixVector<float>outputs;
+	cuMatrixVector<float>curDelta;
 	
 	std::map<std::string, int>mapId;
 

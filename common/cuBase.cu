@@ -1,6 +1,6 @@
 #include "cuBase.h"
 
-__device__ double d_nonLinearity(double val, int NONLIN){
+__device__ float d_nonLinearity(float val, int NONLIN){
 	if(NONLIN == NL_RELU)
 	{
 		if(val < 0.0) return 0.0;
@@ -16,7 +16,7 @@ __device__ double d_nonLinearity(double val, int NONLIN){
 	}
 }
 
-__device__ double d_dnonLinearity(double val,int NONLIN){
+__inline__ __device__ float d_dnonLinearity(float val,int NONLIN){
 	if(NONLIN == NL_RELU)
 	{
 		if(val > 0.0) return 1.0;
@@ -24,8 +24,8 @@ __device__ double d_dnonLinearity(double val,int NONLIN){
 	}
 	else if(NONLIN == NL_TANH)
 	{
-		double res = 1.7159;
-		double temp = val * val / 1.7159;
+		float res = 1.7159;
+		float temp = val * val / 1.7159;
 		res = (res - temp) * 2.0 / 3.0;
 		return res;
 	}else 
@@ -34,9 +34,10 @@ __device__ double d_dnonLinearity(double val,int NONLIN){
 	}
 }
 
-__global__ void g_dnonLinearity(double* delta, double*acti, int len, int NONLIN)
+__global__ void g_dnonLinearity(float* delta, float*acti, int len, int NONLIN)
 {
-	for(int i = 0; i < len; i += gridDim.x * blockDim.x)
+	int skip = gridDim.x * blockDim.x;
+	for(int i = 0; i < len; i += skip)
 	{
 		int id = blockDim.x * blockIdx.x + threadIdx.x + i;
 		if(id < len)
@@ -46,7 +47,7 @@ __global__ void g_dnonLinearity(double* delta, double*acti, int len, int NONLIN)
 	}
 }
 
-__global__ void g_nonLinearity(double* inputs, int len, int NONLIN)
+__global__ void g_nonLinearity(float* inputs, int len, int NONLIN)
 {
 	for(int i = 0; i < len; i += gridDim.x * blockDim.x)
 	{
@@ -72,24 +73,24 @@ __device__ double atomicAdd(double* address, double val)
 	return __longlong_as_double(old);
 }
 
-__device__ void swap(double& val1, double& val2){
-	double tmp = val1;
+__device__ void swap(float& val1, float& val2){
+	float tmp = val1;
 	val1 = val2;
 	val2 = tmp;
 }
 
 
-__global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
-	double** _v_b, double** _bgrad, double** _b, 
+__global__ void g_vecAdd(float**_v_w, float** _wgrad,float** _w,
+	float** _v_b, float** _bgrad, float** _b, 
 	int lenw, int lenb,
-	double momentum, double lratew, double lrateb)
+	float momentum, float lratew, float lrateb)
 {
-	double* v_w   = _v_w[blockIdx.x];
-	double* wgrad = _wgrad[blockIdx.x];
-	double* w     = _w[blockIdx.x];
-	double* v_b   = _v_b[blockIdx.x];
-	double* bgrad = _bgrad[blockIdx.x];
-	double* b     = _b[blockIdx.x];
+	float* v_w   = _v_w[blockIdx.x];
+	float* wgrad = _wgrad[blockIdx.x];
+	float* w     = _w[blockIdx.x];
+	float* v_b   = _v_b[blockIdx.x];
+	float* bgrad = _bgrad[blockIdx.x];
+	float* b     = _b[blockIdx.x];
 
 	int idx = threadIdx.x;
 	for(int i = 0; i < lenw; i += blockDim.x)
@@ -112,10 +113,10 @@ __global__ void g_vecAdd(double**_v_w, double** _wgrad,double** _w,
 	}
 }
 
-__global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
-	double* v_b, double* bgrad, double* b, 
+__global__ void g_vecAdd(float*v_w, float*wgrad,float* w,
+	float* v_b, float* bgrad, float* b, 
 	int lenw, int lenb,
-	double momentum, double lratew, double lrateb)
+	float momentum, float lratew, float lrateb)
 {
 	int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	for(int i = 0; i < lenw; i += blockDim.x * gridDim.x)
@@ -139,14 +140,14 @@ __global__ void g_vecAdd(double*v_w, double*wgrad,double* w,
 }
 
 
-__global__ void g_getCost_3(double* cost,
-	double** weight,
-	double lambda, int wlen)
+__global__ void g_getCost_3(float* cost,
+	float** weight,
+	float lambda, int wlen)
 {
-	extern __shared__ double _sum[];
+	extern __shared__ float _sum[];
 	_sum[threadIdx.x] = 0;
 	__syncthreads();
-	double* w = weight[blockIdx.x];
+	float* w = weight[blockIdx.x];
 
 	for(int i = 0; i < wlen; i += blockDim.x)
 	{
@@ -178,9 +179,9 @@ __global__ void g_getCost_3(double* cost,
 
 /*
 */
-__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, int batch)
+__global__ void g_getBgrad(float* softMaxDelta, float* bgrad, float* dropb, int batch)
 {
-	extern __shared__ double _sum[];
+	extern __shared__ float _sum[];
 	_sum[threadIdx.x] = softMaxDelta[threadIdx.x * gridDim.x + blockIdx.x];
 
 	int len = blockDim.x;
@@ -204,11 +205,11 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, double* dropb, i
 
 /*
 dim3(curDelta->cols), dim3(curDelta->rows), 
-sizeof(double) * curDelta->rows
+sizeof(float) * curDelta->rows
 */
-__global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
+__global__ void g_getBgrad(float* softMaxDelta, float* bgrad, int batch)
 {
-	extern __shared__ double _sum[];
+	extern __shared__ float _sum[];
 	_sum[threadIdx.x] = softMaxDelta[threadIdx.x * gridDim.x + blockIdx.x];
 
 	int len = blockDim.x;
@@ -232,10 +233,10 @@ __global__ void g_getBgrad(double* softMaxDelta, double* bgrad, int batch)
 /*
 * function: getcost
 */
-__global__ void g_getCost_1(double* softMaxP,
-	double* groundTruth, double* cost, int*y, int rows, int cols, int batch)
+__global__ void g_getCost_1(float* softMaxP,
+	float* groundTruth, float* cost, int*y, int rows, int cols, int batch)
 {
-	extern __shared__ double _sum[];
+	extern __shared__ float _sum[];
 	int len = rows * cols;
 	for(int i = 0; i < len; i += blockDim.x)
 	{
@@ -284,11 +285,11 @@ __global__ void g_getCost_1(double* softMaxP,
 }
 
 
-__global__ void g_getCost_2(double* cost,
-	double* weight,
-	double lambda, int len)
+__global__ void g_getCost_2(float* cost,
+	float* weight,
+	float lambda, int len)
 {
-	extern __shared__ double _sum[];
+	extern __shared__ float _sum[];
 	_sum[threadIdx.x] = 0;
 	__syncthreads();
 	for(int i = 0; i < len; i += blockDim.x)
@@ -322,8 +323,8 @@ __global__ void g_getCost_2(double* cost,
 function: g_preDeltaFormat
 threads : <<<dim3(batch), dim3(512)>>> 
 */
-__global__ void g_preDeltaFormat(double* cuPoolFlDelta, 
-	double* cuPoolDelta, int batch, int size, int channels){
+__global__ void g_preDeltaFormat(float* cuPoolFlDelta, 
+	float* cuPoolDelta, int batch, int size, int channels){
 	int b = blockIdx.x;
 	int len = size * channels;
 	for(int i = 0; i < len; i += blockDim.x){
@@ -342,7 +343,7 @@ __global__ void g_preDeltaFormat(double* cuPoolFlDelta,
 * blocks  : dim3(batch)
 * threads : dim3(min(512, cuPool[poolidx]->cols))
 */
-__global__ void g_convert(double* cuPool, double*cuPoolToFlActi, int batch, int size, int channel){
+__global__ void g_convert(float* cuPool, float*cuPoolToFlActi, int batch, int size, int channel){
 	int b   = blockIdx.x;
 	int len = size * channel;
 	for(int i = 0; i < len; i+=blockDim.x){

@@ -20,7 +20,7 @@ cublasHandle_t& getHandle()
 }
 /*matrix multiply*/
 /*z = x * y*/
-void matrixMul(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
+void matrixMul(cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z)
 {
 	if(x->channels != 1 || y->channels != 1 || z->channels != 1){
 		printf("matrix mul chanels != 1\n");
@@ -30,10 +30,10 @@ void matrixMul(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 		printf("matrix mul chanels != 1\n");
 		exit(0);
 	}
-	double alpha = 1.0;
-	double beta = 0.0;
+	float alpha = 1.0;
+	float beta = 0.0;
 	cublasStatus_t stat;
-	stat = cublasDgemm(
+	stat = cublasSgemm(
 		getHandle(), 
 		CUBLAS_OP_N,
 		CUBLAS_OP_N,
@@ -59,7 +59,7 @@ void matrixMul(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 }
 
 /*z = T(x) * y*/
-void matrixMulTA(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
+void matrixMulTA(cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z)
 {
 	if(x->channels != 1 || y->channels != 1 || z->channels != 1){
 		printf("matrix mul chanels != 1\n");
@@ -70,9 +70,9 @@ void matrixMulTA(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 		exit(0);
 	}
 	cublasStatus_t stat;
-	double alpha = 1.0;
-	double beta = 0.0;
-	stat = cublasDgemm(
+	float alpha = 1.0;
+	float beta = 0.0;
+	stat = cublasSgemm(
 		getHandle(), 
 		CUBLAS_OP_N,
 		CUBLAS_OP_T,
@@ -95,7 +95,7 @@ void matrixMulTA(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 }
 
 /*z = x * T(y)*/
-void matrixMulTB(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
+void matrixMulTB(cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z)
 {
 	if(x->channels != 1 || y->channels != 1 || z->channels != 1){
 		printf("matrix mul chanels != 1\n");
@@ -106,9 +106,9 @@ void matrixMulTB(cuMatrix<double>* x, cuMatrix<double>*y, cuMatrix<double>*z)
 		exit(0);
 	}
 	cublasStatus_t stat;
-	double alpha = 1.0;
-	double beta = 0.0;
-	stat = cublasDgemm(
+	float alpha = 1.0;
+	float beta = 0.0;
+	stat = cublasSgemm(
 		getHandle(), 
 		CUBLAS_OP_T,
 		CUBLAS_OP_N,

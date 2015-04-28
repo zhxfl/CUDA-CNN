@@ -2,16 +2,16 @@
 #NON_LINEARITY = NL_SIGMOID , NL_TANH , NL_RELU#
 IS_GRADIENT_CHECKING = false;   #is true when debug#
 SHOWIMAGE = false;              #show the images after transformation#
-TEST_EPOCH = 10000;                 #the period to get the test dataset's error rate#
-WHITE_NOISE = 0.1;  
+TEST_EPOCH = 10;                 #the period to get the test dataset's error rate#
+WHITE_NOISE = 0.0;  
 
 
-BATCH_SIZE = 256;               #test image size should be divided with no remainder#
+BATCH_SIZE = 128;               #test image size should be divided with no remainder#
 CHANNELS = 1;                   #1, 3, 4#
 CROP = 0;                       #0<= crop <=imgSize#
-SCALE = 13.0;                   #13% of ImgSize#
-ROTATION = 13.0;                #angle#
-DISTORTION = 4.0;               #just for mnist#
+SCALE = 12.0;                   #13% of ImgSize#
+ROTATION = 12.0;                #angle#
+DISTORTION = 3.4;               #just for mnist#
 HORIZONTAL = false;             #horizontal reflection#
 
 [
@@ -48,8 +48,8 @@ NAME  = conv2;
 INPUT = pooling1;
 KERNEL_SIZE = 5;
 PADDING = 0;
-KERNEL_AMOUNT = 8;
-COMBINE_FEATRUE_MAPS = 128;       #According to paper "notes on Convolutional Neural NetWorks#
+KERNEL_AMOUNT = 64;
+COMBINE_FEATRUE_MAPS = 32;       #According to paper "notes on Convolutional Neural NetWorks#
 WEIGHT_DECAY = 1e-6;
 initW = 0.1;
 NON_LINEARITY = NL_RELU;
@@ -69,7 +69,7 @@ SKIP = 2;
 LAYER = FC;
 NAME  = fc1;
 INPUT =	pooling2;
-NUM_FULLCONNECT_NEURONS = 1024;
+NUM_FULLCONNECT_NEURONS = 512;
 WEIGHT_DECAY = 1e-8;
 DROPOUT_RATE = 0.5;
 initW = 0.01;

@@ -10,7 +10,7 @@
 
 
 /*read trainning data and lables*/
-int readMnistData(cuMatrixVector<double> &x,
+int readMnistData(cuMatrixVector<float> &x,
 	cuMatrix<int>* &y, 
 	std::string xpath,
 	std::string ypath,

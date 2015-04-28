@@ -25,15 +25,15 @@ void cuReadConvNet(
  *function: trainning the network
 */
 
-void cuTrainNetwork(cuMatrixVector<double>&x, 
+void cuTrainNetwork(cuMatrixVector<float>&x, 
 	cuMatrix<int>*y ,
-	cuMatrixVector<double>& testX,
+	cuMatrixVector<float>& testX,
 	cuMatrix<int>* testY,
 	int batch,
 	int ImgSize,
 	int nclasses,
-	std::vector<double>&nlrate,
-	std::vector<double>&nMomentum,
+	std::vector<float>&nlrate,
+	std::vector<float>&nMomentum,
 	std::vector<int>&epoCount,
 	cublasHandle_t handle);
 
@@ -43,8 +43,8 @@ void cuFreeConvNet();
 
 void cuFreeCNNMemory(
 	int batch,
-	cuMatrixVector<double>&trainX, 
-	cuMatrixVector<double>&testX);
+	cuMatrixVector<float>&trainX, 
+	cuMatrixVector<float>&testX);
 
 int cuVoteAdd(cuMatrix<int>*& voteSum, 
 	cuMatrix<int>*& predict,
