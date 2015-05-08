@@ -87,7 +87,7 @@ void
 
 	cuMatrix<float>* aver(new cuMatrix<float>(n_rows, n_cols, n_channels));
 
-	for (int imgId = 0; imgId < trainX.size(); imgId++) {
+	for (int imgId = 0; imgId < (int)trainX.size(); imgId++) {
 		int len = trainX[0]->getLen();
 		for (int i = 0; i < len; i++) {
 			aver->getHost()[i] += trainX[imgId]->getHost()[i];
@@ -99,7 +99,7 @@ void
 		aver->getHost()[i] /= len;
 	}
 
-	for (int imgId = 0; imgId < trainX.size(); imgId++) {
+	for (int imgId = 0; imgId < (int)trainX.size(); imgId++) {
 		int len = trainX[0]->getLen();
 		for (int i = 0; i < len; i++) {
 			 trainX[imgId]->getHost()[i] -= aver->getHost()[i];
@@ -108,7 +108,7 @@ void
 
 	aver->cpuClear();
 
-	for (int imgId = 0; imgId < testX.size(); imgId++) {
+	for (int imgId = 0; imgId < (int)testX.size(); imgId++) {
 		int len = testX[0]->getLen();
 		for (int i = 0; i < len; i++) {
 			aver->getHost()[i] += testX[imgId]->getHost()[i];
@@ -120,7 +120,7 @@ void
 		aver->getHost()[i] /= len;
 	}
 
-	for (int imgId = 0; imgId < testX.size(); imgId++) {
+	for (int imgId = 0; imgId < (int)testX.size(); imgId++) {
 		int len = testX[0]->getLen();
 		for (int i = 0; i < len; i++) {
 			testX[imgId]->getHost()[i] -= aver->getHost()[i];

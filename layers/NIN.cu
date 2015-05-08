@@ -379,7 +379,7 @@ NIN::NIN(std::string name)
 
 void NIN::save(FILE* file)
 {
-	for(int a = 0; a < w.size(); a++){
+	for(int a = 0; a < (int)w.size(); a++){
 		
 		w[a]->toCpu();
 		b[a]->toCpu();
@@ -404,10 +404,10 @@ void NIN::save(FILE* file)
 
 void NIN::clearMomentum()
 {
-	for(int i = 0; i < momentum_b.size(); i++){
+	for(int i = 0; i < (int)momentum_b.size(); i++){
 		momentum_b[i]->gpuClear();
 	}
-	for(int i = 0; i < momentum_w.size(); i++){
+	for(int i = 0; i < (int)momentum_w.size(); i++){
 		momentum_w[i]->gpuClear();
 	}
 }
@@ -418,12 +418,12 @@ void NIN::initRandom()
 	float initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
-		for(int i = 0; i < w.size(); i++){
+		for(int i = 0; i < (int)w.size(); i++){
 			float epsilon = initW;
 			for(int c = 0; c < w[i]->channels; c++)
 			{
-				float r1 = 0.5 + 4.0 * (rand()) / RAND_MAX;
-				float r2 = 0.5 + 4.0 * (rand()) / RAND_MAX;
+				float r1 = 0.5f + 4.0f * (rand()) / RAND_MAX;
+				float r2 = 0.5f + 4.0f * (rand()) / RAND_MAX;
 				createGaussian(w[i]->getHost() + c * w[i]->getArea(), r1,r2,
 					1, 1, w[i]->channels,
 					epsilon);
@@ -432,9 +432,9 @@ void NIN::initRandom()
 		}
 	}
 	else{
-		for(int i = 0; i < w.size(); i++){
-			for(int j = 0; j < w[i]->getLen(); j++){
-				w[i]->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+		for(int i = 0; i < (int)w.size(); i++){
+			for(int j = 0; j < (int)w[i]->getLen(); j++){
+				w[i]->getHost()[j] =  initW * (2.0f * rand() / RAND_MAX - 1.0f);
 				//printf("%f ", w[i]->hostData[j]);
 			}//printf("\n");
 			w[i]->toGpu();
@@ -447,7 +447,7 @@ void NIN::initRandom()
 void NIN::initFromCheckpoint(FILE* file)
 {
 	float val = 0;
-	for(int a = 0; a < w.size(); a++){
+	for(int a = 0; a < (int)w.size(); a++){
 		for(int c = 0; c < w[a]->channels; c++){
 			for(int i = 0; i < w[a]->rows; i++){
 				for(int j = 0; j < w[a]->cols; j++){

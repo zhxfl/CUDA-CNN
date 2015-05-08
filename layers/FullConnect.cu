@@ -324,8 +324,8 @@ void FullConnect::initRandom()
 		float epsilon = initW;
 		for(int c = 0; c < w->channels; c++)
 		{
-			float r1 = 0.01 + 5 * (rand()) / RAND_MAX;
-			float r2 = 0.01 + 5 * (rand()) / RAND_MAX;
+			float r1 = 0.01f + 5.0f * (rand()) / RAND_MAX;
+			float r2 = 0.01f + 5.0f * (rand()) / RAND_MAX;
 			createGaussian(w->getHost() + c * w->getArea(), r1,r2,
 				w->rows, w->cols, w->channels,
 				epsilon);
@@ -335,7 +335,7 @@ void FullConnect::initRandom()
 	else{
 		//float epsilon = sqrt((float)6) / sqrt((float)(outputs->rows + outputs->cols));
 		for(int j = 0; j < w->getLen(); j++){
-			w->getHost()[j] =  initW * (2.0 * rand() / RAND_MAX - 1.0);
+			w->getHost()[j] =  initW * (2.0f * rand() / RAND_MAX - 1.0f);
 			//printf("%f ", w[i]->hostData[j]);
 		}//printf("\n");
 		w->toGpu();

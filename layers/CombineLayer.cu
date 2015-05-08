@@ -121,7 +121,7 @@ CombineLayer::CombineLayer(std::string name)
 	inputsCols     = new cuMatrix<int>(config->m_inputs.size(), 1, 1);
 
 	int len = 0;
-	for(int i = 0; i < config->m_inputs.size(); i++){
+	for(int i = 0; i < (int)config->m_inputs.size(); i++){
 		ConvLayerBase * preLayer = (ConvLayerBase*)Layers::instance()->get(config->m_inputs[i]);
 		inputs.push_back(preLayer->getOutputs());
 		preDelta.push_back(preLayer->getCurDelta());

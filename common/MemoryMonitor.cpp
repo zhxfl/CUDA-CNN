@@ -19,7 +19,7 @@ void* MemoryMonitor::cpuMalloc(int size){
 cudaError_t MemoryMonitor::gpuMalloc(void** devPtr, int size){
 	gpuMemory += size;
 	cudaError_t error = cudaMalloc(devPtr, size);
-	gpuPoint[*devPtr] = size;
+	gpuPoint[*devPtr] = (float)size;
 // 	if(size >= 1024 * 1024){
 // 		printf("gpu malloc memory %fMb\n", 1.0 * size / 1024 / 1024);
 // 	}

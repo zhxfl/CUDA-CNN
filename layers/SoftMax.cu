@@ -228,8 +228,8 @@ void SoftMax::initRandom()
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
 		float epsilon = initW;
 		for(int c = 0; c < w->channels; c++){
-			float r1 = 0.01f + 5.0 * (rand()) / RAND_MAX;
-			float r2 = 0.01f + 5.0 * (rand()) / RAND_MAX;
+			float r1 = 0.01f + 5.0f * (rand()) / RAND_MAX;
+			float r2 = 0.01f + 5.0f * (rand()) / RAND_MAX;
 			createGaussian(w->getHost() + c * w->getArea(), r1,r2,
 				w->rows, w->cols, w->channels,
 				epsilon);

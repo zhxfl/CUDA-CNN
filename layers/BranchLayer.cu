@@ -85,7 +85,7 @@ BranchLayer::BranchLayer(std::string name)
 	inputAmount = outputAmount;
 
 	batch = Config::instance()->getBatchSize();
-	for(int i = 0; i < config->m_outputs.size(); i++){
+	for(int i = 0; i < (int)config->m_outputs.size(); i++){
 		outputs.push_back (new cuMatrix<float>(batch, outputDim * outputDim, outputAmount));
 		curDelta.push_back(new cuMatrix<float>(batch, outputDim * outputDim, outputAmount));
 		mapId[config->m_outputs[i]] = i;

@@ -62,8 +62,8 @@ void showImg(cuMatrix<float>* x, float scala)
 	}
 
 	Size size;
-	size.width  = src.cols * scala;
-	size.height = src.rows * scala;
+	size.width  = int(1.0f * src.cols * scala);
+	size.height = int(1.0f * src.rows * scala);
 
 
 	Mat dst(size.height, size.width, CV_32);
@@ -132,7 +132,7 @@ void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
 			float val1 = 1.0f / (dElasticSigma1 * dElasticSigma2 * 2.0f * 3.1415926535897932384626433832795f);
 			float val2 = 1.0f * (row-iiMidr)*(row-iiMidr) / (dElasticSigma1 * dElasticSigma1) + 1.0f * (col-iiMidc)*(col-iiMidc) / (dElasticSigma2 * dElasticSigma2) 
 				+ 2.0f * (row - iiMidr) * (col - iiMidc) / (dElasticSigma1 * dElasticSigma2);
-			gaussian[row * cols + col] = val1 * exp(-1.0 * val2);
+			gaussian[row * cols + col] = val1 * exp(-1.0f * val2);
 			//gaussian[row * cols + col] = exp(gaussian[row * cols + col]);
 			_sum += gaussian[row * cols + col];
 // 			if(_max < fabs(gaussian[row * cols + col]))
@@ -180,7 +180,7 @@ void dropDelta(cuMatrix<float>* M, float cuDropProb)
 void initMatrix(cuMatrix<float>* M, float initW)
 {
 	for(int c = 0; c < M->channels; c++){
-		srand(time(NULL));
+		srand(clock());
 		Mat matrix2xN = Mat::zeros(M->rows,M->cols,CV_64FC1);
 		randn(matrix2xN, 0, initW); 
 		for(int i = 0; i < matrix2xN.rows; i++){

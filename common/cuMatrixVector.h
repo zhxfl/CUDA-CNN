@@ -50,7 +50,7 @@ public:
 			exit(0);
 		}
 
-		for(int p = 0; p < m_vec.size(); p++){
+		for(int p = 0; p < (int)m_vec.size(); p++){
 			m_hstPoint[p] = m_vec[p]->getDev();
 		}
 

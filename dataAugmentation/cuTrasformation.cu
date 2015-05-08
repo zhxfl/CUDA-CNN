@@ -189,6 +189,13 @@ __global__ void g_generateDistortionMap(
 	}
 	__syncthreads();
 
+	float rand1 = rand[blockIdx.x];
+	float rand2 = rand[blockIdx.x];
+	if(fabs(dMaxRotation) >= 0.01){
+		rand1 += 1.0;
+		rand2 += 1.0;
+	}
+
 	for(int is = 0; is < ImgSize2; is += blockDim.x)
 	{
 		int idx = is + threadIdx.x;
@@ -196,8 +203,9 @@ __global__ void g_generateDistortionMap(
 		{
 			int row = idx / ImgSize;
 			int col = idx % ImgSize;
-			float dSFHoriz = dMaxScaling / 100.0 * rand[blockIdx.x];
-			float dSFVert  = dMaxScaling / 100.0 * rand[blockIdx.x + 1];
+
+			float dSFHoriz = dMaxScaling / 100.0 * rand1;
+			float dSFVert  = dMaxScaling / 100.0 * rand2;
 
 			int iMid = ImgSize / 2;
 

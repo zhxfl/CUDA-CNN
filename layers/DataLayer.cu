@@ -24,7 +24,6 @@ DataLayer::DataLayer(std::string name){
 	m_name = name;
 	batchId = 0;
 
-
 	inputDim  = Config::instance()->getImageSize() + Config::instance()->getCrop();
 	outputDim = Config::instance()->getImageSize();
 	batch     = Config::instance()->getBatchSize();
@@ -153,7 +152,7 @@ void DataLayer::synchronize(){
 
 void DataLayer::getBatchImageWithStreams(cuMatrixVector<float>& inputs, int start){
 	int id = 1 - batchId;
-	for(int i = 0; i < batchImg[id].size(); i++){
+	for(int i = 0; i < (int)batchImg[id].size(); i++){
 		memcpy(batchImg[id][i]->getHost(), inputs[i + start]->getHost(), sizeof(float) * batchImg[id][i]->getLen());
 		batchImg[id][i]->toGpu(stream1);
 	}
