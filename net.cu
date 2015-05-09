@@ -35,7 +35,7 @@ std::vector<ConfigBase*>que;
 void cuSaveConvNet()
 {	
 	FILE *pOut = fopen("Result/checkPoint.txt", "w");
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->save(pOut);
 	}
@@ -52,7 +52,7 @@ void cuReadConvNet(
 {	
 	FILE *pIn = fopen(path, "r");
 
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->initFromCheckpoint(pIn);
 	}
@@ -65,7 +65,7 @@ void buildNetWork(int trainLen, int testLen)
 	/*BFS*/
 	std::queue<ConfigBase*>qqq;
 	std::set<ConfigBase*> inque;
-	for(int i = 0; i < Config::instance()->getFirstLayers().size(); i++){
+	for(int i = 0; i < (int)Config::instance()->getFirstLayers().size(); i++){
 		qqq.push(Config::instance()->getFirstLayers()[i]);
 		inque.insert(Config::instance()->getFirstLayers()[i]);
 	}
@@ -90,7 +90,7 @@ void buildNetWork(int trainLen, int testLen)
 		}else if(top->m_type == std::string("COMBINELAYER")){
 			ConfigCombineLayer *bl = static_cast<ConfigCombineLayer*>(top);
 			bool flag = true;
-			for(int i = 0; i < bl->m_inputs.size(); i++){
+			for(int i = 0; i < (int)bl->m_inputs.size(); i++){
 				ConfigBase* cb = Config::instance()->getLayerByName(bl->m_inputs[i]);
 				if(finish.find(cb) == finish.end()){
 					qqq.push(top);
@@ -119,7 +119,7 @@ void buildNetWork(int trainLen, int testLen)
 
 		sprintf(logStr, "layer %15s:", top->m_name.c_str());
 		LOG(logStr, "Result/log.txt");
-		for(int n = 0; n < top->m_next.size(); n++){
+		for(int n = 0; n < (int)top->m_next.size(); n++){
 			if(inque.find(top->m_next[n]) == inque.end()){
 				qqq.push(top->m_next[n]);
 				inque.insert(top->m_next[n]);
@@ -150,7 +150,7 @@ void cuFreeCNNMemory(
 void updataWB()
 {
 	/*updateWb*/
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->updateWeight();
 	}
@@ -161,7 +161,7 @@ void updataWB()
 void getNetworkCost(int* y)
 {
 	/*feedforward*/
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		if(que[i]->m_type == std::string("SOFTMAX")){
 			SoftMax* sm = (SoftMax*)Layers::instance()->get(que[i]->m_name);
 			sm->setPredict(y);
@@ -169,13 +169,13 @@ void getNetworkCost(int* y)
 	}
 	
 
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->feedforward();
 	}
 
 	/*backpropagation*/
-	for(int i = que.size() - 1; i >=0; i--){
+	for(int i = (int)que.size() - 1; i >=0; i--){
 		ConfigBase* top = que[i];
 		LayerBase* layer = Layers::instance()->get(top->m_name);
 		layer->backpropagation();
@@ -211,12 +211,12 @@ void resultProdict(int* vote,int start)
 {
 	/*feedforward*/
 
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->feedforward();
 	}
 
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		if(que[i]->m_type == std::string("SOFTMAX")){
 			g_getCorrect<<<dim3(1), Config::instance()->getBatchSize()>>>(
 				Layers::instance()->get(que[i]->m_name)->getOutputs()->getDev(),
@@ -341,19 +341,19 @@ void predictTestDate(cuMatrixVector<float>&x,
 					for (int h = 0; h < hlen; h++) {
 						for (int c = 0; c < clen; c++) {
 							dl->getBatchImageWithStreams(testX, 0);
-							for (int p = 0; p < (testX.size() + batch - 1) / batch; p++) {
+							for (int p = 0; p < ((int)testX.size() + batch - 1) / batch; p++) {
 								dl->synchronize();
 								printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
 								int tstart = p * batch;
-								if(tstart + batch <= testX.size() - batch)
+								if(tstart + batch <= (int)testX.size() - batch)
 									dl->getBatchImageWithStreams(testX, tstart + batch);
 								else {
 									int start = testX.size() - batch;
 									dl->getBatchImageWithStreams(testX, start);
 								}
 
-								if(tstart + batch > testX.size()){
-									tstart = testX.size() - batch;
+								if(tstart + batch > (int)testX.size()){
+									tstart = (int)testX.size() - batch;
 								}
 
 								dl->testData(cropr[c], cropc[c], rotate[rid], scalex[sidx], scaley[sidy], h);
@@ -390,7 +390,7 @@ void getBatchImageWithStreams(cuMatrixVector<float>&x,
 	cuMatrixVector<float>&batchImg, 
 	int start, 
 	cudaStream_t stream1){
-	 for(int i = 0; i < batchImg.size(); i++){
+	 for(int i = 0; i < (int)batchImg.size(); i++){
 		 memcpy(batchImg[i]->getHost(), x[i + start]->getHost(), sizeof(float) * batchImg[i]->getLen());
 		 batchImg[i]->toGpu(stream1);
 	 }
@@ -398,7 +398,7 @@ void getBatchImageWithStreams(cuMatrixVector<float>&x,
 
 float getCost(){
 	float cost = 0.0;
-	for(int i = 0; i < que.size(); i++){
+	for(int i = 0; i < (int)que.size(); i++){
 		LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
 		layer->calCost();
 		layer->printCost();
@@ -436,11 +436,11 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 
 	int epochs = 10000;
 
-	float lrate = 0.05;
-	float Momentum = 0.9;
+	float lrate = 0.05f;
+	float Momentum = 0.9f;
 	int id = 0;
 	for (int epo = 0; epo < epochs; epo++) {
-		if (id >= nlrate.size())
+		if (id >= (int)nlrate.size())
 			break;
 		lrate = nlrate[id];
 		Momentum = nMomentum[id];
@@ -448,7 +448,7 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 		Config::instance()->setMomentum(Momentum);
 
 		float start, end;
-		start = clock();
+		start = (float)clock();
 		cuApplyRandom(batch, clock() + epo, ImgSize);
 
 		Config::instance()->setTraining(true);
@@ -459,19 +459,19 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 		DataLayer *dl = static_cast<DataLayer*>(Layers::instance()->get("data"));
 		dl->getBatchImageWithStreams(x, 0);
 
-		for (int k = 0; k < (x.size() + batch - 1) / batch; k ++) {
+		for (int k = 0; k < ((int)x.size() + batch - 1) / batch; k ++) {
 			dl->synchronize();
 			int start = k * batch;
 			printf("train %2d%%", 100 * start / ((x.size() + batch - 1)));
 			
-			if(start + batch <= x.size() - batch)
+			if(start + batch <= (int)x.size() - batch)
 				dl->getBatchImageWithStreams(x, start + batch);
 			else{
 				int tstart = x.size() - batch;
 				dl->getBatchImageWithStreams(x, tstart);
 			}
-			if(start + batch > x.size()){
-				start = x.size() - batch;
+			if(start + batch > (int)x.size()){
+				start = (int)x.size() - batch;
 			}
 
 			dl->trainData();
@@ -482,7 +482,7 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 
 		float cost = getCost();
 
-		end = clock();
+		end = (float)clock();
 		sprintf(logStr, "epoch=%d time=%.03lfs cost=%f Momentum=%.06lf lrate=%.08lf\n",
 			epo, (float) (end - start) / CLOCKS_PER_SEC,
 			cost,
@@ -500,7 +500,7 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 
 		sprintf(logStr, "===================weight value================\n");
 		LOG(logStr, "Result/log.txt");
-		for(int i = 0; i < que.size(); i++){
+		for(int i = 0; i < (int)que.size(); i++){
 			LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 			layer->printParameter();
 		}

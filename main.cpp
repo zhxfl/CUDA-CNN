@@ -1,3 +1,4 @@
+#pragma warning (disable: 4819)
 #include <stdlib.h>
 #include <math.h>
 #include <cuda_runtime.h>

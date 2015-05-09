@@ -190,10 +190,10 @@ __global__ void g_generateDistortionMap(
 	__syncthreads();
 
 	float rand1 = rand[blockIdx.x];
-	float rand2 = rand[blockIdx.x];
+	float rand2 = rand[blockIdx.x + 1];
 	if(fabs(dMaxRotation) >= 0.01){
-		rand1 += 1.0;
-		rand2 += 1.0;
+		if(rand1 <= 0.0) rand1 = 0.0;
+		if(rand2 <= 0.0) rand2 = 0.0;
 	}
 
 	for(int is = 0; is < ImgSize2; is += blockDim.x)
