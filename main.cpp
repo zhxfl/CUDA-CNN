@@ -566,7 +566,6 @@ void formatImagesForPCA(cuMatrixVector<float>&trainX, Mat& out)
 
 void saveEigen(Mat& eigenValues, Mat& eigenVecotrs){
 	FILE *pOut = fopen("eigen", "w");
-
 	for(int i = 0; i < eigenValues.rows; i++){
 		fprintf(pOut, "%f ", eigenValues.at<float>(i));
 	}fprintf(pOut, "\n");

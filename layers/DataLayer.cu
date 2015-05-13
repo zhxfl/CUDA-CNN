@@ -118,9 +118,18 @@ void DataLayer::trainData()
 		Mat matrix2xN(batch, 3, CV_32FC1);
 		randn(matrix2xN, 0, 0.1f);
 		for(int i = 0; i < batch; i++){
+			Mat	nev(3, 1, CV_32FC1);
+			eigenValues.copyTo(nev);
+
 			for(int j = 0; j < 3; j++){
-				color_noise->set(i, j, 0,  matrix2xN.at<float>(i, j) * eigenValues.at<float>(j) );
+				nev.at<float>(j) = matrix2xN.at<float>(i, j) * eigenValues.at<float>(j);
 			}
+
+			Mat t = nev.t() * eigenVectors.t();
+			for(int j = 0; j < 3; j++){
+				color_noise->set(i, j, 0,  t.at<float>(j));
+				printf("%f ", t.at<float>(j));
+			}printf("\n");
 		}
 		color_noise->toGpu();
 		cuApplyColorNoise(batchImg[batchId].m_devPoint, color_noise->getDev(), batch, inputDim);
