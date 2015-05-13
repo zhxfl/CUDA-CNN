@@ -3,6 +3,10 @@
 #include "Config.h"
 #include <time.h>
 
+#include "opencv2/opencv.hpp"
+#include "opencv2/core/core_c.h"
+#include "opencv2/highgui/highgui.hpp"
+
 using namespace cv;
 
 int getCV_32()
@@ -193,4 +197,27 @@ void initMatrix(cuMatrix<float>* M, float initW)
 	}
 
 	M->toGpu();
+}
+
+
+
+void PCAwrite(FileStorage& fs, PCA& pca)
+{
+	CV_Assert( fs.isOpened() );
+
+	fs << "name" << "PCA";
+	fs << "vectors" << pca.eigenvectors;
+	fs << "values" << pca.eigenvalues;
+	fs << "mean" << pca.mean;
+}
+
+void PCAread(const FileNode& fs, PCA& pca)
+{
+	CV_Assert( !fs.empty() );
+	String name = (String)fs["name"];
+	CV_Assert( name == "PCA" );
+
+	cv::read(fs["vectors"], pca.eigenvectors);
+	cv::read(fs["values"], pca.eigenvalues);
+	cv::read(fs["mean"], pca.mean);
 }

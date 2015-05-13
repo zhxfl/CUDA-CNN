@@ -9,7 +9,7 @@ void cuApplyCrop(float**inputs, float**outputs, int batch, int ImgSize, int crop
 void cuApplyHorizontal(float **inputs, float**outputs, int batch, int ImgSize, int flag);
 void cuApplyScaleAndRotate(int batch, int ImgSize, float scalingx, float scalingy, float rotation);
 void cuApplyWhiteNoise(float **inputs, float**outputs, int batch, int ImgSize, float stdev);
-
+void cuApplyColorNoise(float** inputs, float* colorNoise, int batch, int ImgSize);
 
 #define RANDOM_HORIZONTAL 0
 #define HORIZONTAL 1

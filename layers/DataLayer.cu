@@ -9,6 +9,7 @@
 #include "../common/util.h"
 #include "../dataAugmentation/cuTrasformation.cuh"
 
+using namespace cv;
 
 /*
  * dim3 block = dim3(batch, outputAmount);
@@ -30,6 +31,8 @@ DataLayer::DataLayer(std::string name){
 	inputAmount = Config::instance()->getChannels();
 	outputAmount= inputAmount;
 	outputs = new cuMatrix<float>(batch, outputDim * outputDim, outputAmount);
+	color_noise = new cuMatrix<float>(batch, 3, 1);
+
 
 	for(int i = 0; i < 2; i ++){
 		for(int j = 0; j < batch; j++){
@@ -45,6 +48,9 @@ DataLayer::DataLayer(std::string name){
 
 	checkCudaErrors(cudaStreamCreate(&stream1));
 
+	/*load PCA*/
+	readEigen(eigenValues, eigenVectors);
+	printf("read eigen\n");
 	Layers::instance()->set(m_name, this);
 }
 
@@ -87,10 +93,46 @@ void DataLayer::feedforward(){
 	
 }; 
 
+void DataLayer::readEigen(Mat& eigenValues, Mat& eigenVecotrs){
+	eigenValues  = Mat::zeros(3, 1, CV_32FC1);
+	eigenVecotrs = Mat::zeros(3, 3, CV_32FC1);
+
+	FILE *pOut = fopen("eigen", "r");
+
+	for(int i = 0; i < eigenValues.rows; i++){
+		fscanf(pOut, "%f", &eigenValues.at<float>(i));
+	}
+
+	for(int i = 0; i < eigenVecotrs.rows; i++){
+		for(int j = 0; j < eigenVecotrs.cols; j++){
+			fscanf(pOut, "%f", &eigenVecotrs.at<float>(i, j));
+		}
+	}
+	fclose(pOut);
+}
+
 void DataLayer::trainData()
 {
-	cuApplyCropRandom(batchImg[batchId].m_devPoint,
-		cropOutputs.m_devPoint, batch, outputDim);
+	/*add noise*/
+	if(Config::instance()->getChannels() == 3){
+		Mat matrix2xN(batch, 3, CV_32FC1);
+		randn(matrix2xN, 0, 0.1f);
+		for(int i = 0; i < batch; i++){
+			for(int j = 0; j < 3; j++){
+				color_noise->set(i, j, 0,  matrix2xN.at<float>(i, j) * eigenValues.at<float>(j) );
+			}
+		}
+		color_noise->toGpu();
+		cuApplyColorNoise(batchImg[batchId].m_devPoint, color_noise->getDev(), batch, inputDim);
+	}
+	
+// 		showImg(img, 5);
+// 
+//  		int key = 0;
+//  		while(key != 'q' )
+//  			key = waitKey();
+	
+	cuApplyCropRandom(batchImg[batchId].m_devPoint, cropOutputs.m_devPoint, batch, outputDim);
 
 	if(fabs(Config::instance()->getDistortion()) >= 0.1 || Config::instance()->getScale() >= 1 || Config::instance()->getRotation() >= 1)
 		cuApplyDistortion(cropOutputs.m_devPoint, cropOutputs.m_devPoint, batch, outputDim);
