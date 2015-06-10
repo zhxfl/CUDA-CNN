@@ -518,30 +518,6 @@ __global__ void g_applyCropRandom(float**_inputs, float**_outputs, float* random
 }
 
 
-/*
- * blocks  : dim3(batch)
- * threads : dim3(min(ImgSize*ImgSize, 512))
- */
-__global__ void g_applyColorNoise(float**_inputs, float* _noise, int imgSize)
-{
-	int imgSize2 = imgSize * imgSize;
-	float* input = _inputs[blockIdx.x];
-	float* noise = _noise + blockIdx.x * 3;
-
-	for(int is = 0; is < imgSize2; is += blockDim.x)
-	{
-		int idx = is + threadIdx.x;
-		if(idx < imgSize2)
-		{
-			int x  = idx / imgSize;
-			int y  = idx % imgSize;
-			for(int c = 0; c < 3; c++){
-				input[c * imgSize2 + idx] = input[c * imgSize2 + idx] + noise[c];
-			}
-		}
-	}
-}
-
 
 /*
  * blocks : dim3(batch, channels)
@@ -587,15 +563,6 @@ void cuApplyCropRandom(float**inputs, float**outputs, int batch, int ImgSize)
 	g_applyCropRandom<<<block,threads>>>(inputs, outputs, cu_d_randomNum, Config::instance()->getCrop(), ImgSize);
 	cudaDeviceSynchronize();
 	getLastCudaError("g_applyCropRandom");
-}
-
-void cuApplyColorNoise(float** inputs, float* colorNoise, int batch, int ImgSize){
-	dim3 block   = dim3(batch);
-	dim3 threads = min(512, ImgSize * ImgSize);
-
-	g_applyColorNoise<<<block,threads>>>(inputs, colorNoise, ImgSize);
-	cudaDeviceSynchronize();
-	getLastCudaError("g_applyColorNoise");
 }
 
 void cuApplyCrop(float**inputs, float**outputs, int batch, int ImgSize, int cropr, int cropc)

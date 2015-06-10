@@ -10,10 +10,6 @@ ref : ImageNet Classification with Deep Convolutional Neural Networks
 #include <map>
 #include "../common/util.h"
 
-#include "opencv2/opencv.hpp"
-#include "opencv2/core/core_c.h"
-#include "opencv2/highgui/highgui.hpp"
-
 
 class DataLayer: public ConvLayerBase{
 public:
@@ -46,7 +42,6 @@ public:
 	}
 
 	void trainData();
-
 	void testData(int cropr, int cropc, 
 		float scalex, float scaley,
 		float rotate,
@@ -54,18 +49,14 @@ public:
 
 	void printParameter(){};
 	void synchronize();
-	
+
 	void getBatchImageWithStreams(cuMatrixVector<float>& inputs, int start);
 private:
-	void readEigen(cv::Mat& eigenValues, cv::Mat& eigenVecotrs);
 	cuMatrix<float>* outputs;
 	cuMatrixVector<float>cropOutputs;
 	cuMatrixVector<float>batchImg[2];/*batch size images*/
-	cuMatrix<float>* color_noise;
 	int batchId;
 	int batch;
 	cudaStream_t stream1;
-	cv::Mat eigenValues;
-	cv::Mat eigenVectors;
 };
 #endif
