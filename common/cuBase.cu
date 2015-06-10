@@ -16,7 +16,7 @@ __device__ float d_nonLinearity(float val, int NONLIN){
 	}
 }
 
-__inline__ __device__ float d_dnonLinearity(float val,int NONLIN){
+__device__ float d_dnonLinearity(float val,int NONLIN){
 	if(NONLIN == NL_RELU)
 	{
 		if(val > 0.0) return 1.0;

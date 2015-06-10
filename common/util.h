@@ -2,6 +2,9 @@
 #define __UTIL_H__
 
 #include "cuMatrix.h"
+#include "opencv2/opencv.hpp"
+#include "opencv2/core/core_c.h"
+#include "opencv2/highgui/highgui.hpp"
 
 #define MAX_THREADS 1024
 
@@ -23,4 +26,7 @@ void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
 
 void dropDelta(cuMatrix<float>* M, float cuDropProb);
 void initMatrix(cuMatrix<float>* M, float iniw);
+
+void PCAwrite(cv::FileStorage& fs, cv::PCA& pca);
+void PCAread(const cv::FileNode& fs, cv::PCA& pca);
 #endif
