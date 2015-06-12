@@ -181,6 +181,19 @@ void dropDelta(cuMatrix<float>* M, float cuDropProb)
 }
 
 
+void dropScale(cuMatrix<float>* M, float cuDropProb)
+{
+	for(int c = 0; c < M->channels; c++){
+		for(int i = 0; i < M->rows; i++){
+			for(int j = 0; j < M->cols; j++){
+				M->set(i, j, c, 1.0 - cuDropProb);
+			}
+		}
+	}
+	M->toGpu();
+}
+
+
 void initMatrix(cuMatrix<float>* M, float initW)
 {
 	for(int c = 0; c < M->channels; c++){
@@ -197,27 +210,4 @@ void initMatrix(cuMatrix<float>* M, float initW)
 	}
 
 	M->toGpu();
-}
-
-
-
-void PCAwrite(FileStorage& fs, PCA& pca)
-{
-	CV_Assert( fs.isOpened() );
-
-	fs << "name" << "PCA";
-	fs << "vectors" << pca.eigenvectors;
-	fs << "values" << pca.eigenvalues;
-	fs << "mean" << pca.mean;
-}
-
-void PCAread(const FileNode& fs, PCA& pca)
-{
-	CV_Assert( !fs.empty() );
-	String name = (String)fs["name"];
-	CV_Assert( name == "PCA" );
-
-	cv::read(fs["vectors"], pca.eigenvectors);
-	cv::read(fs["values"], pca.eigenvalues);
-	cv::read(fs["mean"], pca.mean);
 }

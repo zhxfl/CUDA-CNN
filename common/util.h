@@ -25,8 +25,7 @@ void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
 #define  Assert( X )   if ( !(X) ) {printf("FILE=%s, LINE=%d\n", __FILE__, __LINE__); return; }
 
 void dropDelta(cuMatrix<float>* M, float cuDropProb);
+void dropScale(cuMatrix<float>* M, float cuDropProb);
 void initMatrix(cuMatrix<float>* M, float iniw);
 
-void PCAwrite(cv::FileStorage& fs, cv::PCA& pca);
-void PCAread(const cv::FileNode& fs, cv::PCA& pca);
 #endif

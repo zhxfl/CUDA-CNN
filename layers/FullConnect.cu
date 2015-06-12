@@ -121,27 +121,27 @@ void FullConnect::feedforward()
 	checkCudaErrors(cudaDeviceSynchronize());
 	getLastCudaError("g_FullConnectActi");
 
-	if(!Config::instance()->isTraining()){
-		//printf("testing no dropout\n");
-	}
-	else if(dropRate > 0.0){
-		static int dropId = 0;
-
-		if(dropId % 5 == 0){
-			dropOut();
-			if(dropId >= 5) dropId = 1;
+	if(dropRate > 0.0){
+		if(!Config::instance()->isTraining()){
+			dropScale(drop, dropRate);
 		}
-		
+		else{
+			static int dropId = 0;
+			if(dropId % 5 == 0){
+				dropOut();
+				if(dropId >= 5) dropId = 1;
+			}
+			dropId++;
+		}
 		thread = min(512, w->getLen());
 		block  = min(512, (w->getLen() + thread.x - 1) / thread.x);
 		g_FullConnectDropout<<<block, thread>>>(outputs->getDev(), drop->getDev(), drop->getLen());
 
 		checkCudaErrors(cudaDeviceSynchronize());
 		getLastCudaError("g_FullConnectDropout");
-		dropId++;
-		//printf("training dropout\n");
+
 	}else{
-		//printf("training no dropout\n");
+
 	}
 }
 
@@ -213,7 +213,6 @@ FullConnect::FullConnect(std::string name)
  {
 	 dropDelta(drop, dropRate);
  }
-
 
 
 void FullConnect::backpropagation()
