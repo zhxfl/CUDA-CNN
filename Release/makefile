@@ -13,9 +13,6 @@ RM := rm -rf
 -include layers/subdir.mk
 -include dataAugmentation/subdir.mk
 -include common/subdir.mk
-
-OS_SUFFIX := $(subst Linux,linux,$(subst Darwin/x86_64,darwin,$(shell uname -s)/$(shell uname -m)))
-
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -44,14 +41,6 @@ endif
 
 -include ../makefile.defs
 
-# OpenGL+GLUT OS-specific define
-ifeq ($(shell uname -s),Darwin)
-GLUT_LIBS := -Xlinker -framework -Xlinker GLUT -Xlinker -framework -Xlinker OpenGL
-else
-GLUT_LIBS := -lGL -lGLU -lglut 
-endif
-
-
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
@@ -61,7 +50,7 @@ all: CUDA-CNN
 CUDA-CNN: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-	/usr/local/cuda-7.0/bin/nvcc --cudart static --relocatable-device-code=true -gencode arch=compute_20,code=compute_20 -gencode arch=compute_50,code=compute_50 -gencode arch=compute_20,code=sm_20 -gencode arch=compute_50,code=sm_50 -link -o  "CUDA-CNN" $(OBJS) $(USER_OBJS) $(LIBS)
+	/usr/local/cuda-6.5/bin/nvcc --cudart static --relocatable-device-code=true -gencode arch=compute_50,code=compute_50 -gencode arch=compute_50,code=sm_50 -link -o  "CUDA-CNN" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
