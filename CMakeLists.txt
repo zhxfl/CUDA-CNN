@@ -13,7 +13,10 @@ set (CUDA-CNN_VERSION_MINOR 0)
 
 find_package (CUDA REQUIRED)
 include_directories (${CUDA_INCLUDE_DIRS})
-include_directories ("/usr/local/cuda/NVIDIA_CUDA-7.0_Samples/common/inc")
+#include_directories (${CUDA_SDK_ROOT_DIR})
+MESSAGE("${CUDA_INCLUDE_DIRS}/../samples/common/inc")
+include_directories ("${CUDA_INCLUDE_DIRS}/../samples/common/inc")
+#/usr/local/cuda/NVIDIA_CUDA-7.0_Samples/common/inc")
 set(CUDA_SEPARABLE_COMPILATION ON)
 
 # opencv
@@ -25,7 +28,7 @@ set(OpenCV_LIBRARIES ${OpenCV_LIBS})
 include_directories(${PROJECT_SOURCE_DIR})
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
   -gencode arch=compute_20,code=sm_20
@@ -39,6 +42,8 @@ set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
   )
+
+MESSAGE(${CUDA_NVCC_FLAGS})
 
 #add_library(${EXAMPLE_NAME}.o OBJECT ${source})
 #set(EXAMPLE_OBJ_LIB $<TARGET_OBJECTS:${EXAMPLE_NAME}.o>)
