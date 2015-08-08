@@ -52,6 +52,18 @@
 ###GPU compute 
 >* capability 2.0   
 
+###CMake for Linux
+>0. sudo apt-get install cmake libopencv-dev
+>1. mkdir build
+>2. cd build
+>3. cmake ..
+>4. make -j16
+>5. cd ../mnist/
+>6. sh get_mnist.sh
+>7. cd ../cifar-10
+>8. sh get_cifar10.sh
+>9. cd ../
+>10 ./build/CUDA-CNN 1 1
 
 ###Windows
 >1. Install vs2010.
