@@ -63,7 +63,7 @@
 >7. cd ../cifar-10  
 >8. sh get_cifar10.sh  
 >9. cd ../  
->10 ./build/CUDA-CNN 1 1   
+>10. ./build/CUDA-CNN 1 1   
 
 ###Windows
 >1. Install vs2010.
