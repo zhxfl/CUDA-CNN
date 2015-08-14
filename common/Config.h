@@ -245,7 +245,7 @@ public:
 	ConfigConv(std::string name, std::string input,
 		std::string subInput, std::string type,
 		int kernelSize, int padding, int amount,
-		float weightDecay, int cfm, float initW, std::string initType,
+		float weightDecay, float initW, std::string initType,
 		int non_linearity){
 		m_kernelSize = kernelSize;
 		m_padding = padding;
@@ -254,13 +254,11 @@ public:
 		m_name = name;
 		m_input = input;
 		m_subInput = subInput;
-		m_cfm = cfm;
 		m_type = type;
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
 		m_initType = initType;
 	}
-	int m_cfm;
 	int m_kernelSize;
 	int m_padding;
 	int m_amount;

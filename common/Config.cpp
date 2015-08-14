@@ -153,7 +153,6 @@ void Config:: get_layers_config(string &str){
 			int ks = get_word_int(layers[i], "KERNEL_SIZE");
 			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
 			int pd = get_word_int(layers[i], "PADDING");
-			int cfm= get_word_int(layers[i], "COMBINE_FEATRUE_MAPS");
 			float initW = get_word_float(layers[i], "initW");
 			std::string initType = get_word_type(layers[i], "initType");
 
@@ -161,7 +160,7 @@ void Config:: get_layers_config(string &str){
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
 			m_nonLinearity = new ConfigNonLinearity(non_linearity);
 
-			layer = new ConfigConv(name, input, subInput, type, ks, pd, ka, wd, cfm,
+			layer = new ConfigConv(name, input, subInput, type, ks, pd, ka, wd,
 				initW, initType, m_nonLinearity->getValue());
 			char logStr[256];
 			sprintf(logStr,"\n\n********conv layer********\n");        LOG(logStr, "Result/log.txt");
@@ -170,7 +169,6 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str()); LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "KERNEL_SIZE   : %d\n", ks);               LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "KERNEL_AMOUNT : %d\n", ka);               LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "CFM           : %d\n", cfm);              LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "PADDING       : %d\n", pd);               LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);              LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "initW         : %f\n", initW);           LOG(logStr, "Result/log.txt");
