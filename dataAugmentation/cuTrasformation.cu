@@ -36,12 +36,12 @@ int getRandomNumLen(int batch, int ImgSize)
  * blocks : dim3(1)
  * threads: dim3(GAUSSIAN_FIELD_SIZE*GAUSSIAN_FIELD_SIZE)
 */
-__global__ void g_createGaussianKernel(float* gaussian, float dElasticSigma, int ImgSize)
+__global__ void g_createGaussianKernel(float* gaussian, float dElasticSigma)
 {
 	int iiMid = GAUSSIAN_FIELD_SIZE >> 1;
 	float floatElasticSigma = dElasticSigma * dElasticSigma;
-	int row = threadIdx.x % ImgSize;
-	int col = threadIdx.x / ImgSize;
+	int row = threadIdx.x % GAUSSIAN_FIELD_SIZE;
+	int col = threadIdx.x / GAUSSIAN_FIELD_SIZE;
 	float val1 = 1.0 / (dElasticSigma * 2.0 * 3.1415926535897932384626433832795);
 	float val2 = (row-iiMid)*(row-iiMid) + (col-iiMid)*(col-iiMid);
 
@@ -61,8 +61,7 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 	}
 	g_createGaussianKernel<<<dim3(1),dim3(GAUSSIAN_FIELD_SIZE * GAUSSIAN_FIELD_SIZE)>>>(
 		cuGaussianKernel->getDev(),
-		dElasticSigma,
-		ImgSize);
+		dElasticSigma);
 	cudaDeviceSynchronize();
 
 	/*cu_d_randomNum*/
