@@ -168,11 +168,12 @@ void ConvCFM::feedforward()
 		exit(0);
 	}
 	
-	if(inputDim * inputDim >= 512 && inputDim * inputDim <= 1024){
+	if(inputDim * inputDim <= 1024){
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(min(outputDim * outputDim, 1024));
-
-		g_ConvCFM_feedforward_shared<<<block, thread, sizeof(float) * (inputDim * inputDim)>>>(
+    
+    
+        g_ConvCFM_feedforward_shared<<<block, thread, sizeof(float) * (inputDim * inputDim + inputAmount * kernelSize * kernelSize)>>>(
 			inputs->getDev(),
 			w.m_devPoint,
 			b.m_devPoint,
@@ -671,15 +672,27 @@ __global__ void g_ConvCFM_feedforward_shared(
 	int sp = blockIdx.x;
 	int ok = blockIdx.y;
 
-	extern __shared__ float curInputS[];
-	
+	extern __shared__ float curInputShared[];
+
 	int outputSize2 = outputDim * outputDim;
 	int inputSize2  = inputDim* inputDim;
 	int kernelSize2 = kernelSize * kernelSize;
-
+    
+    float *wShared = curInputShared + inputSize2;
 	float b = bs[ok][0];
-
 	float* curOutput = outputs + ok * outputArea + sp * outputSize2;
+
+    /*load wShared*/
+    float* w = ws[ok];
+    int nLen = kernelSize2 * inputAmount;
+    for(int li = 0; li < nLen; li += blockDim.x){
+        int lix = li + threadIdx.x;
+        if(lix < nLen){
+            wShared[lix] = w[lix];
+        }
+    }
+    
+    __syncthreads();
 
 	/*convolution*/
 	for(int tidx = 0; tidx < outputSize2; tidx += blockDim.x)
@@ -694,23 +707,23 @@ __global__ void g_ConvCFM_feedforward_shared(
 
 			for(int c = 0; c < cfm; c++){
 				float* curInput = inputs + c * inputArea + sp * inputSize2;
-				float* w = ws[ok] + c * kernelSize2;
+				float* w = wShared + c * kernelSize2;
 
 				/*load curInputs*/
 				for(int li = 0; li < inputSize2; li += blockDim.x){
 					int lix = li + threadIdx.x;
 					if(lix < inputSize2){
-						curInputS[lix] = curInput[lix];
+						curInputShared[lix] = curInput[lix];
 					}
 				}
 				__syncthreads();
-				/*put curInput and w into shared memory*/
-				for(int i = 0; i < kernelSize; i++){
+				
+                for(int i = 0; i < kernelSize; i++){
 					int xx = x + i - padding;
 					for(int j = 0; j < kernelSize; j++){
 						int yy = y + j - padding;
 						if(xx >= 0 && xx < inputDim && yy >= 0 && yy < inputDim)
-							val += curInputS[xx * inputDim + yy] * w[i * kernelSize + j];
+							val += curInputShared[xx * inputDim + yy] * w[i * kernelSize + j];
 					}
 				}
 			}
