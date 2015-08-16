@@ -346,10 +346,13 @@ __global__ void g_ConvCFM_wgradAdd(
 
 void ConvCFM::getGrad()
 {
-	if(kernelSize * kernelSize * cfm < 1024){
-		dim3 block = dim3(batch, outputAmount);
-		dim3 thread= dim3(kernelSize * kernelSize, cfm);
-		g_ConvCFM_wgrad_1<<<block, thread>>>(
+	if(kernelSize *  kernelSize <= 1024){
+		dim3 block = dim3(batch, outputAmount, cfm);
+		dim3 thread= dim3(kernelSize * kernelSize);
+        int nAfterPadding = inputDim + padding * 2;
+
+		g_ConvCFM_wgrad_1<<<block, thread,
+            sizeof(float) * (nAfterPadding * nAfterPadding + outputDim * outputDim)>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
 			wgradTmp.m_devPoint,
@@ -674,12 +677,12 @@ __global__ void g_ConvCFM_feedforward_shared(
 	int ok = blockIdx.y;
 	
     extern __shared__ float curInputShared[];
-
 	int outputSize2 = outputDim * outputDim;
 	int inputSize2  = inputDim* inputDim;
 	int kernelSize2 = kernelSize * kernelSize;
     
-    float *wShared = curInputShared + (inputDim + padding * 2) * (inputDim + padding * 2);
+    int after_padding_dim = inputDim + padding * 2;
+    float *wShared = curInputShared + after_padding_dim * after_padding_dim;
 	float b = bs[ok][0];
 	float* curOutput = outputs + ok * outputArea + sp * outputSize2;
 
@@ -694,8 +697,7 @@ __global__ void g_ConvCFM_feedforward_shared(
     }
     
     __syncthreads();
-    int add_padding = (inputDim + padding * 2) * padding + padding;
-
+    int add_padding = after_padding_dim * padding + padding;
 	/*convolution*/
 	for(int tidx = 0; tidx < outputSize2; tidx += blockDim.x)
 	{
@@ -722,7 +724,7 @@ __global__ void g_ConvCFM_feedforward_shared(
 				
                 for(int i = 0; i < kernelSize; i++){
 					int xx = x + i;
-                    float* t_curInput = curInputShared + xx * inputDim;
+                    float* t_curInput = curInputShared + xx * after_padding_dim;
                     float* t_w = w + i * kernelSize;
 					for(int j = 0; j < kernelSize; j++){
 					    val += t_curInput[y + j] * t_w[j];
@@ -1022,19 +1024,40 @@ __global__ void g_ConvCFM_wgrad_1(float*_inputs,
 	int batch,
 	float lambda)
 {
+    extern __shared__ float curDeltaShared[];
+
 	int ok = blockIdx.y;
-	int c  = threadIdx.y;
-	int ik = c;
-	int b  = blockIdx.x;
+	int c = blockIdx.z;
+    int ik = c;
+	int b = blockIdx.x;
 
 	int inputSize2    = inputDim * inputDim;
 	int curDeltaSize2 = curDeltaDim * curDeltaDim;
 	int kernelSize2   = kernelSize * kernelSize;
 
-	float* wgrad = wgradTmp[ok] + c * wgradTmpArea + b * kernelSize2;
+    float* inputShared = curDeltaShared + curDeltaSize2;
 
-	float* input    = _inputs + inputArea * ik + b * inputSize2;
+    float* wgrad = wgradTmp[ok] + c * wgradTmpArea + b * kernelSize2;
+	float* input = _inputs + inputArea * ik + b * inputSize2;
 	float* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
+
+    int after_padding_dim = (inputDim + padding * 2);
+    int add_padding = after_padding_dim * padding + padding;
+
+    for(int id = 0; id < inputSize2; id += blockDim.x){
+        int idx = id + threadIdx.x;
+        if(idx < inputSize2){
+            inputShared[idx + add_padding] = input[idx];
+        }
+    }
+    
+    for(int id = 0; id < curDeltaSize2; id += blockDim.x){
+        int idx = id + threadIdx.x;
+        if(idx < curDeltaSize2){
+            curDeltaShared[idx] = curDelta[idx];        
+        }
+    }
+    __syncthreads();
 
 	for(int tidx = 0; tidx < kernelSize2; tidx += blockDim.x)
 	{
@@ -1045,15 +1068,15 @@ __global__ void g_ConvCFM_wgrad_1(float*_inputs,
 			int j = idx % kernelSize;
 			float val = 0.0;
 
-			/**/
 			for(int x = 0; x < curDeltaDim; x++){
-				int cx = i + x - padding;
+				int cx = i + x;
+                float* t1 = inputShared + cx * after_padding_dim;
+                float* t2 = curDeltaShared + x * curDeltaDim;
 				for(int y = 0; y < curDeltaDim; y++)
 				{
-					int cy = j + y - padding;
-					if(cx >= 0 &&  cy >= 0 && cx < inputDim && cy < inputDim)
-						val += input[cx * inputDim + cy] * curDelta[x * curDeltaDim + y];
-				}
+					int cy = j + y;
+                    val += t1[cy] * t2[y];
+                }
 			}
 			wgrad[idx] = val;
 		}
