@@ -2,7 +2,7 @@
 #include "../common/cuBase.h"
 #include "../common/Config.h"
 #include "../layers/BranchLayer.h"
-
+#include "../common/util.h"
 
 /*
  * dim3 block = dim3(batch, outputAmount);
@@ -167,14 +167,14 @@ void ConvCFM::feedforward()
 		printf("ConvCFM init error\n");
 		exit(0);
 	}
-	
-	if(inputDim * inputDim <= 1024){
+    int afterPaddingDim = inputDim + padding * 2;
+	int sharedMemorySize = sizeof(float) * (afterPaddingDim * afterPaddingDim + inputAmount * kernelSize * kernelSize);
+
+	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(min(outputDim * outputDim, 1024));
-        int afterPaddingDim = inputDim + padding * 2;
-        
-        g_ConvCFM_feedforward_shared<<<block, thread, 
-            sizeof(float) * (afterPaddingDim * afterPaddingDim + inputAmount * kernelSize * kernelSize)>>>(
+         
+        g_ConvCFM_feedforward_shared<<<block, thread, sharedMemorySize>>>(
 			inputs->getDev(),
 			w.m_devPoint,
 			b.m_devPoint,
@@ -246,12 +246,14 @@ void ConvCFM::backpropagation()
 	if(Config::instance()->getLayerByName(m_name)->m_input == std::string("data"))
 		return;
 
-	if(inputDim * inputDim <= 1024){
-		dim3 block = dim3(batch, inputAmount);
-		dim3 thread= min(inputDim * inputDim, 1024);
+    int after_padding_dim = inputDim + kernelSize + padding;
+    size_t sharedMemorySize = sizeof(float)* (after_padding_dim * after_padding_dim+ outputAmount * kernelSize * kernelSize);
 
-		g_ConvCFM_backpropagation_shared<<<block, thread,
-            sizeof(float)* (outputDim * outputDim + outputAmount * kernelSize * kernelSize)>>>(
+	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
+		dim3 block = dim3(batch, inputAmount);
+		dim3 thread= inputDim * inputDim;
+
+		g_ConvCFM_backpropagation_shared<<<block, thread, sharedMemorySize>>>(
 			curDelta->getDev(),
 			w.m_devPoint,
 			preDelta->getDev(),
@@ -350,13 +352,13 @@ __global__ void g_ConvCFM_wgradAdd(
 
 void ConvCFM::getGrad()
 {
-	if(kernelSize *  kernelSize <= 1024){
+    int nAfterPadding = inputDim + padding * 2;
+    size_t sharedMemorySize = sizeof(float) * (nAfterPadding * nAfterPadding + outputDim * outputDim);
+	if(kernelSize *  kernelSize <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, outputAmount, cfm);
 		dim3 thread= dim3(kernelSize * kernelSize);
-        int nAfterPadding = inputDim + padding * 2;
 
-		g_ConvCFM_wgrad_shared<<<block, thread,
-            sizeof(float) * (nAfterPadding * nAfterPadding + outputDim * outputDim)>>>(
+		g_ConvCFM_wgrad_shared<<<block, thread, sharedMemorySize>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
 			wgradTmp.m_devPoint,
@@ -831,7 +833,8 @@ __global__ void g_ConvCFM_backpropagation_shared(
 	int kernelSize2 = kernelSize * kernelSize;
 
 	extern __shared__ float curDeltaShared[];
-    float* wShared = curDeltaShared + curSize2;
+    int after_padding_dim = preDim + padding + kernelSize;
+    float* wShared = curDeltaShared + after_padding_dim * after_padding_dim;
 
 	float *preDelta = _preDelta + ik * preArea + sp * preSize2;
 	int c = ik;	
@@ -845,6 +848,11 @@ __global__ void g_ConvCFM_backpropagation_shared(
             int _i = idx % kernelSize2;
             wShared[idx] = ws[_k][c * kernelSize2 + _i];
         }
+    }
+    for(int id = 0; id < after_padding_dim * after_padding_dim; id += blockDim.x){
+        int idx = id + threadIdx.x;
+        if(idx < after_padding_dim * after_padding_dim)
+            curDeltaShared[idx] = 0;
     }
     __syncthreads();
 
@@ -863,21 +871,19 @@ __global__ void g_ConvCFM_backpropagation_shared(
 				for(int li = 0; li < curSize2; li += blockDim.x){
 					int lix = li + threadIdx.x;
 					if(lix < curSize2){
-						curDeltaShared[lix] = curDelta[lix];
+                        int _x = lix / curDim;
+                        int _y = lix % curDim;
+						curDeltaShared[(_x + kernelSize) * after_padding_dim + (_y + kernelSize)] = curDelta[lix];
 					}
                 }
 
 				__syncthreads();
 
 				for (int x = 0; x < kernelSize; x++) {
-					int cx = i - x + padding;
-                    if(cx < 0 || cx >= curDim)
-                        continue;
+					int cx = i - x + padding + kernelSize;
 					for (int y = 0; y < kernelSize; y++) {
-					    int cy = j - y + padding;
-						if(cy >= 0 && cy < curDim){
-							val += curDeltaShared[cx * curDim + cy] * w[x * kernelSize + y];
-						}
+					    int cy = j - y + padding + kernelSize;
+					    val += curDeltaShared[cx * after_padding_dim + cy] * w[x * kernelSize + y];
 					}
 				}
 				ok += 1;
