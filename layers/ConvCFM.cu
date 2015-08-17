@@ -844,6 +844,7 @@ __global__ void g_ConvCFM_backpropagation_shared(
         }
     }
     __syncthreads();
+
 	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
 		int idx = tidx + threadIdx.x;
 		if (idx < preSize2) {
@@ -867,7 +868,8 @@ __global__ void g_ConvCFM_backpropagation_shared(
 
 				for (int x = 0; x < kernelSize; x++) {
 					int cx = i - x + padding;
-                    if(cx < 0 || cx >= curDim)continue;
+                    if(cx < 0 || cx >= curDim)
+                        continue;
 					for (int y = 0; y < kernelSize; y++) {
 					    int cy = j - y + padding;
 						if(cy >= 0 && cy < curDim){
