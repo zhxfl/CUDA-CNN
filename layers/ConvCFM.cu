@@ -9,7 +9,7 @@
  * dim3 thread= dim3(min(kernelSize * kernelSize, 512), cfm);
 */
 
-__global__ void g_ConvCFM_wgrad_1(float*_inputs,
+__global__ void g_ConvCFM_wgrad_shared(float*_inputs,
 	float* _curDelta,
 	float** wgradTmp,
 	int inputDim,
@@ -246,7 +246,7 @@ void ConvCFM::backpropagation()
 	if(Config::instance()->getLayerByName(m_name)->m_input == std::string("data"))
 		return;
 
-	if(inputDim * inputDim >= 512 && inputDim * inputDim <= 1024){
+	if(inputDim * inputDim <= 1024){
 		dim3 block = dim3(batch, inputAmount);
 		dim3 thread= min(inputDim * inputDim, 1024);
 
@@ -351,7 +351,7 @@ void ConvCFM::getGrad()
 		dim3 thread= dim3(kernelSize * kernelSize);
         int nAfterPadding = inputDim + padding * 2;
 
-		g_ConvCFM_wgrad_1<<<block, thread,
+		g_ConvCFM_wgrad_shared<<<block, thread,
             sizeof(float) * (nAfterPadding * nAfterPadding + outputDim * outputDim)>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
@@ -368,7 +368,7 @@ void ConvCFM::getGrad()
 			batch,
 			lambda);
 		checkCudaErrors(cudaDeviceSynchronize());
-		getLastCudaError("g_ConvCFM_wgrad_1");
+		getLastCudaError("g_ConvCFM_wgrad_shared");
 	}
 	else{
 		dim3 block = dim3(batch, outputAmount, cfm);
@@ -853,9 +853,10 @@ __global__ void g_ConvCFM_backpropagation_shared(
 
 				for (int x = 0; x < kernelSize; x++) {
 					int cx = i - x + padding;
+                    if(cx < 0 || cx >= curDim)continue;
 					for (int y = 0; y < kernelSize; y++) {
 					    int cy = j - y + padding;
-						if(cx >= 0 && cx < curDim && cy >= 0 && cy < curDim){
+						if(cy >= 0 && cy < curDim){
 							val += curDeltaS[cx * curDim + cy] * w[x * kernelSize + y];
 						}
 					}
@@ -1017,7 +1018,7 @@ __global__ void g_ConvCFM_wgrad_2(float*_inputs,
  * dim3 thread= dim3(min(kernelSize * kernelSize, 512), cfm);
 */
 
-__global__ void g_ConvCFM_wgrad_1(float*_inputs,
+__global__ void g_ConvCFM_wgrad_shared(float*_inputs,
 	float* _curDelta,
 	float** wgradTmp,
 	int inputDim,
