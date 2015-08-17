@@ -352,7 +352,7 @@ __global__ void g_ConvCFM_wgradAdd(
 
 void ConvCFM::getGrad()
 {
-    int nAfterPadding = inputDim + padding * 2;
+    int nAfterPadding = inputDim + padding << 1;
     size_t sharedMemorySize = sizeof(float) * (nAfterPadding * nAfterPadding + outputDim * outputDim);
 	if(kernelSize *  kernelSize <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, outputAmount, cfm);
@@ -694,7 +694,9 @@ __global__ void g_ConvCFM_feedforward_shared(
 	int kernelSize2 = kernelSize * kernelSize;
     
     int after_padding_dim = inputDim + padding * 2;
-    float *wShared = curInputShared + after_padding_dim * after_padding_dim;
+    int after_padding_dim2 = after_padding_dim * after_padding_dim;
+
+    float *wShared = curInputShared + after_padding_dim2;
 	float b = bs[ok][0];
 	float* curOutput = outputs + ok * outputArea + sp * outputSize2;
 
@@ -705,6 +707,13 @@ __global__ void g_ConvCFM_feedforward_shared(
         int lix = li + threadIdx.x;
         if(lix < nLen){
             wShared[lix] = w[lix];
+        }
+    }
+
+    for(int id = 0; id < after_padding_dim2; id += blockDim.x){
+        int idx = id + threadIdx.x;
+        if(idx < after_padding_dim2){
+            curInputShared[idx] = 0;
         }
     }
     
@@ -852,7 +861,7 @@ __global__ void g_ConvCFM_backpropagation_shared(
             wShared[idx] = ws[_k][c * kernelSize2 + _x * kernelSize + _y];
         }
     }
-
+    
     for(int id = 0; id < after_padding_dim2; id += blockDim.x){
         int idx = id + threadIdx.x;
         if(idx < after_padding_dim2)
@@ -1077,13 +1086,21 @@ __global__ void g_ConvCFM_wgrad_shared(float*_inputs,
 	int kernelSize2   = kernelSize * kernelSize;
 
     float* inputShared = curDeltaShared + curDeltaSize2;
-
     float* wgrad = wgradTmp[ok] + c * wgradTmpArea + b * kernelSize2;
 	float* input = _inputs + inputArea * ik + b * inputSize2;
 	float* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
 
-    int after_padding_dim = (inputDim + padding * 2);
+    int after_padding_dim = (inputDim + padding << 1);
+    int after_padding_dim2 = after_padding_dim * after_padding_dim;
     int add_padding = after_padding_dim * padding + padding;
+    
+    for(int id = 0; id < after_padding_dim2; id += blockDim.x){
+        int idx = id + threadIdx.x;
+        if(idx < after_padding_dim2){
+            inputShared[idx] = 0;    
+        }
+    }
+    __syncthreads();
 
     for(int id = 0; id < inputSize2; id += blockDim.x){
         int idx = id + threadIdx.x;
