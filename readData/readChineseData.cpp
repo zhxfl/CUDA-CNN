@@ -114,8 +114,8 @@ void readChineseData(cuMatrixVector<float> &trainX,
 
 	char logStr[1024];
 	sprintf(logStr, "\n\n****************Read Data Set****************\n");LOG(logStr, "Result/log.txt");
-	sprintf(logStr, "train dataset size = %d\n", trainSet.size());
-	sprintf(logStr, "test  dataset size = %d\n", testSet.size());
+	sprintf(logStr, "train dataset size = %d\n", (int)trainSet.size());
+	sprintf(logStr, "test  dataset size = %d\n", (int)testSet.size());
 	sprintf(logStr, "*********************************************\n\n\n");LOG(logStr, "Result/log.txt");
 
 	trainY = new cuMatrix<int>(trainLabel.size(), 1, 1);

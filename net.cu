@@ -47,7 +47,8 @@ void cuFreeConvNet()
 }
 
 void cuReadConvNet(
-	int imgDim, char* path,
+	int imgDim,
+    const char* path,
 	int nclasses)
 {	
 	FILE *pIn = fopen(path, "r");

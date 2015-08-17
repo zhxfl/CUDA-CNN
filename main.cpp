@@ -44,7 +44,9 @@ int main (int argc, char** argv)
 	if(g_argv.size() >= 2)
 		cmd = g_argv[0];
 	else 
-		scanf("%d", &cmd);
+		if(1 != scanf("%d", &cmd)){
+            LOG("scanf fail", "result/log.txt");
+        }
 	if(cmd == 1)
 		runMnist();
 	else if(cmd == 2)
@@ -88,8 +90,11 @@ void runChinese() {
 
 	if(g_argv.size() >= 2)
 		cmd = g_argv[1];
-	else 
-		scanf("%d", &cmd);
+	else {
+        if(1 != scanf("%d", &cmd)){
+            LOG("scanf fail", "result/log.txt");
+        }
+    }
 
 	if (cmd == 2)
 		cuReadConvNet(ImgSize - crop,
@@ -160,7 +165,9 @@ void runCifar100(){
 	if(g_argv.size() >= 2)
 		cmd = g_argv[1];
 	else 
-		scanf("%d", &cmd);
+		if(1 != scanf("%d", &cmd)){
+            LOG("scanf fail", "result/log.txt");
+        }
 
 	buildNetWork(trainX.size(), testX.size());
 
@@ -224,7 +231,9 @@ void runCifar10()
 	if(g_argv.size() >= 2)
 		cmd = g_argv[1];
 	else 
-		scanf("%d", &cmd);
+		if(1 != scanf("%d", &cmd)){
+            LOG("scanf fail", "result/log.txt");
+        }
 
 	buildNetWork(trainX.size(), testX.size());
 
@@ -307,7 +316,9 @@ void runMnist(){
 	if(g_argv.size() >= 2)
 		cmd = g_argv[1];
 	else 
-		scanf("%d", &cmd);
+		if(1 != scanf("%d", &cmd)){
+            LOG("scanf fail", "result/log.txt");
+        }
 
 	buildNetWork(trainX.size(), testX.size());
 
@@ -363,7 +374,7 @@ void cuVoteMnist()
 	int ImgSize = trainX[0]->rows;
 	Config::instance()->setImageSize(ImgSize - Config::instance()->getCrop());
 
-	char* path[] = {"mnist_result_cfm_5/1/checkPoint.txt",
+	const char* path[] = {"mnist_result_cfm_5/1/checkPoint.txt",
 		"mnist_result_cfm_5/2/checkPoint.txt",
 		"mnist_result_cfm_5/3/checkPoint.txt",
 		"mnist_result_cfm_5/4/checkPoint.txt",
@@ -373,7 +384,7 @@ void cuVoteMnist()
 		"mnist_result_cfm_5/8/checkPoint.txt",
 		"mnist_result_cfm_5/9/checkPoint.txt"};
 
-	char* initPath[] = {"mnist_result_cfm_4/1/MnistConfig.txt",
+	const char* initPath[] = {"mnist_result_cfm_4/1/MnistConfig.txt",
 		"mnist_result_cfm_5/2/MnistConfig.txt",
 		"mnist_result_cfm_5/3/MnistConfig.txt",
 		"mnist_result_cfm_5/4/MnistConfig.txt",

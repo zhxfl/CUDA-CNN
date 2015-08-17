@@ -350,7 +350,9 @@ void FullConnect::initFromCheckpoint(FILE* file)
 	for(int c = 0; c < w->channels; c++){
 		for(int i = 0; i < w->rows; i++){
 			for(int j = 0; j < w->cols; j++){
-				fscanf(file, "%f", &val);
+				if(fscanf(file, "%f", &val) == EOF){
+                    LOG("scanf fail", "result/log.txt");
+                }
 				w->set(i, j, c, val);
 			}
 		}
@@ -359,7 +361,9 @@ void FullConnect::initFromCheckpoint(FILE* file)
 	for(int c = 0; c < b->channels; c++){
 		for(int i = 0; i < b->rows; i++){
 			for(int j = 0; j < b->cols; j++){
-				fscanf(file, "%f", &val);
+				if(fscanf(file, "%f", &val) == EOF){
+                   LOG("scanf fail", "result/log.txt"); 
+                }
 				b->set(i, j, c, val);
 			}
 		}

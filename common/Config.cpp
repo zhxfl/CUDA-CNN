@@ -487,11 +487,13 @@ string
 		//move pointer to the end of the file
 		fseek(pFile, 0, SEEK_END);
 		//Gets the current position of a file pointer.offset 
-		int len = ftell(pFile);
+		size_t len = ftell(pFile);
 		pBuf = new char[len];
 		//Repositions the file pointer to the beginning of a file
 		rewind(pFile);
-		fread(pBuf, 1, len, pFile);
+		if(fread(pBuf, 1, len, pFile) != len){
+            LOG("fread fail", "result/log.txt");
+        }
 		fclose(pFile);
 		string res = pBuf;
 		return res;

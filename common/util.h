@@ -16,7 +16,7 @@
 void showImg(cuMatrix<float>* x, float scala);
 void DebugPrintf(cuMatrix<float>*x);
 void DebugPrintf(float* data, int len, int dim);
-void LOG(char* str, char* file);
+void LOG(const char* str, const char* file);
 int  getCV_64();
 void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
 	int rows, int cols, int channels, float epsilon);

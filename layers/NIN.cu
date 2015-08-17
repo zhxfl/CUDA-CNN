@@ -451,7 +451,10 @@ void NIN::initFromCheckpoint(FILE* file)
 		for(int c = 0; c < w[a]->channels; c++){
 			for(int i = 0; i < w[a]->rows; i++){
 				for(int j = 0; j < w[a]->cols; j++){
-					fscanf(file, "%f", &val);
+					if(fscanf(file, "%f", &val) == EOF)
+                    {
+                        LOG("scanf fail", "result/log.txt");
+                    }
 					w[a]->set(i, j, c, val);
 				}
 			}
@@ -460,7 +463,10 @@ void NIN::initFromCheckpoint(FILE* file)
 		for(int c = 0; c < b[a]->channels; c++){
 			for(int i = 0; i < b[a]->rows; i++){
 				for(int j = 0; j < b[a]->cols; j++){
-					fscanf(file, "%f", &val);
+                    if(fscanf(file, "%f", &val) == EOF)
+                    {
+                        LOG("scanf fail", "result/log.txt");
+                    }
 					b[a]->set(i, j, c, val);
 				}
 			}

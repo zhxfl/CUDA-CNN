@@ -113,7 +113,7 @@ void DebugPrintf(float* data, int len, int dim)
 	}
 }
 
-void LOG(char* str, char* file)
+void LOG(const char* str, const char* file)
 {
 	FILE* f = fopen(file,"a");
 	printf("%s", str);

@@ -18,7 +18,7 @@
  */
 void cuReadConvNet( 
 	int imgDim, 
-	char* path,
+	const char* path,
 	int nclasses);
 
 /*
