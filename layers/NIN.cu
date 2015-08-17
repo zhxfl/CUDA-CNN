@@ -227,9 +227,11 @@ __global__ void g_NIN_wgradAdd(
 		{
 			_sum[tid] += _sum[tid + skip];
 		}
+        else{
+            return;
+        }
 		len = (len + 1) >> 1;
 	}
-	__syncthreads();
 	if(tid == 0)
 	{
 		Wgrad[ok][ik] = _sum[0] / batch + w[ok][ik] * lambda;

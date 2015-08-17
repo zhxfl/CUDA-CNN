@@ -318,12 +318,13 @@ __global__ void g_ConvCFM_wgradAdd(
 	int tlen = batch;
 	float* wgradTmp = _WgradTmp[ok];
 	int kernelSize2 = kernelSize * kernelSize;
+    int skip = c * wgradTmpArea + kid;
 	for(int i = 0; i < tlen; i += blockDim.x)
 	{
 		int b = i + threadIdx.x;
 		if(b < tlen)
 		{
-			_sum[threadIdx.x] += wgradTmp[c * wgradTmpArea + b * kernelSize2 + kid];
+			_sum[threadIdx.x] += wgradTmp[b * kernelSize2 + skip];
 		}
 	}
 	__syncthreads();
@@ -336,9 +337,11 @@ __global__ void g_ConvCFM_wgradAdd(
 		{
 			_sum[tid] += _sum[tid + skip];
 		}
+        else{
+            return;
+        }
 		len = (len + 1) >> 1;
 	}
-	__syncthreads();
 	if(tid == 0)
 	{
 		Wgrad[ok][kid + c * wgradArea] = _sum[0] / batch + w[ok][kid + c * wArea] * lambda;
