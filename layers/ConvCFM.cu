@@ -246,8 +246,8 @@ void ConvCFM::backpropagation()
 	if(Config::instance()->getLayerByName(m_name)->m_input == std::string("data"))
 		return;
 
-    int after_padding_dim = inputDim + kernelSize + padding;
-    size_t sharedMemorySize = sizeof(float)* (after_padding_dim * after_padding_dim+ outputAmount * kernelSize * kernelSize);
+    int after_padding_dim = inputDim + kernelSize  - 1;
+    size_t sharedMemorySize = sizeof(float)* (after_padding_dim * after_padding_dim + outputAmount * kernelSize * kernelSize);
 
 	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, inputAmount);
@@ -833,7 +833,8 @@ __global__ void g_ConvCFM_backpropagation_shared(
 	int kernelSize2 = kernelSize * kernelSize;
 
 	extern __shared__ float curDeltaShared[];
-    int after_padding_dim = preDim + padding + kernelSize;
+    int after_padding_dim = preDim + kernelSize - 1;
+    int after_padding_dim2 = after_padding_dim * after_padding_dim;
     float* wShared = curDeltaShared + after_padding_dim * after_padding_dim;
 
 	float *preDelta = _preDelta + ik * preArea + sp * preSize2;
@@ -846,12 +847,15 @@ __global__ void g_ConvCFM_backpropagation_shared(
         if(idx < nLen){
             int _k = idx / kernelSize2;
             int _i = idx % kernelSize2;
-            wShared[idx] = ws[_k][c * kernelSize2 + _i];
+            int _x = kernelSize - _i / kernelSize - 1;
+            int _y = kernelSize - _i % kernelSize - 1;
+            wShared[idx] = ws[_k][c * kernelSize2 + _x * kernelSize + _y];
         }
     }
-    for(int id = 0; id < after_padding_dim * after_padding_dim; id += blockDim.x){
+
+    for(int id = 0; id < after_padding_dim2; id += blockDim.x){
         int idx = id + threadIdx.x;
-        if(idx < after_padding_dim * after_padding_dim)
+        if(idx < after_padding_dim2)
             curDeltaShared[idx] = 0;
     }
     __syncthreads();
@@ -868,22 +872,25 @@ __global__ void g_ConvCFM_backpropagation_shared(
 				float *w = wShared + ok * kernelSize2;
 					
 				/*load curDelta*/
+                int cur_padding = (after_padding_dim - curDim) / 2;
 				for(int li = 0; li < curSize2; li += blockDim.x){
 					int lix = li + threadIdx.x;
 					if(lix < curSize2){
                         int _x = lix / curDim;
                         int _y = lix % curDim;
-						curDeltaShared[(_x + kernelSize) * after_padding_dim + (_y + kernelSize)] = curDelta[lix];
+						curDeltaShared[(_x + cur_padding) * after_padding_dim + (_y + cur_padding)] = curDelta[lix];
 					}
                 }
 
 				__syncthreads();
 
 				for (int x = 0; x < kernelSize; x++) {
-					int cx = i - x + padding + kernelSize;
+					int cx = i + x;
+                    float* t1 = curDeltaShared + cx * after_padding_dim;
+                    float* t2 = w + x * kernelSize;
 					for (int y = 0; y < kernelSize; y++) {
-					    int cy = j - y + padding + kernelSize;
-					    val += curDeltaShared[cx * after_padding_dim + cy] * w[x * kernelSize + y];
+					    int cy = j + y;
+					    val += t1[cy] * t2[y];
 					}
 				}
 				ok += 1;
