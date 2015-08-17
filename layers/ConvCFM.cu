@@ -1131,16 +1131,13 @@ __global__ void g_ConvCFM_Bgrad(float* delta,
 	__syncthreads();
 	int deltaSize2 = deltaSize * deltaSize;
 	int tlen = deltaSize2 * batch;
+    int skip = deltaArea * k2;
 	for(int i = 0; i < tlen; i += blockDim.x)
 	{
 		int idx = i + threadIdx.x;
 		if(idx < tlen)
 		{
-			int s  = idx / (deltaSize2);//s
-			int t2 = idx % (deltaSize2);//x,y
-			int id =
-				deltaArea * k2 + s * deltaSize2 + t2;
-			_sum[threadIdx.x] += delta[id];
+			_sum[threadIdx.x] += delta[idx + skip];
 		}
 	}
 	__syncthreads();
@@ -1153,9 +1150,11 @@ __global__ void g_ConvCFM_Bgrad(float* delta,
 		{
 			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
 		}
+        else{
+            return;
+        }
 		len = (len + 1) >> 1;
 	}
-	__syncthreads();
 	if(threadIdx.x == 0)
 	{
 		bgrad[k2][0] = _sum[0] / batch;
