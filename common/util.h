@@ -21,7 +21,7 @@
 #define NL_TANH 1
 #define NL_RELU 2
 
-int check_SharedMemory(std::vector<unsigned int>& vec);
+bool checkSharedMemory(int cardId, size_t MemorySize);
 void showImg(cuMatrix<float>* x, float scala);
 void DebugPrintf(cuMatrix<float>*x);
 void DebugPrintf(float* data, int len, int dim);
