@@ -8,33 +8,6 @@
 #include "opencv2/highgui/highgui.hpp"
 
 using namespace cv;
-using namespace std;
-
-int check_SharedMemory(vector<unsigned int>& vec) {
-	int dev_num = 0;
-	if(!vec.empty())vec.clear();
-
-	cudaError_t error_id = cudaGetDeviceCount(&dev_num);
-	if (error_id != cudaSuccess) {
-		printf("cudaGetDeviceCount returned %d\n-> %s\n", (int) error_id,
-				cudaGetErrorString(error_id));
-		printf("Result = FAIL\n");
-		exit(EXIT_FAILURE);
-	}
-	if (dev_num == 0) {
-		printf("There are no available device(s) that support CUDA\n");
-	} else {
-		printf("Detected %d CUDA Capable device(s)\n", dev_num);
-	}
-	for (int dev = 0; dev < dev_num; dev++) {
-	cudaSetDevice(dev);
-    cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, dev);
-    printf("\"device%d\" shared memory size:%u",dev, deviceProp.sharedMemPerBlock);
-    vec.push_back((unsigned int)deviceProp.sharedMemPerBlock);
-	}
-	return dev_num;
-}
 
 int getCV_32()
 {
@@ -140,7 +113,7 @@ void DebugPrintf(float* data, int len, int dim)
 	}
 }
 
-void LOG(const char* str, const char* file)
+void LOG(char* str, char* file)
 {
 	FILE* f = fopen(file,"a");
 	printf("%s", str);

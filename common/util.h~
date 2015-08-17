@@ -5,14 +5,6 @@
 #include "opencv2/opencv.hpp"
 #include "opencv2/core/core_c.h"
 #include "opencv2/highgui/highgui.hpp"
-#include <memory>
-#include <iostream>
-#include <vector>
-#include <stddef.h>
-// CUDA-C includes
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <helper_cuda.h>
 
 #define MAX_THREADS 1024
 
@@ -21,11 +13,10 @@
 #define NL_TANH 1
 #define NL_RELU 2
 
-int check_SharedMemory(std::vector<unsigned int>& vec);
 void showImg(cuMatrix<float>* x, float scala);
 void DebugPrintf(cuMatrix<float>*x);
 void DebugPrintf(float* data, int len, int dim);
-void LOG(const char* str, const char* file);
+void LOG(char* str, char* file);
 int  getCV_64();
 void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
 	int rows, int cols, int channels, float epsilon);
