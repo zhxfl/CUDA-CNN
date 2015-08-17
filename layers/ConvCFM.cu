@@ -250,7 +250,8 @@ void ConvCFM::backpropagation()
 		dim3 block = dim3(batch, inputAmount);
 		dim3 thread= min(inputDim * inputDim, 1024);
 
-		g_ConvCFM_backpropagation_shared<<<block, thread, sizeof(float)* (outputDim * outputDim)>>>(
+		g_ConvCFM_backpropagation_shared<<<block, thread,
+            sizeof(float)* (outputDim * outputDim + outputAmount * kernelSize * kernelSize)>>>(
 			curDelta->getDev(),
 			w.m_devPoint,
 			preDelta->getDev(),
@@ -826,26 +827,39 @@ __global__ void g_ConvCFM_backpropagation_shared(
 	int preSize2    = preDim     * preDim;
 	int kernelSize2 = kernelSize * kernelSize;
 
-	extern __shared__ float curDeltaS[];
+	extern __shared__ float curDeltaShared[];
+    float* wShared = curDeltaShared + curSize2;
 
 	float *preDelta = _preDelta + ik * preArea + sp * preSize2;
+	int c = ik;	
+    
+    int nLen = curAmount * kernelSize2;
+
+    for(int id = 0; id < nLen; id += blockDim.x){
+        int idx = id + threadIdx.x;
+        if(idx < nLen){
+            int _k = idx / kernelSize2;
+            int _i = idx % kernelSize2;
+            wShared[idx] = ws[_k][c * kernelSize2 + _i];
+        }
+    }
+    __syncthreads();
 	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
 		int idx = tidx + threadIdx.x;
 		if (idx < preSize2) {
 			int i = idx / preDim;
 			int j = idx % preDim;
 			float val = 0.0;
-			int c = ik;	
-            int ok = c;
+            int ok = 0;
 		    while(ok < curAmount){
 				float *curDelta = _curDelta + ok * curArea + sp * curSize2;
-				float *w = ws[ok] + c * kernelSize2;
+				float *w = wShared + ok * kernelSize2;
 					
 				/*load curDelta*/
 				for(int li = 0; li < curSize2; li += blockDim.x){
 					int lix = li + threadIdx.x;
 					if(lix < curSize2){
-						curDeltaS[lix] = curDelta[lix];
+						curDeltaShared[lix] = curDelta[lix];
 					}
                 }
 
@@ -857,7 +871,7 @@ __global__ void g_ConvCFM_backpropagation_shared(
 					for (int y = 0; y < kernelSize; y++) {
 					    int cy = j - y + padding;
 						if(cy >= 0 && cy < curDim){
-							val += curDeltaS[cx * curDim + cy] * w[x * kernelSize + y];
+							val += curDeltaShared[cx * curDim + cy] * w[x * kernelSize + y];
 						}
 					}
 				}
