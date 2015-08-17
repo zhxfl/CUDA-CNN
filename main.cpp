@@ -32,6 +32,7 @@ bool init(cublasHandle_t& handle);
 
 std::vector<int> g_argv;
 
+
 int main (int argc, char** argv)
 {
 	srand(clock());
@@ -39,6 +40,8 @@ int main (int argc, char** argv)
 		g_argv.push_back(atoi(argv[1]));
 		g_argv.push_back(atoi(argv[2]));
 	}
+    vector<unsigned int>vec;
+    int device_count = check_SharedMemory(vec);
 	printf("1. MNIST\n2. CIFAR-10\n3. CHINESE\n4. CIFAR-100\n5. VOTE MNIST\nChoose the dataSet to run:");
 	int cmd;
 	if(g_argv.size() >= 2)
