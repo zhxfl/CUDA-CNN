@@ -717,7 +717,9 @@ __global__ void g_ConvCFM_feedforward_shared(
 				for(int li = 0; li < inputSize2; li += blockDim.x){
 					int lix = li + threadIdx.x;
 					if(lix < inputSize2){
-						curInputShared[lix + add_padding] = curInput[lix];
+                        int _x = lix / inputDim;
+                        int _y = lix % inputDim;
+						curInputShared[after_padding_dim * _x + _y + add_padding] = curInput[lix];
 					}
 				}
 				__syncthreads();
@@ -1047,7 +1049,9 @@ __global__ void g_ConvCFM_wgrad_1(float*_inputs,
     for(int id = 0; id < inputSize2; id += blockDim.x){
         int idx = id + threadIdx.x;
         if(idx < inputSize2){
-            inputShared[idx + add_padding] = input[idx];
+            int _x = idx / inputDim;
+            int _y = idx % inputDim;
+            inputShared[_x * after_padding_dim + add_padding + _y] = input[idx];
         }
     }
     
