@@ -172,7 +172,7 @@ void ConvCFM::feedforward()
 
 	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, outputAmount);
-		dim3 thread= dim3(min(outputDim * outputDim, 1024));
+		dim3 thread= dim3(outputDim * outputDim);
          
         g_ConvCFM_feedforward_shared<<<block, thread, sharedMemorySize>>>(
 			inputs->getDev(),
@@ -251,7 +251,7 @@ void ConvCFM::backpropagation()
 
 	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, inputAmount);
-		dim3 thread= inputDim * inputDim;
+		dim3 thread= dim3(inputDim * inputDim);
 
 		g_ConvCFM_backpropagation_shared<<<block, thread, sharedMemorySize>>>(
 			curDelta->getDev(),
@@ -355,8 +355,8 @@ void ConvCFM::getGrad()
     int nAfterPadding = inputDim + padding << 1;
     size_t sharedMemorySize = sizeof(float) * (nAfterPadding * nAfterPadding + outputDim * outputDim);
 	if(kernelSize *  kernelSize <= 1024 && checkSharedMemory(0, sharedMemorySize)){
-		dim3 block = dim3(batch, outputAmount, cfm);
-		dim3 thread= dim3(kernelSize * kernelSize);
+        dim3 block = dim3(batch, outputAmount);
+        dim3 thread= dim3(kernelSize * kernelSize);
 
 		g_ConvCFM_wgrad_shared<<<block, thread, sharedMemorySize>>>(
 			inputs->getDev(),
@@ -1056,7 +1056,7 @@ __global__ void g_ConvCFM_wgrad_2(float*_inputs,
 
 /*
  * dim3 block = dim3(batch, outputAmount);
- * dim3 thread= dim3(min(kernelSize * kernelSize, 512), cfm);
+ * dim3 thread= dim3(kernelSize * kernelSize);
 */
 
 __global__ void g_ConvCFM_wgrad_shared(float*_inputs,
@@ -1077,8 +1077,6 @@ __global__ void g_ConvCFM_wgrad_shared(float*_inputs,
     extern __shared__ float curDeltaShared[];
 
 	int ok = blockIdx.y;
-	int c = blockIdx.z;
-    int ik = c;
 	int b = blockIdx.x;
 
 	int inputSize2    = inputDim * inputDim;
@@ -1086,10 +1084,7 @@ __global__ void g_ConvCFM_wgrad_shared(float*_inputs,
 	int kernelSize2   = kernelSize * kernelSize;
 
     float* inputShared = curDeltaShared + curDeltaSize2;
-    float* wgrad = wgradTmp[ok] + c * wgradTmpArea + b * kernelSize2;
-	float* input = _inputs + inputArea * ik + b * inputSize2;
 	float* curDelta = _curDelta + ok * curDeltaAea + b * curDeltaSize2;
-
     int after_padding_dim = (inputDim + padding << 1);
     int after_padding_dim2 = after_padding_dim * after_padding_dim;
     int add_padding = after_padding_dim * padding + padding;
@@ -1100,17 +1095,6 @@ __global__ void g_ConvCFM_wgrad_shared(float*_inputs,
             inputShared[idx] = 0;    
         }
     }
-    __syncthreads();
-
-    for(int id = 0; id < inputSize2; id += blockDim.x){
-        int idx = id + threadIdx.x;
-        if(idx < inputSize2){
-            int _x = idx / inputDim;
-            int _y = idx % inputDim;
-            inputShared[_x * after_padding_dim + add_padding + _y] = input[idx];
-        }
-    }
-    
     for(int id = 0; id < curDeltaSize2; id += blockDim.x){
         int idx = id + threadIdx.x;
         if(idx < curDeltaSize2){
@@ -1119,74 +1103,90 @@ __global__ void g_ConvCFM_wgrad_shared(float*_inputs,
     }
     __syncthreads();
 
-	for(int tidx = 0; tidx < kernelSize2; tidx += blockDim.x)
-	{
-		int idx = tidx + threadIdx.x;
-		if(idx < kernelSize2)
-		{
-			int i = idx / kernelSize;
-			int j = idx % kernelSize;
-			float val = 0.0;
+   
+    for(int c = 0; c < inputAmount; c++){
+        int ik = c;
+        float* wgrad = wgradTmp[ok] + c * wgradTmpArea + b * kernelSize2;
+        float* input = _inputs + ik * inputArea + b * inputSize2;
+        for(int id = 0; id < inputSize2; id += blockDim.x){
+            int idx = id + threadIdx.x;
+            if(idx < inputSize2){
+                int _x = idx / inputDim;
+                int _y = idx % inputDim;
+                inputShared[_x * after_padding_dim + add_padding + _y] = input[idx];
+            }
+        }
 
-			for(int x = 0; x < curDeltaDim; x++){
-				int cx = i + x;
-                float* t1 = inputShared + cx * after_padding_dim;
-                float* t2 = curDeltaShared + x * curDeltaDim;
-				for(int y = 0; y < curDeltaDim; y++)
-				{
-					int cy = j + y;
-                    val += t1[cy] * t2[y];
+        for(int tidx = 0; tidx < kernelSize2; tidx += blockDim.x)
+        {
+            int idx = tidx + threadIdx.x;
+            if(idx < kernelSize2)
+            {
+                int i = idx / kernelSize;
+                int j = idx % kernelSize;
+                float val = 0.0;
+
+                for(int x = 0; x < curDeltaDim; x++){
+                    int cx = i + x;
+                    float* t1 = inputShared + cx * after_padding_dim;
+                    float* t2 = curDeltaShared + x * curDeltaDim;
+                    for(int y = 0; y < curDeltaDim; y++)
+                    {
+                        int cy = j + y;
+                        val += t1[cy] * t2[y];
+                    }
                 }
-			}
-			wgrad[idx] = val;
-		}
-	}
+                wgrad[idx] = val;
+            }
+        }
+
+    } 
 }
 
 /*
  * blocks  : dim3(kernelAmount2)
  * threads : dim3(256)
  * shared  : sizeof(float) * 256
-*/
+ */
 __global__ void g_ConvCFM_Bgrad(float* delta,
-	float** bgrad,
-	int deltaSize,
-	int kernelAmount2,
-	int batch,
-	int deltaArea)
+        float** bgrad,
+        int deltaSize,
+        int kernelAmount2,
+        int batch,
+        int deltaArea)
 {
-	extern __shared__ float _sum[];
-	int k2 = blockIdx.x;
-	_sum[threadIdx.x] = 0.0;
-	__syncthreads();
-	int deltaSize2 = deltaSize * deltaSize;
-	int tlen = deltaSize2 * batch;
+    extern __shared__ float _sum[];
+    int k2 = blockIdx.x;
+    _sum[threadIdx.x] = 0.0;
+    __syncthreads();
+    int deltaSize2 = deltaSize * deltaSize;
+    int tlen = deltaSize2 * batch;
     int skip = deltaArea * k2;
-	for(int i = 0; i < tlen; i += blockDim.x)
-	{
-		int idx = i + threadIdx.x;
-		if(idx < tlen)
-		{
-			_sum[threadIdx.x] += delta[idx + skip];
-		}
-	}
-	__syncthreads();
-	int len = blockDim.x;
-	while(len != 1)
-	{
-		__syncthreads();
-		int skip = (len + 1) >> 1;
-		if(threadIdx.x < (len >> 1))
-		{
-			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
-		}
+    for(int i = 0; i < tlen; i += blockDim.x)
+    {
+        int idx = i + threadIdx.x;
+        if(idx < tlen)
+        {
+            _sum[threadIdx.x] += delta[idx + skip];
+        }
+    }
+    __syncthreads();
+    int len = blockDim.x;
+    while(len != 1)
+    {
+        __syncthreads();
+        int skip = (len + 1) >> 1;
+        if(threadIdx.x < (len >> 1))
+        {
+            _sum[threadIdx.x] += _sum[threadIdx.x + skip];
+        }
         else{
             return;
         }
-		len = (len + 1) >> 1;
-	}
-	if(threadIdx.x == 0)
-	{
-		bgrad[k2][0] = _sum[0] / batch;
-	}
+        len = (len + 1) >> 1;
+    }
+    if(threadIdx.x == 0)
+    {
+        bgrad[k2][0] = _sum[0] / batch;
+    }
 }
