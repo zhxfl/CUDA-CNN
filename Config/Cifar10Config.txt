@@ -106,7 +106,7 @@ initW = 0.01;
 NON_LINEARITY = NL_RELU;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 ]
-#===================branchlayer1->b1a start===================#
+#===================branchlayer1->b1b start===================#
 
 [  
 LAYER = CONV;
