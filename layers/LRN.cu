@@ -80,7 +80,7 @@ void LRN::feedforward()
 		lrn_n,
 		lrn_alpha,
 		lrn_belta);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("LRN feedforward");
 
 	if(NON_LINEARITY >= 0){
@@ -90,7 +90,7 @@ void LRN::feedforward()
 			outputs->getDev(), 
 			outputs->getLen(),
 			NON_LINEARITY);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("LRN::g_nonLinearity");
 	}
 	
@@ -105,7 +105,7 @@ void LRN::backpropagation()
 		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
 			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("ConvNCFM::g_dnonLinearity");
 	}
 	preDelta->gpuClear();
@@ -136,7 +136,7 @@ void LRN::backpropagation()
 		lrn_n,
 		lrn_alpha,
 		lrn_belta);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("LRN backpropagation");
 }
 

@@ -62,7 +62,7 @@ void cuInitDistortionMemery(int batch, int ImgSize)
 	g_createGaussianKernel<<<dim3(1),dim3(GAUSSIAN_FIELD_SIZE * GAUSSIAN_FIELD_SIZE)>>>(
 		cuGaussianKernel->getDev(),
 		dElasticSigma);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 
 	/*cu_d_randomNum*/
 	checkCudaErrors(
@@ -427,7 +427,7 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 	curandGenerateUniform(rand_generator_device, cu_d_randonNumf, getRandomNumLen(batch, ImgSize));
 
 	g_getRandomUniform<<<dim3(256),dim3(256)>>>(cu_d_randonNumf, cu_d_randomNum, getRandomNumLen(batch, ImgSize));
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_getRandomUniform");
 
 	int threads = min(512, ImgSize * ImgSize);
@@ -436,7 +436,7 @@ void cuApplyRandom(int batch, unsigned long long s, int ImgSize)
 		Config::instance()->getDistortion(),
 		Config::instance()->getScale(),
 		Config::instance()->getRotation(), ImgSize);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_generateDistortionMap");
 }
 
@@ -453,7 +453,7 @@ void cuApplyScaleAndRotate(int batch,
 			scalingy,
 			rotation,
 			ImgSize);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_generateDistortionMap");
 
 }
@@ -467,7 +467,7 @@ void cuApplyDistortion(float**inputs, float**outputs, int batch, int ImgSize)
 		cuDispH->getDev(),
 		cuDispV->getDev(),
 		ImgSize);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_applyDistortionMap");
 }
 
@@ -560,7 +560,7 @@ void cuApplyCropRandom(float**inputs, float**outputs, int batch, int ImgSize)
 	dim3 threads = min(512, ImgSize * ImgSize);
 
 	g_applyCropRandom<<<block,threads>>>(inputs, outputs, cu_d_randomNum, Config::instance()->getCrop(), ImgSize);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_applyCropRandom");
 }
 
@@ -569,7 +569,7 @@ void cuApplyCrop(float**inputs, float**outputs, int batch, int ImgSize, int crop
 	int threads = min(512, ImgSize * ImgSize);
 	g_applyCrop<<<dim3(batch, Config::instance()->getChannels()),
 		dim3(threads)>>>(inputs, outputs,cu_d_randomNum, Config::instance()->getCrop(), ImgSize, cropr, cropc);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_applyCrop");
 }
 
@@ -630,7 +630,7 @@ void cuApplyHorizontal(float **inputs, float**outputs, int batch, int ImgSize, i
 	g_applyHorizontal<<<dim3(batch, Config::instance()->getChannels()),
 		dim3(threads)>>>(inputs, outputs, cu_d_randomNum,  ImgSize, flag);
 
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_applyHorizontal");
 }
 
@@ -683,6 +683,6 @@ void cuApplyWhiteNoise(float **inputs, float**outputs, int batch, int ImgSize, f
 	dim3 threads = dim3(min(ImgSize * ImgSize, 512));
 	
 	g_applyWhiteNoise<<<blocks, threads>>>(inputs, outputs, cu_d_randomNum, ImgSize, stdev);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_applyWhiteNoise");
 }

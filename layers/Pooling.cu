@@ -79,6 +79,7 @@ void Pooling::feedforward()
 	dim3 thread= dim3(threadx, remain);
 
 	if(type == std::string("max")){
+        cudaFuncSetCacheConfig(g_pooling_feedforward_max, cudaFuncCachePreferL1);
 		g_pooling_feedforward_max<<<block, thread>>>(
 			inputs->getDev(),
 			outputs->getDev(),
@@ -92,7 +93,7 @@ void Pooling::feedforward()
 			outputs->getArea(),
 			batch,
 			outputAmount);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("pooling g_pooling_feedforward_max");
 	}else{
 		g_pooling_feedforward_avr<<<block, thread>>>(
@@ -106,7 +107,7 @@ void Pooling::feedforward()
 			outputs->getArea(),
 			batch,
 			outputAmount);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("pooling g_pooling_feedforward_avr");
 	}
 	
@@ -118,7 +119,7 @@ void Pooling::feedforward()
 			outputs->getDev(), 
 			outputs->getLen(),
 			NON_LINEARITY);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("convNCFM::g_nonLinearity");
 	}
 
@@ -133,7 +134,7 @@ void Pooling::backpropagation()
 		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
 			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("ConvNCFM::g_dnonLinearity");
 	}
 
@@ -148,7 +149,7 @@ void Pooling::backpropagation()
 			g_pooling_backpropagation_max_no_atomic<<<block, thread>>>(
 				pointX->getDev(), pointY->getDev(), curDelta->getDev(), preDelta->getDev(),
 				outputDim, inputDim, curDeltalen);
-			checkCudaErrors(cudaDeviceSynchronize());
+			checkCudaErrors(cudaStreamSynchronize(0));
 			getLastCudaError("pooling g_backpropagation_max_no_atomic");
 		}
 		else{
@@ -156,7 +157,7 @@ void Pooling::backpropagation()
 			g_pooling_backpropagation_max<<<block, thread>>>(
 				pointX->getDev(), pointY->getDev(), curDelta->getDev(), preDelta->getDev(),
 				outputDim, inputDim, curDeltalen);
-			checkCudaErrors(cudaDeviceSynchronize());
+			checkCudaErrors(cudaStreamSynchronize(0));
 			getLastCudaError("pooling backpropagation_max");
 		}
 	}else{
@@ -170,13 +171,13 @@ void Pooling::backpropagation()
 			g_pooling_backpropagation_avr_no_atomic<<<block, thread>>>(
 				curDelta->getDev(), preDelta->getDev(), 
 				outputDim, inputDim, skip, size, curDeltalen);
-			checkCudaErrors(cudaDeviceSynchronize());
+			checkCudaErrors(cudaStreamSynchronize(0));
 			getLastCudaError("pooling g_backpropagation_avr_no_atomic");
 		}else{
 			preDelta->gpuClear();
 			g_pooling_backpropagation_avr<<<block, thread>>>(curDelta->getDev(), preDelta->getDev(), 
 				outputDim, inputDim, skip, size, curDeltalen);
-			checkCudaErrors(cudaDeviceSynchronize());
+			checkCudaErrors(cudaStreamSynchronize(0));
 			getLastCudaError("pooling g_pooling_backpropagation_avr");
 		}
 	}
@@ -250,16 +251,16 @@ __global__ void g_pooling_feedforward_max(
 	int k  = blockIdx.y * blockDim.y + threadIdx.y;
 	if(k >= kAmount)return;
 
-	int convSize2  = convSize * convSize;
-	int poolSize2  = poolSize * poolSize;
+	int convSize2 = convSize * convSize;
+	int poolSize2 = poolSize * poolSize;
 
-	int convSkip  = convArea * k + sp * convSize2;
-	int poolSkip  = poolArea * k + sp * poolSize2;
+	int convSkip = convArea * k + sp * convSize2;
+	int poolSkip = poolArea * k + sp * poolSize2;
 
-	float* curConv  = conv   + convSkip;
-	float* curPool  = pool   + poolSkip;
-	int* px          = pointX + poolSkip;
-	int* py          = pointY + poolSkip;
+	float* curConv = conv + convSkip;
+	float* curPool = pool + poolSkip;
+	int* px = pointX + poolSkip;
+	int* py = pointY + poolSkip;
 
 	/*pooling*/
 	for(int tidx = 0; tidx < poolSize2; tidx += blockDim.x)
@@ -291,8 +292,8 @@ __global__ void g_pooling_feedforward_max(
 					}
 				}
 			}
-			px     [idx] = curX;
-			py     [idx] = curY;
+			px [idx] = curX;
+			py [idx] = curY;
 			curPool[idx] = _max;
 		}
 	}

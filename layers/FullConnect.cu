@@ -104,7 +104,7 @@ void FullConnect::feedforward()
 		inputs->rows, 
 		inputs->cols,
 		inputs->channels);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("g_convert");
 
 
@@ -118,7 +118,7 @@ void FullConnect::feedforward()
 		outputs->cols,
 		NON_LINEARITY);
 
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("g_FullConnectActi");
 
 	if(dropRate > 0.0){
@@ -137,7 +137,7 @@ void FullConnect::feedforward()
 		block  = min(512, (w->getLen() + thread.x - 1) / thread.x);
 		g_FullConnectDropout<<<block, thread>>>(outputs->getDev(), drop->getDev(), drop->getLen());
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_FullConnectDropout");
 
 	}else{
@@ -155,7 +155,7 @@ void FullConnect::calCost()
 			w->getDev(),
 			lambda,
 			w->getLen());
-		cudaDeviceSynchronize();
+		cudaStreamSynchronize(0);
 		getLastCudaError("g_getCost_2");
 	}
 }
@@ -220,7 +220,7 @@ void FullConnect::backpropagation()
 	if(NON_LINEARITY >= 0){
 		g_dnonLinearity<<<dim3(256), dim3(256)>>>(curDelta->getDev(),
 			outputs->getDev(), outputs->getLen(), NON_LINEARITY);
-		cudaDeviceSynchronize();
+		cudaStreamSynchronize(0);
 		getLastCudaError("g_dnonLinearity");
 	}
 
@@ -234,7 +234,7 @@ void FullConnect::backpropagation()
 		preDelta->rows,
 		preDelta->cols,
 		preDelta->channels);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_preDeltaFormat");
 }
 
@@ -251,7 +251,7 @@ void FullConnect::getGrad()
 		lambda,
 		batch);
 
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_FullConnectWgrad");
 
 
@@ -263,7 +263,7 @@ void FullConnect::getGrad()
 	g_getBgrad<<<dim3(curDelta->cols), dim3(curDelta->rows),
 		sizeof(float) * curDelta->rows>>>
 		(curDelta->getDev(), bgrad->getDev(), batch);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 }
 
 void FullConnect::updateWeight()
@@ -309,7 +309,7 @@ void FullConnect::convert()
 		inputs->rows,
 		inputs->cols,
 		inputs->channels);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("convert");
 }
 

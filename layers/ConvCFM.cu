@@ -156,7 +156,7 @@ void ConvCFM::calCost()
 		w.m_devPoint, 
 		lambda,
 		w[0]->getLen());
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("ConvCFM:getCost");
 }
 
@@ -173,7 +173,7 @@ void ConvCFM::feedforward()
 	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(outputDim * outputDim);
-         
+        cudaFuncSetCacheConfig(g_ConvCFM_feedforward_shared, cudaFuncCachePreferL1); 
         g_ConvCFM_feedforward_shared<<<block, thread, sharedMemorySize>>>(
 			inputs->getDev(),
 			w.m_devPoint,
@@ -188,7 +188,7 @@ void ConvCFM::feedforward()
 			inputs->getArea(),
 			outputs->getArea(),
 			cfm);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("convCFM::g_ConvCFM_feedforward_shared");
 	}
 	else{
@@ -213,7 +213,7 @@ void ConvCFM::feedforward()
 			inputs->getArea(),
 			outputs->getArea(),
 			cfm);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("convCFM::g_ConvCFM_feedforward");
 	}
 
@@ -224,14 +224,13 @@ void ConvCFM::feedforward()
 			outputs->getDev(), 
 			outputs->getLen(),
 			NON_LINEARITY);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("convCFM::g_nonLinearity");
 	}
 }
 
 void ConvCFM::backpropagation()
 {
-
 	if(NON_LINEARITY >= 0){
 		dim3 thread = dim3(min(256, outputs->getLen()));
 		dim3 block  = dim3(min(256, (outputs->getLen() + thread.x - 1) / thread.x));
@@ -239,7 +238,7 @@ void ConvCFM::backpropagation()
 		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
 			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("ConvCFM::g_dnonLinearity");
 	}
 	
@@ -252,7 +251,7 @@ void ConvCFM::backpropagation()
 	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, inputAmount);
 		dim3 thread= dim3(inputDim * inputDim);
-
+        cudaFuncSetCacheConfig(g_ConvCFM_backpropagation_shared, cudaFuncCachePreferL1);
 		g_ConvCFM_backpropagation_shared<<<block, thread, sharedMemorySize>>>(
 			curDelta->getDev(),
 			w.m_devPoint,
@@ -266,7 +265,7 @@ void ConvCFM::backpropagation()
 			curDelta->getArea(),
 			preDelta->getArea(),
 			cfm);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("ConvCFM::g_ConvCFM_backpropagation_shared");
 	}
 	else{
@@ -290,7 +289,7 @@ void ConvCFM::backpropagation()
 			curDelta->getArea(),
 			preDelta->getArea(),
 			cfm);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("ConvCFM::g_ConvCFM_backpropagation");
 	}
 }
@@ -357,7 +356,7 @@ void ConvCFM::getGrad()
 	if(kernelSize *  kernelSize <= 1024 && checkSharedMemory(0, sharedMemorySize)){
         dim3 block = dim3(batch, outputAmount);
         dim3 thread= dim3(kernelSize * kernelSize);
-
+        cudaFuncSetCacheConfig(g_ConvCFM_wgrad_shared,cudaFuncCachePreferL1);
 		g_ConvCFM_wgrad_shared<<<block, thread, sharedMemorySize>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
@@ -373,7 +372,7 @@ void ConvCFM::getGrad()
 			wgradTmp[0]->getArea(),
 			batch,
 			lambda);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_ConvCFM_wgrad_shared");
 	}
 	else{
@@ -395,7 +394,7 @@ void ConvCFM::getGrad()
 			batch,
 			lambda);
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_ConvCFM_wgrad");
 	}
 	
@@ -413,7 +412,7 @@ void ConvCFM::getGrad()
 		wgradTmp[0]->getArea(),
 		wgrad[0]->getArea(),
 		w[0]->getArea());
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("g_ConvCFM_wgradAdd");
 	
 
@@ -428,7 +427,7 @@ void ConvCFM::getGrad()
 		batch,
 		curDelta->getArea());
 
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("ConvCFM::getGrad::g_ConvCFM_Bgrad");
 }
 

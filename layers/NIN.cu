@@ -68,23 +68,6 @@ __global__ void g_NIN_backpropagation(
 	int     preArea);
 
 /*
-* blocks  : dim3(batch, cuKernelScan[cl]),
-* threads : dim3(threadidx)
-*/
-__global__ void g_NIN_wgrad(float*_inputs,
-	float* _curDelta,
-	float** wgradTmp,
-	int inputDim,
-	int curDeltaDim,
-	int inputAmount,
-	int outputAmount,
-	int inputArea,
-	int curDeltaAea,
-	int wgradTmpArea,
-	int batch);
-
-
-/*
  * block = dim3(outputAmount, inputAmount);
  * thread= dim3(batch);
 */
@@ -115,7 +98,7 @@ void NIN::calCost()
 		w.m_devPoint, 
 		lambda,
 		w[0]->getLen());
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("NIN:getCost");
 }
 
@@ -141,7 +124,7 @@ void NIN::feedforward()
 		outputAmount,
 		inputs->getArea(),
 		outputs->getArea());
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("NIN::g_NIN_feedforward");
 
 	if(NON_LINEARITY >= 0){
@@ -151,7 +134,7 @@ void NIN::feedforward()
 			outputs->getDev(), 
 			outputs->getLen(),
 			NON_LINEARITY);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("NIN::g_nonLinearity");
 	}
 }
@@ -165,7 +148,7 @@ void NIN::backpropagation()
 		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
 			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("NIN::g_dnonLinearity");
 	}
 	
@@ -175,7 +158,7 @@ void NIN::backpropagation()
 	dim3 block = dim3(batch, inputAmount);
 	dim3 thread= dim3(min(inputDim * inputDim, 1024));
 
-	g_NIN_backpropagation<<<block, thread>>>(
+	g_NIN_backpropagation<<<block, thread, sizeof(float) * outputAmount>>>(
 		curDelta->getDev(),
 		w.m_devPoint,
 		preDelta->getDev(),
@@ -185,7 +168,7 @@ void NIN::backpropagation()
 		outputAmount,
 		curDelta->getArea(),
 		preDelta->getArea());
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("NIN::g_NIN_backpropagation");
 }
 
@@ -253,7 +236,7 @@ void NIN::getGrad()
 			outputAmount,
 			inputs->getArea(),
 			curDelta->getArea());
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_NIN_wgrad_1");
 	}else if(outputDim >= 8 && inputAmount == 64){
 		dim3 block = dim3(batch, outputAmount);
@@ -268,7 +251,7 @@ void NIN::getGrad()
 			outputAmount,
 			inputs->getArea(),
 			curDelta->getArea());
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_NIN_wgrad_1");
 	}else{
 		dim3 block = dim3(batch, outputAmount);
@@ -284,7 +267,7 @@ void NIN::getGrad()
 			inputs->getArea(),
 			curDelta->getArea());
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_NIN_wgrad");
 	}
 
@@ -297,7 +280,7 @@ void NIN::getGrad()
 		w.m_devPoint,
 		batch,
 		lambda);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("g_NIN_wgradAdd");
 	
 
@@ -310,7 +293,7 @@ void NIN::getGrad()
 		batch,
 		curDelta->getArea());
 
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("NIN::getGrad::g_NIN_Bgrad");
 }
 
@@ -500,9 +483,10 @@ __global__ void g_NIN_feedforward(
 	int ok = blockIdx.y;
 	
 	int outputSize2 = outputDim * outputDim;
-	int inputSize2  = inputDim* inputDim;
+	int inputSize2 = inputDim* inputDim;
 
-	float  b       = bs[ok][0];
+	float  b = bs[ok][0];
+    float *w = ws[ok];
 
 	float* curOutput = outputs + ok * outputArea + sp * outputSize2;
 
@@ -513,10 +497,11 @@ __global__ void g_NIN_feedforward(
 		if(idx < outputSize2)
 		{
 			float val = 0.0;
-			float *w  = ws[ok];
+            int skip_add = sp * inputSize2;
 			for(int ik = 0; ik < inputAmount; ik++){
-				float* curInput = inputs + ik * inputArea + sp * inputSize2;
+				float* curInput = inputs + skip_add;
 				val += curInput[idx] * w[ik];
+                skip_add += inputArea;
 			}
 			curOutput[idx] = val + b;
 		}
@@ -540,21 +525,33 @@ __global__ void g_NIN_backpropagation(
 	int     curArea,
 	int     preArea)
 {
+    extern __shared__ float wShared[];
+
 	int sp = blockIdx.x;
 	int ik = blockIdx.y;
+
+    for(int id = 0; id < curAmount; id += blockDim.x){
+        int idx = id + threadIdx.x;
+        if(idx < curAmount){
+            wShared[idx] = ws[idx][ik];
+        }
+    }
+    __syncthreads();
 
 	int curSize2 = curDim * curDim;
 	int preSize2 = preDim * preDim;
 
 	float *preDelta = _preDelta + ik * preArea + sp * preSize2;
+
 	for (int tidx = 0; tidx < preSize2; tidx += blockDim.x) {
 		int idx = tidx + threadIdx.x;
 		if (idx < preSize2) {
 			float val = 0.0;
+            int skip_add = sp * curSize2;
 			for(int ok = 0; ok < curAmount; ok++){
-				float *curDelta = _curDelta + ok * curArea + sp * curSize2;
-				float w         = ws[ok][ik];
-				val += curDelta[idx] * w;
+				float *curDelta = _curDelta + skip_add;
+				val += curDelta[idx] * wShared[ok];
+                skip_add += curArea;
 			}
 			preDelta[idx] = val;
 		}

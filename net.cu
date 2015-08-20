@@ -23,7 +23,7 @@
 #include "layers/CombineLayer.h"
 #include "layers/DataLayer.h"
 #include "layers/NIN.h"
-
+//#include <thread>
 #include <queue>
 #include <set>
 
@@ -155,7 +155,7 @@ void updataWB()
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->updateWeight();
 	}
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("updateWB");
 }
 
@@ -176,12 +176,26 @@ void getNetworkCost(int* y)
 	}
 
 	/*backpropagation*/
+    //std::vector<std::thread>threads; 
 	for(int i = (int)que.size() - 1; i >=0; i--){
 		ConfigBase* top = que[i];
 		LayerBase* layer = Layers::instance()->get(top->m_name);
+
+        //for(size_t i = 0; i < threads.size(); i++){
+        //    threads[i].join();
+        //}
+        //threads.clear();
 		layer->backpropagation();
-		layer->getGrad();
+        //threads.push_back(
+        //    std::thread([layer](){
+        //        layer->getGrad();
+        //    }
+        //));
+        layer->getGrad();
 	}
+    //for(size_t i = 0; i < threads.size(); i++){
+    //    threads[i].join();
+    //}
 }
 
 /*
@@ -224,7 +238,7 @@ void resultProdict(int* vote,int start)
 				Layers::instance()->get(que[i]->m_name)->getOutputs()->cols,
 				start,
 				vote);
-			cudaDeviceSynchronize();
+			cudaStreamSynchronize(0);
 		}
 	}
 }
@@ -376,25 +390,13 @@ void predictTestDate(cuMatrixVector<float>&x,
 			cuCorrect->getDev(),
 			testX.size(),
 			nclasses);
-		cudaDeviceSynchronize();
+		cudaStreamSynchronize(0);
 		getLastCudaError("g_getVotingResult");
 		cuCorrect->toCpu();
 		if (cuCorrect->get(0, 0, 0) > cuCurCorrect) {
 			cuCurCorrect = cuCorrect->get(0, 0, 0);
 			cuSaveConvNet();
 		}
-}
-
-
-
-void getBatchImageWithStreams(cuMatrixVector<float>&x,
-	cuMatrixVector<float>&batchImg, 
-	int start, 
-	cudaStream_t stream1){
-	 for(int i = 0; i < (int)batchImg.size(); i++){
-		 memcpy(batchImg[i]->getHost(), x[i + start]->getHost(), sizeof(float) * batchImg[i]->getLen());
-		 batchImg[i]->toGpu(stream1);
-	 }
 }
 
 float getCost(){
@@ -491,10 +493,6 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 		LOG(logStr, "Result/log.txt");
 
 		if (epo && epo % epoCount[id] == 0) {
-// 			for(int i = 0; i < que.size(); i++){
-// 				LayerBase* layer = (LayerBase*)Layers::instance()->get(que[i]->m_name);
-// 				layer->clearMomentum();
-// 			}
 			id++;
 		}
 		
@@ -522,7 +520,6 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 				100.0 * cuCurCorrect / testX.size());
 			LOG(logStr, "Result/log.txt");
 		}
-
 		
 		if(epo == 0){
 			MemoryMonitor::instance()->printCpuMemory();
@@ -577,7 +574,7 @@ int cuVoteAdd(cuMatrix<int>*& voteSum,
 		correct->getDev(),
 		testY->getLen(),
 		nclasses);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_getVoteAdd");
 	correct->toCpu();
 	return correct->get(0, 0, 0);

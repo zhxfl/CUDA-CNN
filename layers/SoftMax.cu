@@ -110,7 +110,7 @@ void SoftMax::feedforward()
 		inputs->rows, 
 		inputs->cols,
 		inputs->channels);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("g_convert");
 
 	matrixMulTB(inputs_format,
@@ -121,7 +121,7 @@ void SoftMax::feedforward()
 		outputs->getDev(),
 		b->getDev(), 
 		outputs->cols);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_getSoftMaxP");
 }
 
@@ -129,13 +129,13 @@ void SoftMax::backpropagation()
 {
 	g_getCost_1<<<dim3(1), dim3(256), sizeof(float) * 256>>>(outputs->getDev(), groudTruth->getDev(),
 		cost->getDev(), predict, outputs->rows, outputs->cols, batch);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_getCost_1");
 
 	g_getSoftMaxDelta<<<dim3(1), dim3(256)>>>(curDelta->getDev(),
 		outputs->getDev(),
 		groudTruth->getDev(), curDelta->getLen());
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 
 	matrixMul(curDelta,
 		w, preDelta_format);
@@ -148,7 +148,7 @@ void SoftMax::backpropagation()
 		preDelta->rows,
 		preDelta->cols,
 		preDelta->channels);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_preDeltaFormat");
 }
 
@@ -158,7 +158,7 @@ void SoftMax::getGrad()
 
 	g_getSmrWgrad<<<dim3(1), dim3(256)>>>(wgrad->getDev(),
 		w->getDev(), lambda, wgrad->getLen(), batch);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 
 	if(curDelta->rows > MAX_THREADS)
 	{
@@ -170,7 +170,7 @@ void SoftMax::getGrad()
 		curDelta->getDev(), 
 		bgrad->getDev(),
 		batch);
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_getBgrad");
 }
 
@@ -200,7 +200,7 @@ void SoftMax::calCost()
 {
 	g_getCost_2<<<dim3(1), dim3(256), sizeof(float) * 256>>>(cost->getDev(),  w->getDev(), lambda,
 		w->getLen());
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("g_getCost_2");
 }
 

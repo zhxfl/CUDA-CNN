@@ -4,6 +4,7 @@
 #include <helper_functions.h>
 #include <helper_cuda.h>
 #include <math.h>
+//#include <thread>
 #include "../common/Config.h"
 #include "../common/cuBase.h"
 #include "../common/util.h"
@@ -82,7 +83,7 @@ void DataLayer::feedforward(){
 		outputs->getDev(),
 		outputs->getArea(),
 		outputs->cols);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("DataLayer:feedforward");
 	
 }; 
@@ -146,14 +147,28 @@ void DataLayer::testData(int cropr, int cropc,
 
 
 void DataLayer::synchronize(){
-	batchId = 1 - batchId;
-	cudaStreamSynchronize(stream1);
+    /*for(size_t i = 0; i < threads.size(); i++){
+        threads[i].join();
+    }*/
+	batchId = 1 - batchId;  
+    cudaStreamSynchronize(this->stream1);
+    //threads.clear();
 }
 
 void DataLayer::getBatchImageWithStreams(cuMatrixVector<float>& inputs, int start){
-	int id = 1 - batchId;
-	for(int i = 0; i < (int)batchImg[id].size(); i++){
-		memcpy(batchImg[id][i]->getHost(), inputs[i + start]->getHost(), sizeof(float) * batchImg[id][i]->getLen());
-		batchImg[id][i]->toGpu(stream1);
-	}
+    int id = 1 - this->batchId;
+    for(size_t i = 0; i < this->batchImg[id].size(); i++){
+        memcpy(this->batchImg[id][i]->getHost(), inputs[i + start]->getHost(), sizeof(float) * this->batchImg[id][i]->getLen());
+        this->batchImg[id][i]->toGpu(this->stream1);
+    }
+    /*threads.push_back(
+        std::thread(
+        [this, &inputs, start](){
+            int id = 1 - this->batchId;
+            for(size_t i = 0; i < this->batchImg[id].size(); i++){
+                memcpy(this->batchImg[id][i]->getHost(), inputs[i + start]->getHost(), sizeof(float) * this->batchImg[id][i]->getLen());
+                this->batchImg[id][i]->toGpu(this->stream1);
+            }
+        }
+    ));*/
 }

@@ -37,7 +37,7 @@ void BranchLayer::feedforward()
 		inputs->getDev(),
 		outputs.m_devPoint,
 		outputs[0]->getLen());
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("BranchLayer feedforward");
 }
 
@@ -56,7 +56,7 @@ void BranchLayer::backpropagation()
 		preDelta->getDev(),
 		curDelta.size(),
 		preDelta->getLen());
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("BranchLayer backpropagation");
 }
 

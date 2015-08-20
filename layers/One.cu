@@ -76,7 +76,7 @@ void One::calCost()
 		w->getDev(), 
 		lambda,
 		w->getLen());
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("One:g_getCost_2");
 }
 
@@ -93,7 +93,7 @@ void One::feedforward()
 		inputs->rows, 
 		inputs->cols,
 		inputs->channels);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("One:g_One_feedforward");
 }
 
@@ -109,7 +109,7 @@ void One::backpropagation()
 		w->getDev(),
 		preDelta->getDev(),
 		inputs->rows, inputs->cols, inputs->channels);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("One::g_One_backpropagation");
 
 // 	curDelta->toCpu();
@@ -189,7 +189,7 @@ void One::getGrad()
 		rows,
 		cols,
 		channel);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("One::g_One_wgrad");
 
 	block = dim3(channel, cols);
@@ -203,7 +203,7 @@ void One::getGrad()
 		cols,
 		channel,
 		lambda);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("One::g_One_wgrad_Add");
 
 	block = dim3(channel, cols);
@@ -216,7 +216,7 @@ void One::getGrad()
 		cols,
 		channel);
 
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("One::g_One_Bgrad");
 }
 

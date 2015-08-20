@@ -50,7 +50,7 @@ void CombineLayer::feedforward()
 		inputsChannels->getDev(),
 		batch,
 		outputs->cols);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("CombineLayer feedforward");
 
 	//inputsChannels->toCpu();
@@ -85,7 +85,7 @@ void CombineLayer::backpropagation()
 		inputsChannels->getDev(),
 		batch,
 		curDelta->cols);
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("combineLayer backpropagation");
 
 #ifdef CombineLayer_backpropagation_checking

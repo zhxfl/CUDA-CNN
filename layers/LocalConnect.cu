@@ -187,7 +187,7 @@ void LocalConnect::calCost()
 		w.m_devPoint, 
 		lambda,
 		w[0]->getLen());
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(0);
 	getLastCudaError("LocalConnect:getCost");
 }
 
@@ -214,7 +214,7 @@ void LocalConnect::feedforward()
 				kernelSize, outputDim, inputs->getArea(), outputs->getArea(), batch, outputAmount, localKernelSize);
 		}
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("LocalConnect:g_LocalConnect_feedforward_s_2");
 	}
 	else if(kernelSize == 1){
@@ -231,7 +231,7 @@ void LocalConnect::feedforward()
 			batch,
 			outputAmount,
 			localKernelSize);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("LocalConnect:g_LocalConnect_feedforward_kernelSize1_2");
 	}
 	else {
@@ -251,7 +251,7 @@ void LocalConnect::feedforward()
 			batch,
 			outputAmount,
 			localKernelSize);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("LocalConnect:g_LocalConnect_feedforward_2");
 	}
 
@@ -262,7 +262,7 @@ void LocalConnect::feedforward()
 			outputs->getDev(), 
 			outputs->getLen(),
 			NON_LINEARITY);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("LocalConnect::g_nonLinearity");
 	}
 }
@@ -276,7 +276,7 @@ void LocalConnect::backpropagation()
 		g_dnonLinearity<<<block, thread>>>(curDelta->getDev(),
 			outputs->getDev(), curDelta->getLen(), NON_LINEARITY);
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("LocalConnect::g_dnonLinearity");
 	}
 	
@@ -294,7 +294,7 @@ void LocalConnect::backpropagation()
  				outputDim,
  				curDelta->getArea(),
  				localKernelSize);
- 			checkCudaErrors(cudaDeviceSynchronize());
+ 			checkCudaErrors(cudaStreamSynchronize(0));
  			getLastCudaError("LocalConnect::g_LocalConnect_backpropagation_kernelSize1");
  
  		}else{
@@ -310,7 +310,7 @@ void LocalConnect::backpropagation()
 				curDelta->getArea(),
 				preDelta->getArea(),
 				localKernelSize);
-			checkCudaErrors(cudaDeviceSynchronize());
+			checkCudaErrors(cudaStreamSynchronize(0));
 			getLastCudaError("LocalConnect::g_LocalConnect_backpropagation");
 		}
 	}
@@ -330,7 +330,7 @@ void LocalConnect::getGrad()
 			inputs->getArea(),
 			batch,
 			lambda);
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_LocalConnect_wgrad_kernelSize1");
 
 		block  = dim3(outputAmount, kernelSize * kernelSize);
@@ -353,7 +353,7 @@ void LocalConnect::getGrad()
 			batch,
 			lambda);
 
-		checkCudaErrors(cudaDeviceSynchronize());
+		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_LocalConnect_wgrad");
 	}
 
@@ -369,7 +369,7 @@ void LocalConnect::getGrad()
 		wgradTmp[0]->getArea(),
 		wgrad[0]->getArea(),
 		w[0]->getArea());
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("g_LocalConnect_wgrad_Add");
 
 	block = dim3(localKernelSize, outputAmount);
@@ -383,7 +383,7 @@ void LocalConnect::getGrad()
 		curDelta->getArea(),
 		localKernelSize);
 
-	checkCudaErrors(cudaDeviceSynchronize());
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("LocalConnect::getGrad::g_LocalConnect_Bgrad");
 }
 
