@@ -358,7 +358,7 @@ void predictTestDate(cuMatrixVector<float>&x,
 							dl->getBatchImageWithStreams(testX, 0);
 							for (int p = 0; p < ((int)testX.size() + batch - 1) / batch; p++) {
 								dl->synchronize();
-								printf("test  %2d%%", 100 * p / ((testX.size() + batch - 1) / batch));
+								printf("test  %2d%%", 100 * p / (((int)testX.size() + batch - 1) / batch));
 								int tstart = p * batch;
 								if(tstart + batch <= (int)testX.size() - batch)
 									dl->getBatchImageWithStreams(testX, tstart + batch);
@@ -465,7 +465,7 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 		for (int k = 0; k < ((int)x.size() + batch - 1) / batch; k ++) {
 			dl->synchronize();
 			int start = k * batch;
-			printf("train %2d%%", 100 * start / ((x.size() + batch - 1)));
+			printf("train %2d%%", 100 * start / (((int)x.size() + batch - 1)));
 			
 			if(start + batch <= (int)x.size() - batch)
 				dl->getBatchImageWithStreams(x, start + batch);
