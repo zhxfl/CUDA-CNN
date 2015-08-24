@@ -295,7 +295,7 @@ void ConvCFM::backpropagation()
 }
 
 /*
- * block = dim3(outputAmount, kernelSize * kernelSize, cfm);
+ * block = dim3(outputAmount, kernelSize * kernelSize * cfm);
  * thread= dim3(batch);
 */
 __global__ void g_ConvCFM_wgradAdd(
@@ -311,14 +311,14 @@ __global__ void g_ConvCFM_wgradAdd(
 {
 	extern __shared__ float _sum[];
 	int ok = blockIdx.x;
-	int kid= blockIdx.y;
-	int c  = blockIdx.z;
+	int kernelSize2 = kernelSize * kernelSize;
+	int kid= blockIdx.y % kernelSize2;
+    int c = blockIdx.y / kernelSize2;
 	int tid = threadIdx.x;
 	_sum[tid] = 0;
 	__syncthreads();
 	int tlen = batch;
 	float* wgradTmp = _WgradTmp[ok];
-	int kernelSize2 = kernelSize * kernelSize;
     int skip = c * wgradTmpArea + kid;
 	for(int i = 0; i < tlen; i += blockDim.x)
 	{
@@ -399,7 +399,7 @@ void ConvCFM::getGrad()
 	}
 	
 
-	dim3 block  = dim3(outputAmount, kernelSize * kernelSize, cfm);
+	dim3 block  = dim3(outputAmount, kernelSize * kernelSize * cfm);
 	dim3 thread = dim3(batch);
 
 	g_ConvCFM_wgradAdd<<<block, thread, sizeof(float) * batch>>>(

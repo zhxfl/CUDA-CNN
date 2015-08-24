@@ -154,11 +154,13 @@ void SoftMax::backpropagation()
 
 void SoftMax::getGrad()
 {
+    //printf("%d %d\n", inputs_format->rows, inputs_format->cols);
 	matrixMulTA(curDelta, inputs_format, wgrad);
 
 	g_getSmrWgrad<<<dim3(1), dim3(256)>>>(wgrad->getDev(),
 		w->getDev(), lambda, wgrad->getLen(), batch);
 	cudaStreamSynchronize(0);
+	getLastCudaError("g_getSmrWgrad");
 
 	if(curDelta->rows > MAX_THREADS)
 	{
