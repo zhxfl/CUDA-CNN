@@ -253,6 +253,21 @@ void NIN::getGrad()
 			curDelta->getArea());
 		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_NIN_wgrad_1");
+    }else if(outputDim >=8 && inputAmount == 128){
+		dim3 block = dim3(batch, outputAmount);
+		dim3 thread= dim3(8, 128);
+		g_NIN_wgrad_1<128, 8><<<block, thread>>>(
+			inputs->getDev(),
+			curDelta->getDev(),
+			wgradTmp.m_devPoint,
+			inputDim,
+			outputDim,
+			inputAmount,
+			outputAmount,
+			inputs->getArea(),
+			curDelta->getArea());
+		checkCudaErrors(cudaStreamSynchronize(0));
+		getLastCudaError("g_NIN_wgrad_1");
 	}else{
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(inputAmount);
