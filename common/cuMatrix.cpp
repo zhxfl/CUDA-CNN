@@ -49,6 +49,7 @@ void matrixMul(cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z)
 		z->getDev(),
 		z->cols);
 	cudaStreamSynchronize(0);
+    getLastCudaError("matrixMul");
 	if(stat != CUBLAS_STATUS_SUCCESS) {
 		printf("matrixMul cublasSgemm error\n");
 		cudaFree(x->getDev());
@@ -88,6 +89,7 @@ void matrixMulTA(cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z)
 		z->getDev(),
 		z->cols);
 	cudaStreamSynchronize(0);
+    getLastCudaError("matrixMulTA");
 	if(stat != CUBLAS_STATUS_SUCCESS) {
 		printf( "matrixMulTA cublasSgemm error\n");
 		exit(0);
@@ -124,6 +126,7 @@ void matrixMulTB(cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z)
 		z->getDev(),
 		z->cols);
 	cudaStreamSynchronize(0);
+    getLastCudaError("matrixMulTB");
 	if(stat != CUBLAS_STATUS_SUCCESS) {
 		printf("matrixMulTB cublasSgemm error\n");
 		exit(0);

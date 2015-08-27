@@ -23,6 +23,7 @@
 #include "layers/CombineLayer.h"
 #include "layers/DataLayer.h"
 #include "layers/NIN.h"
+#include "layers/Conv.h"
 //#include <thread>
 #include <queue>
 #include <set>
@@ -83,6 +84,9 @@ void buildNetWork(int trainLen, int testLen)
 
 		if(top->m_type == std::string("CONV")){
 			ConfigConv * conv = (ConfigConv*) top;
+            new Conv(conv->m_name);
+        }else if(top->m_type == std::string("CONVCFM")){
+			ConfigConvCFM * conv = (ConfigConvCFM*) top;
 			new ConvCFM(conv->m_name);
 		}else if(top->m_type == std::string("LOCAL")){
 			 new LocalConnect(top->m_name);

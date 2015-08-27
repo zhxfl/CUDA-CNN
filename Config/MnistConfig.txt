@@ -20,7 +20,7 @@ NAME  = data;
 ]
 
 [
-LAYER = CONV;
+LAYER = CONVCFM;
 NAME  = conv1;
 INPUT = data;
 KERNEL_SIZE = 5;
@@ -42,7 +42,7 @@ SKIP = 2;
 ]
 
 [  
-LAYER = CONV;
+LAYER = CONVCFM;
 NAME  = conv2;
 INPUT = pooling1;
 KERNEL_SIZE = 5;

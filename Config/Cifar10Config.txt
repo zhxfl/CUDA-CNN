@@ -22,12 +22,12 @@ NAME  = data;
 ]
  
 [
-LAYER = CONV;
+LAYER = CONVCFM;
 NAME  = conv1;
 INPUT = data;
 KERNEL_SIZE = 5;
 PADDING = 2;
-KERNEL_AMOUNT = 64;
+KERNEL_AMOUNT = 32;
 WEIGHT_DECAY = 1e-6;
 initW = 0.01;
 initType = Bernoulli;           #Gaussian, Bernoulli#
@@ -38,6 +38,7 @@ initType = Bernoulli;           #Gaussian, Bernoulli#
 LAYER = NIN;
 NAME  = nin1;
 INPUT = conv1;
+KERNEL_AMOUNT = 64;
 WEIGHT_DECAY = 1e-6;
 initW = 0.05;
 initType = Bernoulli;           #Gaussian, Bernoulli#
@@ -54,12 +55,12 @@ SKIP = 2;
 ]
 
 [  
-LAYER = CONV;
+LAYER = CONVCFM;
 NAME  = conv2;
 INPUT = pooling1;
 KERNEL_SIZE = 5;
 PADDING = 2;
-KERNEL_AMOUNT = 128;
+KERNEL_AMOUNT = 64;
 WEIGHT_DECAY = 1e-6;
 initW = 0.05;
 initType = Bernoulli;           #Gaussian, Bernoulli#
@@ -70,6 +71,7 @@ initType = Bernoulli;           #Gaussian, Bernoulli#
 LAYER = NIN;
 NAME  = nin2;
 INPUT = conv2;
+KERNEL_AMOUNT = 64;
 WEIGHT_DECAY = 1e-6;
 initW = 0.05;
 initType = Bernoulli;           #Gaussian, Bernoulli#
@@ -109,13 +111,13 @@ initType = Bernoulli;           #Gaussian, Bernoulli#
 #===================branchlayer1->b1b start===================#
 
 [  
-LAYER = CONV;
+LAYER = CONVCFM;
 NAME  = conv3;
 INPUT = branchlayer1;
 SUBINPUT = b1b;
 KERNEL_SIZE = 3;
-PADDING = 0;
-KERNEL_AMOUNT = 128;
+PADDING = 1;
+KERNEL_AMOUNT = 64;
 WEIGHT_DECAY = 1e-6;
 initW = 0.01;
 initType = Bernoulli;           #Gaussian, Bernoulli#
@@ -127,6 +129,7 @@ LAYER = NIN;
 NAME  = nin3;
 INPUT = conv3;
 WEIGHT_DECAY = 1e-6;
+KERNEL_AMOUNT = 128;
 initW = 0.01;
 initType = Bernoulli;           #Gaussian, Bernoulli#
 NON_LINEARITY = NL_RELU;

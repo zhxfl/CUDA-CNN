@@ -136,6 +136,7 @@ void SoftMax::backpropagation()
 		outputs->getDev(),
 		groudTruth->getDev(), curDelta->getLen());
 	cudaStreamSynchronize(0);
+    getLastCudaError("g_getSoftMaxDelta");
 
 	matrixMul(curDelta,
 		w, preDelta_format);

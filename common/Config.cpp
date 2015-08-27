@@ -173,7 +173,31 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);              LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "initW         : %f\n", initW);           LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str()); LOG(logStr, "Result/log.txt");
-		}
+		}else if(type == string("CONVCFM")) {
+			int ks = get_word_int(layers[i], "KERNEL_SIZE");
+			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
+			int pd = get_word_int(layers[i], "PADDING");
+			float initW = get_word_float(layers[i], "initW");
+			std::string initType = get_word_type(layers[i], "initType");
+
+			float wd = get_word_float(layers[i], "WEIGHT_DECAY");
+			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
+			m_nonLinearity = new ConfigNonLinearity(non_linearity);
+
+			layer = new ConfigConv(name, input, subInput, type, ks, pd, ka, wd,
+				initW, initType, m_nonLinearity->getValue());
+			char logStr[256];
+			sprintf(logStr,"\n\n********convcfm layer********\n");        LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "NAME          : %s\n", name.c_str());     LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "INPUT         : %s\n", input.c_str());    LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str()); LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "KERNEL_SIZE   : %d\n", ks);               LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "KERNEL_AMOUNT : %d\n", ka);               LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "PADDING       : %d\n", pd);               LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);              LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %f\n", initW);           LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str()); LOG(logStr, "Result/log.txt");
+        }
 		else if(type == string("DATA")){
 			layer = new ConfigData(name, type);
 			char logStr[256];
@@ -223,7 +247,8 @@ void Config:: get_layers_config(string &str){
 			float wd   = get_word_float(layers[i], "WEIGHT_DECAY");
 			float initW = get_word_float(layers[i], "initW");
 			string non_linearity = get_word_type(layers[i], "NON_LINEARITY");
-			layer = new ConfigNIN(name, input, subInput, type, wd, initW, m_nonLinearity->getValue());
+			int ka = get_word_int(layers[i], "KERNEL_AMOUNT");
+			layer = new ConfigNIN(name, input, subInput, type, wd, initW, m_nonLinearity->getValue(), ka);
 			
 
 			char logStr[256];
@@ -231,9 +256,11 @@ void Config:: get_layers_config(string &str){
 			sprintf(logStr, "NAME          : %s\n", name.c_str());    LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "INPUT         : %s\n", input.c_str());   LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "SUBINPUT      : %s\n", subInput.c_str());LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);             LOG(logStr, "Result/log.txt");
-			sprintf(logStr, "initW         : %f\n", initW);          LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "WEIGHT_DECAY  : %f\n", wd);              LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "KERNEL_AMOUNT : %d\n", ka);          LOG(logStr, "Result/log.txt");
+			sprintf(logStr, "initW         : %f\n", initW);           LOG(logStr, "Result/log.txt");
 			sprintf(logStr, "non_linearity : %s\n", non_linearity.c_str());LOG(logStr, "Result/log.txt");
+
 		}
 		else if(type == string("POOLING"))
 		{

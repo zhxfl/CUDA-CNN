@@ -265,6 +265,31 @@ public:
 	float m_weightDecay;
 };
 
+class ConfigConvCFM : public ConfigBase
+{
+public:
+	ConfigConvCFM(std::string name, std::string input,
+		std::string subInput, std::string type,
+		int kernelSize, int padding, int amount,
+		float weightDecay, float initW, std::string initType,
+		int non_linearity){
+		m_kernelSize = kernelSize;
+		m_padding = padding;
+		m_amount = amount;
+		m_weightDecay = weightDecay;
+		m_name = name;
+		m_input = input;
+		m_subInput = subInput;
+		m_type = type;
+		m_initW = initW;
+		m_nonLinearity = non_linearity;
+		m_initType = initType;
+	}
+	int m_kernelSize;
+    int m_padding;
+    int m_amount;
+    float m_weightDecay;
+};
 
 class ConfigLocal : public ConfigBase
 {
@@ -331,7 +356,8 @@ public:
 		std::string type,
 		float weightDecay,
 		float initW,
-		int non_linearity){
+		int non_linearity,
+        int amount){
 		m_name = name;
 		m_input= input;
 		m_subInput = subInput;
@@ -339,8 +365,11 @@ public:
 		m_weightDecay = weightDecay;
 		m_initW = initW;
 		m_nonLinearity = non_linearity;
+        m_amount = amount;
+        printf("~~~~%d\n", m_amount);
 	}
 	float m_weightDecay;
+    int m_amount;
 };
 
 class ConfigPooling : public ConfigBase
