@@ -239,7 +239,7 @@ void NIN::getGrad()
 		getLastCudaError("g_NIN_wgrad_1");
 	}else if(outputDim >= 8 && inputAmount == 64){
 		dim3 block = dim3(batch, outputAmount);
-		dim3 thread= dim3(16, 64);
+		dim3 thread= dim3(16, inputAmount);
 		g_NIN_wgrad_1<64, 16><<<block, thread>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
@@ -254,7 +254,7 @@ void NIN::getGrad()
 		getLastCudaError("g_NIN_wgrad_1");
     }else if(outputDim >=8 && inputAmount == 128){
 		dim3 block = dim3(batch, outputAmount);
-		dim3 thread= dim3(8, 128);
+		dim3 thread= dim3(8, inputAmount);
 		g_NIN_wgrad_1<128, 8><<<block, thread>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
@@ -340,8 +340,8 @@ NIN::NIN(std::string name)
 		preDelta = preLayer->getCurDelta();
 	}
 	inputAmount  = preLayer->outputAmount;
-	outputAmount = inputAmount;
-    //outputAmount = config->m_amount;
+	//outputAmount = inputAmount;
+    outputAmount = config->m_amount;
 
 	inputDim  = preLayer->outputDim;
 	outputDim = inputDim;
