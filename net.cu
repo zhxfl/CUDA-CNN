@@ -243,6 +243,7 @@ void resultProdict(int* vote,int start)
 				start,
 				vote);
 			cudaStreamSynchronize(0);
+            getLastCudaError("g_getCorrect");
 		}
 	}
 }

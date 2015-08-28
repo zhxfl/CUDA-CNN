@@ -19,7 +19,7 @@
 #include "readData/readCIFAR10Data.h"
 #include "readData/readChineseData.h"
 #include "readData/readCIFAR100Data.h"
-
+#include "common/track.h"
 #include "layers/Pooling.h"
 
 
@@ -35,6 +35,9 @@ std::vector<int> g_argv;
 
 int main (int argc, char** argv)
 {
+#ifdef linux
+    signal(SIGSEGV, handler);   // install our handler
+#endif
 	srand(clock());
 	if(argc >= 3){
 		g_argv.push_back(atoi(argv[1]));

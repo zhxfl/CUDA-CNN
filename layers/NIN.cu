@@ -97,7 +97,7 @@ void NIN::calCost()
 		w.m_devPoint, 
 		lambda,
 		w[0]->getLen());
-	cudaStreamSynchronize(0);
+	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("NIN:getCost");
 }
 
@@ -222,7 +222,7 @@ __global__ void g_NIN_wgradAdd(
 
 void NIN::getGrad()
 {
-	/*if(outputDim >= 8 && inputAmount == 32){
+	if(outputDim >= 8 && inputAmount == 32){
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(32, inputAmount);
 		g_NIN_wgrad_1<32, 32><<<block, thread>>>(
@@ -268,8 +268,6 @@ void NIN::getGrad()
 		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_NIN_wgrad_1");
 	}else{
-    */
-    {
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(inputAmount);
 		g_NIN_wgrad<<<block, thread>>>(
@@ -286,7 +284,6 @@ void NIN::getGrad()
 		checkCudaErrors(cudaStreamSynchronize(0));
 		getLastCudaError("g_NIN_wgrad");
     }
-    //}
 
 	dim3 block  = dim3(outputAmount, inputAmount);
 	dim3 thread = dim3(batch);
