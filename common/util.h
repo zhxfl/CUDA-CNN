@@ -31,10 +31,14 @@ void createGaussian(float* gaussian, float dElasticSigma1, float dElasticSigma2,
 	int rows, int cols, int channels, float epsilon);
 
 #define  cuAssert( X ) if ( !(X) ) {printf("tid %d: FILE=%s, LINE=%d\n", threadIdx.x, __FILE__, __LINE__); return; }
-#define  Assert( X )   if ( !(X) ) {printf("FILE=%s, LINE=%d\n", __FILE__, __LINE__); return; }
+#define  Assert( X )   if ( !(X) ) {printf("FILE=%s, LINE=%d\n", __FILE__, __LINE__); int* p = (int*)-1; p[0] = 1; return; }
 
 void dropDelta(cuMatrix<float>* M, float cuDropProb);
 void dropScale(cuMatrix<float>* M, float cuDropProb);
 void initMatrix(cuMatrix<float>* M, float iniw);
+void checkMatrixIsSame(cuMatrix<float>*x, cuMatrix<float>*y);
+
+
+//#define TEST_CUDA_CODE true 
 
 #endif

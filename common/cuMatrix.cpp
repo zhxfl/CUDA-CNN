@@ -64,6 +64,7 @@ void matrixMulTA(cuMatrix<float>* x, cuMatrix<float>*y, cuMatrix<float>*z)
 {
 	if(x->channels != 1 || y->channels != 1 || z->channels != 1){
 		printf("matrix mul chanels != 1\n");
+        exit(0);
 	}
 
 	if(x->rows != y->rows || z->rows != x->cols || z->cols != y->cols){

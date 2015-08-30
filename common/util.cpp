@@ -252,3 +252,21 @@ void initMatrix(cuMatrix<float>* M, float initW)
 
     M->toGpu();
 }
+
+void checkMatrixIsSame(cuMatrix<float>*x, cuMatrix<float>*y)
+{
+    Assert(x->rows == y->rows);
+    Assert(x->cols == y->cols);
+    Assert(x->channels == y->channels);
+    for(int i = 0; i < x->rows; i++){
+        for(int j = 0; j < x->cols; j++){
+            for(int k = 0; k < x->channels; k++){
+                float t = x->get(i, j, k) - y->get(i, j, k);
+                if(fabs(t) > 0.001){
+                    printf("\n%d %d %d %f %f %f\n", i, j, k, x->get(i,j, k), y->get(i,j,k), t);
+                }
+                Assert(fabs(t) < 0.001);
+            }
+        }
+    }
+}
