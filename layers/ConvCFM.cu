@@ -573,7 +573,7 @@ void ConvCFM::initRandom()
 void ConvCFM::initFromCheckpoint(FILE* file)
 {
 	float val = 0;
-	for(int a = 0; a < (int)w.size(); a++){
+	for(size_t a = 0; a < w.size(); a++){
 		for(int c = 0; c < w[a]->channels; c++){
 			for(int i = 0; i < w[a]->rows; i++){
 				for(int j = 0; j < w[a]->cols; j++){
@@ -589,7 +589,7 @@ void ConvCFM::initFromCheckpoint(FILE* file)
 		for(int c = 0; c < b[a]->channels; c++){
 			for(int i = 0; i < b[a]->rows; i++){
 				for(int j = 0; j < b[a]->cols; j++){
-					if(fscanf(file, "%f", &val) != EOF)
+					if(fscanf(file, "%f", &val) == EOF)
                     {
                         LOG("scanf fail", "result/log.txt");
                     }
