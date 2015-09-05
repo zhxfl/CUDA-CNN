@@ -483,33 +483,7 @@ void Config::deleteComment() {
 		m_configStr.erase(pos1, pos2 - pos1 + 1);
 	}
 }
-/*
-void Config::deleteSpace()
-{
-	if(m_configStr.empty()) return;
-	int i = 0;
-	while(1){
-		if(i == m_configStr.length()) break;
-		if(m_configStr[i] == '\t' || m_configStr[i] == '\n' || m_configStr[i] == ' '){
-			m_configStr.erase(m_configStr.begin() + i);
-		}else ++ i;
-	}
-}
 
-void Config::deleteComment()
-{
-	size_t pos1, pos2;
-	do 
-	{
-		pos1 = m_configStr.find("#");
-		if(pos1 == std::string::npos)
-			break;
-		m_configStr.erase(pos1, 1);
-		pos2 = m_configStr.find("#");
-		m_configStr.erase(pos1, pos2 - pos1 + 1);
-	} while (pos2 != std::string::npos);
-}
-*/
 string 
 	Config::read_2_string(string File_name){
 		char *pBuf;
