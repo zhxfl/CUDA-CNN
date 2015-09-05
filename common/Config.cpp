@@ -448,7 +448,42 @@ void Config::init(std::string path)
 	sprintf(logStr, "\n\n\n");
 	LOG(logStr, "Result/log.txt");
 }
+void Config::deleteSpace() {
+	if (m_configStr.empty())
+		return;
+	size_t pos1, pos2,e,t,n;
+	while (1) {
+	    e = m_configStr.find(' ');
+		t = m_configStr.find('\t');
+		n = m_configStr.find('\n');
+		if(e==std::string::npos && n==std::string::npos && t==std::string::npos)break;
+		if(e<t || t ==std::string::npos)pos1 = e;
+		else pos1 = t;
+		if(n < pos1 || pos1 ==std::string::npos)pos1 = n;
+		for (pos2 = pos1 + 1; pos2 < m_configStr.size(); pos2++) {
+			if (!(m_configStr[pos2] == '\t' || m_configStr[pos2] == '\n'
+					|| m_configStr[pos2] == ' '))
+				break;
+		}
+		m_configStr.erase(pos1, pos2 - pos1);
+	}
 
+}
+
+void Config::deleteComment() {
+	size_t pos1, pos2;
+	while (1) {
+		pos1 = m_configStr.find("#");
+		if (pos1 == std::string::npos)
+			break;
+		for (pos2 = pos1 + 1; pos2 < m_configStr.size(); pos2++) {
+			if (m_configStr[pos2] == '#')
+				break;
+		}
+		m_configStr.erase(pos1, pos2 - pos1 + 1);
+	}
+}
+/*
 void Config::deleteSpace()
 {
 	if(m_configStr.empty()) return;
@@ -474,7 +509,7 @@ void Config::deleteComment()
 		m_configStr.erase(pos1, pos2 - pos1 + 1);
 	} while (pos2 != std::string::npos);
 }
-
+*/
 string 
 	Config::read_2_string(string File_name){
 		char *pBuf;
