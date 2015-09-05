@@ -53,8 +53,6 @@ void CombineLayer::feedforward()
 	checkCudaErrors(cudaStreamSynchronize(0));
 	getLastCudaError("CombineLayer feedforward");
 
-	//inputsChannels->toCpu();
-
 #ifdef CombineLayer_feedforward_Checking 
 	outputs->toCpu();
 	for(int i = 0; i < inputs.size(); i++){
@@ -100,8 +98,6 @@ void CombineLayer::backpropagation()
 	for(int i = 0; i < curDelta->getLen(); i++){
 		printf("%f ", curDelta->getHost()[i]);
 	}printf("\n");
-
-	exit(0);
 #endif
 }
 
@@ -134,7 +130,6 @@ CombineLayer::CombineLayer(std::string name)
 
 		len += area;
 	}
-
 	batch = Config::instance()->getBatchSize();
 
 	outputs  = new cuMatrix<float>(batch, len, 1);

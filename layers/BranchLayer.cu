@@ -86,14 +86,13 @@ BranchLayer::BranchLayer(std::string name)
 
 	batch = Config::instance()->getBatchSize();
 	for(int i = 0; i < (int)config->m_outputs.size(); i++){
-		outputs.push_back (new cuMatrix<float>(batch, outputDim * outputDim, outputAmount));
+		outputs.push_back(new cuMatrix<float>(batch, outputDim * outputDim, outputAmount));
 		curDelta.push_back(new cuMatrix<float>(batch, outputDim * outputDim, outputAmount));
 		mapId[config->m_outputs[i]] = i;
 	}
 
 	outputs.toGpu();
 	curDelta.toGpu();
-
 
 	Layers::instance()->set(m_name, this);
 }

@@ -652,14 +652,11 @@ __global__ void g_applyWhiteNoise(
 		float* output= _outputs[s] + offset;
 
 		float* rand = _random + offset;
-		//if(_random[blockIdx.x] >= 0.9){
 		if(true){
 			for(int i = 0; i < ImgSize2; i += blockDim.x){
 				int idx = i + threadIdx.x;
 				if(idx < ImgSize2){
 					float val = input[idx] + stdev * rand[idx];
-// 					if(val < -1.0) val = -1.0;
-// 					if(val >  1.0) val = 1.0;
 					output[idx] = val;
 				}
 			}

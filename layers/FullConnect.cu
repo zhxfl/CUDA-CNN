@@ -240,20 +240,16 @@ void FullConnect::backpropagation()
 
 void FullConnect::getGrad()
 {
-	matrixMulTA(curDelta,
-		inputs_format,
-		wgrad);
+	matrixMulTA(curDelta, inputs_format, wgrad);
 
 	g_FullConnectWgrad<<<dim3(256), dim3(256)>>>(wgrad->getDev(),
 		w->getDev(),
-		/*dropW->getDev(),*/
 		wgrad->getLen(),
 		lambda,
 		batch);
 
 	cudaStreamSynchronize(0);
 	getLastCudaError("g_FullConnectWgrad");
-
 
 	if(curDelta->rows > MAX_THREADS)
 	{

@@ -84,8 +84,6 @@ __global__ void g_getSoftMaxDelta(float* softMaxDelta, float* softMaxP, float* g
 	}
 }
 
-/*
-*/
 __global__ void g_getSmrWgrad(float* wgrad, float* weight, float lambda, int len, int batch)
 {
 	for(int i = 0; i < len; i += blockDim.x)
@@ -102,7 +100,6 @@ void SoftMax::feedforward()
 {
 	dim3 block  = inputs->rows;
 	dim3 thread = min(512, inputs->cols);
-
 	//convert 
 	g_convert<<<block, thread>>>(
 		inputs->getDev(), 
@@ -155,7 +152,6 @@ void SoftMax::backpropagation()
 
 void SoftMax::getGrad()
 {
-    //printf("%d %d\n", inputs_format->rows, inputs_format->cols);
 	matrixMulTA(curDelta, inputs_format, wgrad);
 
 	g_getSmrWgrad<<<dim3(1), dim3(256)>>>(wgrad->getDev(),
@@ -179,7 +175,7 @@ void SoftMax::getGrad()
 
 void SoftMax::updateWeight()
 {
-	g_vecAdd<<<dim3(min((momentum_w->getLen() + 255) / 256, 5120)),
+	g_vecAdd<<<dim3(min((momentum_w->getLen() + 255) / 256, 512)),
 		dim3(256)>>>(
 		momentum_w->getDev(), 
 		wgrad->getDev(), 
@@ -225,7 +221,6 @@ void SoftMax::setPreDelta(cuMatrix<float>* _preDelta)
 
 void SoftMax::initRandom()
 {
-	//srand(clock());
 	float initW = Config::instance()->getLayerByName(m_name)->m_initW;
 
 	if(Config::instance()->getLayerByName(m_name)->isGaussian()){
