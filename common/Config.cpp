@@ -475,31 +475,40 @@ void Config::init(std::string path)
 	sprintf(logStr, "\n\n\n");
 	LOG(logStr, "Result/log.txt");
 }
-
-void Config::deleteSpace()
-{
-	if(m_configStr.empty()) return;
-	int i = 0;
-	while(1){
-		if(i == m_configStr.length()) break;
-		if(m_configStr[i] == '\t' || m_configStr[i] == '\n' || m_configStr[i] == ' '){
-			m_configStr.erase(m_configStr.begin() + i);
-		}else ++ i;
+void Config::deleteSpace() {
+	if (m_configStr.empty())
+		return;
+	size_t pos1, pos2,e,t,n;
+	while (1) {
+	    e = m_configStr.find(' ');
+		t = m_configStr.find('\t');
+		n = m_configStr.find('\n');
+		if(e==std::string::npos && n==std::string::npos && t==std::string::npos)break;
+		if(e<t || t ==std::string::npos)pos1 = e;
+		else pos1 = t;
+		if(n < pos1 || pos1 ==std::string::npos)pos1 = n;
+		for (pos2 = pos1 + 1; pos2 < m_configStr.size(); pos2++) {
+			if (!(m_configStr[pos2] == '\t' || m_configStr[pos2] == '\n'
+					|| m_configStr[pos2] == ' '))
+				break;
+		}
+		m_configStr.erase(pos1, pos2 - pos1);
 	}
+
 }
 
-void Config::deleteComment()
-{
+void Config::deleteComment() {
 	size_t pos1, pos2;
-	do 
-	{
+	while (1) {
 		pos1 = m_configStr.find("#");
-		if(pos1 == std::string::npos)
+		if (pos1 == std::string::npos)
 			break;
-		m_configStr.erase(pos1, 1);
-		pos2 = m_configStr.find("#");
+		for (pos2 = pos1 + 1; pos2 < m_configStr.size(); pos2++) {
+			if (m_configStr[pos2] == '#')
+				break;
+		}
 		m_configStr.erase(pos1, pos2 - pos1 + 1);
-	} while (pos2 != std::string::npos);
+	}
 }
 
 string 
