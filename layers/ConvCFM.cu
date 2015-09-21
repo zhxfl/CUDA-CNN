@@ -412,7 +412,7 @@ void ConvCFM::updateWeight()
 {
 	dim3 block  = outputAmount;
 	dim3 thread = min(256, w[0]->getLen());
-	g_vecAdd<<<block, thread>>>(momentum_w.m_devPoint, wgrad.m_devPoint, w.m_devPoint,
+	g_vecAdd<<<block, thread, 0, Layers::instance()->get_stream()>>>(momentum_w.m_devPoint, wgrad.m_devPoint, w.m_devPoint,
 		momentum_b.m_devPoint, bgrad.m_devPoint, b.m_devPoint,
 		w[0]->getLen(), b[0]->getLen(), 
 		Config::instance()->getMomentum(),

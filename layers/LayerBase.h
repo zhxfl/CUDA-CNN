@@ -64,8 +64,14 @@ public:
 	}
 	LayerBase* get(std::string name);
 	void set(std::string name, LayerBase* layer);
-
+    Layers(){
+      checkCudaErrors(cudaStreamCreate(&stream_update_weight));  
+    } 
+    cudaStream_t& get_stream(){
+        return stream_update_weight;
+    }
 private:
+    cudaStream_t stream_update_weight;
 	std::map<std::string, LayerBase*>m_maps;
 };
 #endif

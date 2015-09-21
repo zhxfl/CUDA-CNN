@@ -38,7 +38,4 @@ void dropScale(cuMatrix<float>* M, float cuDropProb);
 void initMatrix(cuMatrix<float>* M, float iniw);
 void checkMatrixIsSame(cuMatrix<float>*x, cuMatrix<float>*y);
 
-
-//#define TEST_CUDA_CODE true 
-
 #endif

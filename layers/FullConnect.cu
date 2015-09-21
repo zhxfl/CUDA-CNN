@@ -267,7 +267,7 @@ void FullConnect::updateWeight()
 	dim3 block = min((momentum_w->getLen() + 255) / 256, 5120);
 	dim3 thread= 256;
 
-	g_vecAdd<<<block, thread>>>(momentum_w->getDev(), wgrad->getDev(), w->getDev(),
+	g_vecAdd<<<block, thread, 0, Layers::instance()->get_stream()>>>(momentum_w->getDev(), wgrad->getDev(), w->getDev(),
 		momentum_b->getDev(), bgrad->getDev(), b->getDev(),
 		wgrad->getLen(), bgrad->getLen(), 
 		Config::instance()->getMomentum(),

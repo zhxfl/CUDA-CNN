@@ -56,7 +56,7 @@ public:
 		sprintf(logStr, "weight:%f, %f, %f;\n", w[0]->get(0,0,0), w[0]->get(0,1,0), w[0]->get(0, 2, 0));
 		LOG(logStr, "Result/log.txt");
 		b[0]->toCpu();
-		sprintf(logStr, "bias  :%f %f\n", b[0]->get(0,0,0));
+		sprintf(logStr, "bias  :%f\n", b[0]->get(0,0,0));
 		LOG(logStr, "Result/log.txt");
 	}
 

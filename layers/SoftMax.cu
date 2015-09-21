@@ -176,7 +176,7 @@ void SoftMax::getGrad()
 void SoftMax::updateWeight()
 {
 	g_vecAdd<<<dim3(min((momentum_w->getLen() + 255) / 256, 512)),
-		dim3(256)>>>(
+		dim3(256), 0, Layers::instance()->get_stream()>>>(
 		momentum_w->getDev(), 
 		wgrad->getDev(), 
 		w->getDev(),

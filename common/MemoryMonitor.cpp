@@ -8,7 +8,8 @@
 
 void* MemoryMonitor::cpuMalloc(int size){
 	cpuMemory += size;
-	void* p = malloc(size);
+    void* p = NULL;
+    cudaHostAlloc(&p, size, cudaHostAllocPortable);
 	cpuPoint[p] = 1.0f * size;
 // 	if(size >= 1024 * 1024){
 // 		printf("cpu malloc memory %fMb\n", 1.0 * size / 1024 / 1024);
@@ -45,7 +46,7 @@ void MemoryMonitor::freeCpuMemory(void* ptr)
 // 			printf("free cpu memory %fMb\n", cpuPoint[ptr] / 1024 / 1024);
 // 		}
 		cpuMemory -= cpuPoint[ptr];
-		free(ptr);
+		cudaFreeHost(ptr);
 		cpuPoint.erase(ptr);
 	}
 }

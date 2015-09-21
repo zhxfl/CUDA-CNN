@@ -159,8 +159,8 @@ void updataWB()
 		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 		layer->updateWeight();
 	}
-	cudaStreamSynchronize(0);
-	getLastCudaError("updateWB");
+    cudaStreamSynchronize(Layers::instance()->get_stream());
+    getLastCudaError("updateWB");
 }
 
 void getNetworkCost(int* y)
@@ -196,7 +196,10 @@ void getNetworkCost(int* y)
         //    }
         //));
         layer->getGrad();
+        layer->updateWeight();
 	}
+    cudaStreamSynchronize(Layers::instance()->get_stream());
+    getLastCudaError("updateWB");
     //for(size_t i = 0; i < threads.size(); i++){
     //    threads[i].join();
     //}
@@ -463,7 +466,6 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 
 		x.shuffle(5000, y);
 
-
 		DataLayer *dl = static_cast<DataLayer*>(Layers::instance()->get("data"));
 		dl->getBatchImageWithStreams(x, 0);
 
@@ -500,7 +502,6 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 		if (epo && epo % epoCount[id] == 0) {
 			id++;
 		}
-		
 
 		sprintf(logStr, "===================weight value================\n");
 		LOG(logStr, "Result/log.txt");
@@ -508,7 +509,6 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 			LayerBase* layer = Layers::instance()->get(que[i]->m_name);
 			layer->printParameter();
 		}
-
 		
 		sprintf(logStr, "===================test Result================\n");
 		LOG(logStr, "Result/log.txt");
