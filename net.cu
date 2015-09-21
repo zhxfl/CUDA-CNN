@@ -24,7 +24,6 @@
 #include "layers/DataLayer.h"
 #include "layers/NIN.h"
 #include "layers/Conv.h"
-//#include <thread>
 #include <queue>
 #include <set>
 
@@ -152,17 +151,6 @@ void cuFreeCNNMemory(
 {
 }
 
-void updataWB()
-{
-	/*updateWb*/
-	for(int i = 0; i < (int)que.size(); i++){
-		LayerBase* layer = Layers::instance()->get(que[i]->m_name);
-		layer->updateWeight();
-	}
-    cudaStreamSynchronize(Layers::instance()->get_stream());
-    getLastCudaError("updateWB");
-}
-
 void getNetworkCost(int* y)
 {
 	/*feedforward*/
@@ -180,29 +168,16 @@ void getNetworkCost(int* y)
 	}
 
 	/*backpropagation*/
-    //std::vector<std::thread>threads; 
 	for(int i = (int)que.size() - 1; i >=0; i--){
 		ConfigBase* top = que[i];
 		LayerBase* layer = Layers::instance()->get(top->m_name);
 
-        //for(size_t i = 0; i < threads.size(); i++){
-        //    threads[i].join();
-        //}
-        //threads.clear();
 		layer->backpropagation();
-        //threads.push_back(
-        //    std::thread([layer](){
-        //        layer->getGrad();
-        //    }
-        //));
         layer->getGrad();
         layer->updateWeight();
 	}
     cudaStreamSynchronize(Layers::instance()->get_stream());
     getLastCudaError("updateWB");
-    //for(size_t i = 0; i < threads.size(); i++){
-    //    threads[i].join();
-    //}
 }
 
 /*
@@ -486,7 +461,6 @@ void cuTrainNetwork(cuMatrixVector<float>&x,
 
 			dl->trainData();
 			getNetworkCost(y->getDev() + start);
-			updataWB();
 			printf("\b\b\b\b\b\b\b\b\b");
 		}
 
@@ -584,5 +558,4 @@ int cuVoteAdd(cuMatrix<int>*& voteSum,
 	correct->toCpu();
 	return correct->get(0, 0, 0);
 }
-
 
