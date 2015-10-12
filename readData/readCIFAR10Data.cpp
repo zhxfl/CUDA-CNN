@@ -30,7 +30,7 @@ void read_batch(std::string filename, cuMatrixVector<float>&vec, cuMatrix<int>*&
 					for(int c = 0; c < n_cols; c++){
 						unsigned char temp = 0;
 						file.read((char*) &temp, sizeof(temp));
-						channels->set(r, c , ch, 2.0f * float(temp) / 256.0f - 1.0f);
+						channels->set(r, c , ch, 2.0f * float(temp));
 					}
 				}
 			}

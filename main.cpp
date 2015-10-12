@@ -94,8 +94,8 @@ void runChinese() {
 	if (cmd == 2)
 		cuReadConvNet(ImgSize - crop,
 				"Result/checkPoint.txt", nclasses);
-
-	buildNetWork(trainX.size(), testX.size());
+    
+    buildNetWork(trainX.size(), testX.size());
 
 	/*learning rate*/
 	std::vector<float>nlrate;
@@ -236,21 +236,23 @@ void runCifar10()
 	std::vector<float>nMomentum;
 	std::vector<int>epoCount;
 
-	nlrate.push_back(0.05f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.04f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.03f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.02f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.01f);    nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.009f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.008f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.007f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.006f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.005f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.004f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.003f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.002f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
-	nlrate.push_back(0.001f);   nMomentum.push_back(0.90f);  epoCount.push_back(30);
+	nlrate.push_back(0.005f);    nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.004f);    nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.003f);    nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.002f);    nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.001f);    nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0009f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0008f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0007f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0006f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0005f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0004f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0003f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0002f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.0001f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
 
+	nlrate.push_back(0.00001f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
+	nlrate.push_back(0.000001f);   nMomentum.push_back(0.90f);  epoCount.push_back(50);
 	start = clock();
 	cuTrainNetwork(trainX, trainY, testX, testY, batch, ImgSize - crop, nclasses, nlrate, nMomentum, epoCount, handle);
 	end = clock();
