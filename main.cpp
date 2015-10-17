@@ -287,8 +287,8 @@ void runMnist(){
 	cuMatrixVector<float>testX;
  	cuMatrix<int>* trainY, *testY;
 	Config::instance()->initPath("Config/MnistConfig.txt");
- 	readMnistData(trainX, trainY, "mnist/train-images.idx3-ubyte", "mnist/train-labels.idx1-ubyte", 60000, 1);
- 	readMnistData(testX , testY,  "mnist/t10k-images.idx3-ubyte",  "mnist/t10k-labels.idx1-ubyte",  10000, 1);
+ 	readMnistData(trainX, trainY, "mnist/train-images-idx3-ubyte", "mnist/train-labels-idx1-ubyte", 60000, 1);
+ 	readMnistData(testX , testY,  "mnist/t10k-images-idx3-ubyte",  "mnist/t10k-labels-idx1-ubyte",  10000, 1);
 	MemoryMonitor::instance()->printCpuMemory();
 	MemoryMonitor::instance()->printGpuMemory();
  	/*build CNN net*/

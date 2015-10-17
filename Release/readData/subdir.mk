@@ -26,8 +26,8 @@ CPP_DEPS += \
 readData/%.o: ../readData/%.cpp
 	@echo 'Building file: $<'
 	@echo 'Invoking: NVCC Compiler'
-	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 -gencode arch=compute_50,code=sm_50  -odir "readData" -M -o "$(@:%.o=%.d)" "$<"
-	/usr/local/cuda-6.5/bin/nvcc -I/usr/local/cuda-6.5/NVIDIA_CUDA-6.5_Samples/common/inc/ -O3 --compile  -x c++ -o  "$@" "$<"
+	/usr/local/cuda-7.0/bin/nvcc -I/usr/local/cuda-7.0/NVIDIA_CUDA-7.0_Samples/common/inc/ -O3 -gencode arch=compute_50,code=sm_50  -odir "readData" -M -o "$(@:%.o=%.d)" "$<"
+	/usr/local/cuda-7.0/bin/nvcc -I/usr/local/cuda-7.0/NVIDIA_CUDA-7.0_Samples/common/inc/ -O3 --compile  -x c++ -o  "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
