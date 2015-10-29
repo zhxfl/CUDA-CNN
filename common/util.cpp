@@ -38,13 +38,16 @@ bool checkSharedMemory(int id, size_t MemorySize){
     }
     if(ret.size() > (size_t)id){
         if(ret[id] >= MemorySize){
+            return false;
             return true;
         }
         else{
+            return false;
             LOG("getSharedMemory error", "result/log.txt");
             exit(0);
         }
     }else{
+        return false;
         LOG("getSharedMemory error", "result/log.txt");
         exit(0);
     }
