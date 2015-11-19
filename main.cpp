@@ -35,6 +35,7 @@ std::vector<int> g_argv;
 
 int main (int argc, char** argv)
 {
+    cudaSetDevice(0);
 #ifdef linux
     signal(SIGSEGV, handler);   // install our handler
 #endif

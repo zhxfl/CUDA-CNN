@@ -146,12 +146,11 @@ void ConvCFM::feedforward()
 	}
     int afterPaddingDim = inputDim + padding * 2;
 	int sharedMemorySize = sizeof(float) * (afterPaddingDim * afterPaddingDim + inputAmount * kernelSize * kernelSize);
-
-	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
+    if(false){
+	//if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, outputAmount);
 		dim3 thread= dim3(outputDim * outputDim);
-        cudaFuncSetCacheConfig(g_ConvCFM_feedforward_shared, cudaFuncCachePreferL1); 
-        g_ConvCFM_feedforward_shared<<<block, thread, sharedMemorySize>>>(
+        g_ConvCFM_feedforward_shared<<<block, thread, sharedMemorySize, 0>>>(
 			inputs->getDev(),
 			w.m_devPoint,
 			b.m_devPoint,
@@ -224,8 +223,8 @@ void ConvCFM::backpropagation()
 
     int after_padding_dim = inputDim + kernelSize  - 1;
     size_t sharedMemorySize = sizeof(float)* (after_padding_dim * after_padding_dim + outputAmount * kernelSize * kernelSize);
-
-	if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
+    if(false){
+	//if(inputDim * inputDim <= 1024 && checkSharedMemory(0, sharedMemorySize)){
 		dim3 block = dim3(batch, inputAmount);
 		dim3 thread= dim3(inputDim * inputDim);
         cudaFuncSetCacheConfig(g_ConvCFM_backpropagation_shared, cudaFuncCachePreferL1);
@@ -330,10 +329,10 @@ void ConvCFM::getGrad()
 {
     int nAfterPadding = inputDim + padding << 1;
     size_t sharedMemorySize = sizeof(float) * (nAfterPadding * nAfterPadding + outputDim * outputDim);
-	if(kernelSize *  kernelSize <= 1024 && checkSharedMemory(0, sharedMemorySize)){
+    if(false){
+	//if(kernelSize *  kernelSize <= 1024 && checkSharedMemory(0, sharedMemorySize)){
         dim3 block = dim3(batch, outputAmount);
         dim3 thread= dim3(kernelSize * kernelSize);
-        cudaFuncSetCacheConfig(g_ConvCFM_wgrad_shared,cudaFuncCachePreferL1);
 		g_ConvCFM_wgrad_shared<<<block, thread, sharedMemorySize>>>(
 			inputs->getDev(),
 			curDelta->getDev(),
