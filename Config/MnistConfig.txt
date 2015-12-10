@@ -28,7 +28,7 @@ PADDING = 0;
 KERNEL_AMOUNT = 32;
 WEIGHT_DECAY = 1e-6;
 initW = 0.01;
-NON_LINEARITY = NL_RELU;
+NON_LINEARITY = NL_LRELU;
 initType = Gaussian;           #Gaussian, Bernoulli#
 ]
 

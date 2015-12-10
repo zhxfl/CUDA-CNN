@@ -1,35 +1,34 @@
 #include "cuBase.h"
 
 __device__ float d_nonLinearity(float val, int NONLIN){
-	if(NONLIN == NL_RELU)
-	{
+	if(NONLIN == NL_RELU){
 		if(val < 0.0) return 0.0;
 		else return val;
-	}
-	else if(NONLIN == NL_TANH)
-	{
+	}else if(NONLIN == NL_LRELU){
+        if(val < 0.0) return 0.1f * val;
+        else return val;
+    }else if(NONLIN == NL_TANH){
 		return tanh(val * 2.0 / 3.0) * 1.7159;
 	}
-	else
-	{
+	else{
 		return val;
 	}
 }
 
 __device__ float d_dnonLinearity(float val,int NONLIN){
-	if(NONLIN == NL_RELU)
-	{
+	if(NONLIN == NL_RELU){
 		if(val > 0.0) return 1.0;
 		else return 0.0;
-	}
-	else if(NONLIN == NL_TANH)
-	{
+	}else if (NONLIN == NL_LRELU){
+        if(val > 0.0) return 1.0;
+        else return 0.1;
+    }
+	else if(NONLIN == NL_TANH){
 		float res = 1.7159;
 		float temp = val * val / 1.7159;
 		res = (res - temp) * 2.0 / 3.0;
 		return res;
-	}else 
-	{
+	}else {
 		return val;
 	}
 }

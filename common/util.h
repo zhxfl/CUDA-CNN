@@ -20,6 +20,7 @@
 #define NL_SIGMOID 0
 #define NL_TANH 1
 #define NL_RELU 2
+#define NL_LRELU 3
 
 bool checkSharedMemory(int cardId, size_t MemorySize);
 void showImg(cuMatrix<float>* x, float scala);

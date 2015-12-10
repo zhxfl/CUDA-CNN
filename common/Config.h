@@ -131,8 +131,9 @@ public:
 			m_nonLinearity = NL_TANH;
 		}else if(poolMethod == std::string("NL_RELU")){
 			m_nonLinearity = NL_RELU;
-		}
-		else{
+		}else if(poolMethod == std::string("NL_LRELU")){
+            m_nonLinearity = NL_LRELU;
+        }else{
 			m_nonLinearity = -1;
 		}
 	}
