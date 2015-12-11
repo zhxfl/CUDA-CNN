@@ -310,14 +310,14 @@ __global__ void g_ConvCFM_wgradAdd(
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(tid < (len >> 1))
+		if(tid < skip && (tid + skip < len))
 		{
 			_sum[tid] += _sum[tid + skip];
 		}
         else{
             return;
         }
-		len = (len + 1) >> 1;
+		len = skip;
 	}
 	if(tid == 0)
 	{
@@ -1056,14 +1056,14 @@ __global__ void g_ConvCFM_Bgrad(float* delta,
     {
         __syncthreads();
         int skip = (len + 1) >> 1;
-        if(threadIdx.x < (len >> 1))
+        if(threadIdx.x < skip && (threadIdx.x + skip < len))
         {
             _sum[threadIdx.x] += _sum[threadIdx.x + skip];
         }
         else{
             return;
         }
-        len = (len + 1) >> 1;
+        len = skip;
     }
     if(threadIdx.x == 0)
     {

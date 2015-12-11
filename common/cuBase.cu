@@ -162,11 +162,11 @@ __global__ void g_getCost_3(float* cost,
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(threadIdx.x < (len >> 1))
+		if(threadIdx.x < skip && (threadIdx.x + skip) < len)
 		{
 			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
 		}
-		len = (len + 1) >> 1;
+		len = skip;
 	}
 
 	if(threadIdx.x == 0)
@@ -188,11 +188,11 @@ __global__ void g_getBgrad(float* softMaxDelta, float* bgrad, float* dropb, int 
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(threadIdx.x < (len >> 1))
+		if(threadIdx.x < skip && (threadIdx.x + skip) < len)
 		{
 			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
 		}
-		len = (len + 1) >> 1;
+		len = skip;
 	}
 	if(threadIdx.x == 0)
 	{
@@ -216,11 +216,11 @@ __global__ void g_getBgrad(float* softMaxDelta, float* bgrad, int batch)
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(threadIdx.x < (len >> 1))
+		if(threadIdx.x < skip && (threadIdx.x + skip) < len)
 		{
 			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
 		}
-		len = (len + 1) >> 1;
+		len = skip;
 	}
 	__syncthreads();
 	if(threadIdx.x == 0)
@@ -262,7 +262,7 @@ __global__ void g_getCost_1(float* softMaxP,
 		int id = i + threadIdx.x;
 		if(id < len)
 		{
-			_sum[threadIdx.x] += log(softMaxP[id]) * groundTruth[id];
+			_sum[threadIdx.x] += __logf(softMaxP[id] + 1.0e-10) * groundTruth[id];
 		}
 	}
 	len = blockDim.x;
@@ -270,11 +270,11 @@ __global__ void g_getCost_1(float* softMaxP,
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(threadIdx.x < (len >> 1))
+		if(threadIdx.x < skip && (threadIdx.x + skip) < len)
 		{
 			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
 		}
-		len = (len + 1) >> 1;
+		len = skip;
 	}
 	__syncthreads();
 	if(threadIdx.x == 0)
@@ -304,11 +304,11 @@ __global__ void g_getCost_2(float* cost,
 	{
 		__syncthreads();
 		int skip = (len + 1) >> 1;
-		if(threadIdx.x < (len >> 1))
+		if(threadIdx.x < skip && (threadIdx.x + skip) < len)
 		{
 			_sum[threadIdx.x] += _sum[threadIdx.x + skip];
 		}
-		len = (len + 1) >> 1;
+		len = skip;
 	}
 	__syncthreads();
 	if(threadIdx.x == 0)

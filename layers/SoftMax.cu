@@ -46,7 +46,7 @@ __global__ void g_getSoftMaxP(float* softMaxP, float* b, int cols)
 		int id = tid + threadIdx.x;
 		if(id < cols){
 			sp[id] -= _max[0];
-			sp[id] = exp(sp[id]);
+			sp[id] = __expf(sp[id]);
 			_sum[threadIdx.x] += sp[id];
 		}
 	}
