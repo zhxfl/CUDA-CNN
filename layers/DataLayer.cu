@@ -147,21 +147,22 @@ void DataLayer::testData(int cropr, int cropc,
 
 
 void DataLayer::synchronize(){
-    /*for(size_t i = 0; i < threads.size(); i++){
+    for(size_t i = 0; i < threads.size(); i++){
         threads[i].join();
-    }*/
+    }
 	batchId = 1 - batchId;  
     cudaStreamSynchronize(this->stream1);
-    //threads.clear();
+    threads.clear();
 }
 
 void DataLayer::getBatchImageWithStreams(cuMatrixVector<float>& inputs, int start){
-    int id = 1 - this->batchId;
+    /*int id = 1 - this->batchId;
     for(size_t i = 0; i < this->batchImg[id].size(); i++){
         memcpy(this->batchImg[id][i]->getHost(), inputs[i + start]->getHost(), sizeof(float) * this->batchImg[id][i]->getLen());
         this->batchImg[id][i]->toGpu(this->stream1);
     }
-    /*threads.push_back(
+    */
+    threads.push_back(
         std::thread(
         [this, &inputs, start](){
             int id = 1 - this->batchId;
@@ -170,5 +171,5 @@ void DataLayer::getBatchImageWithStreams(cuMatrixVector<float>& inputs, int star
                 this->batchImg[id][i]->toGpu(this->stream1);
             }
         }
-    ));*/
+    ));
 }

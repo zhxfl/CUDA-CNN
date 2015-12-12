@@ -9,9 +9,9 @@ WHITE_NOISE = 0.0;
 BATCH_SIZE = 128;               #test image size should be divided with no remainder#
 CHANNELS = 1;                   #1, 3, 4#
 CROP = 0;                       #0<= crop <=imgSize#
-SCALE = 0;                   #13% of ImgSize#
-ROTATION = 0;                #angle#
-DISTORTION = 0;               #just for mnist#
+SCALE = 12;                   #13% of ImgSize#
+ROTATION = 12;                #angle#
+DISTORTION = 3.4;               #just for mnist#
 HORIZONTAL = false;             #horizontal reflection#
 
 [

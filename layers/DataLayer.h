@@ -8,7 +8,7 @@ ref : ImageNet Classification with Deep Convolutional Neural Networks
 #include "../common/cuMatrix.h"
 #include <vector>
 #include <map>
-//#include <thread>
+#include <thread>
 #include "../common/util.h"
 
 
@@ -59,6 +59,6 @@ private:
 	int batchId;
 	int batch;
 	cudaStream_t stream1;
-//    std::vector<std::thread>threads;
+    std::vector<std::thread>threads;
 };
 #endif
