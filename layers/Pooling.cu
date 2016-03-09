@@ -79,7 +79,7 @@ void Pooling::feedforward()
 	dim3 thread= dim3(threadx, remain);
 
 	if(type == std::string("max")){
-        cudaFuncSetCacheConfig(g_pooling_feedforward_max, cudaFuncCachePreferL1);
+        //cudaFuncSetCacheConfig(g_pooling_feedforward_max, cudaFuncCachePreferL1);
 		g_pooling_feedforward_max<<<block, thread>>>(
 			inputs->getDev(),
 			outputs->getDev(),
