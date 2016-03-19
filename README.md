@@ -5,6 +5,7 @@
 >Document   
 >1.  The simple c version author is <a href="http://eric-yuan.me/cnn/"> Eric </a>   
 >2.  <a href="http://zhxfl.github.io/cuda-cnn_cuda-stream"> Overlap Data Transfers in CUDA </a>   
+>3.  The second version use cudnn is <a href="https://github.com/TanDongXu/CUDA-MCDNN">tdx</a>  
 >
 >Results
 >--------
