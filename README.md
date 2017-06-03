@@ -99,5 +99,5 @@
 >* Author :zhxfl  
 >* Mail   :zhxfl@mail.ustc.edu.cn  
 >* Welcome for any suggest!!   
->* 
+>* Welcome for supporting part time job about deep learning
 
